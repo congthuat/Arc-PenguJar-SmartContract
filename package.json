@@ -1,20 +1,24 @@
 {
-  "name": "hoc-code-arc",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "pengujar-arc",
+  "version": "0.2.0-planning",
+  "private": true,
+  "description": "PenguJar — programmable USDC savings jars on Arc. Codex-first planning baseline.",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "compile": "hardhat compile",
+    "test": "hardhat test test/PenguJar.js test/PenguJarV2.js",
+    "test:legacy": "hardhat test test/PenguJar.js",
+    "deploy:validate": "hardhat run scripts/validate-deployment.js",
+    "deploy:arc": "hardhat run scripts/deploy-pengujar-v2.js --network arcTestnet",
+    "deploy:verify": "hardhat run scripts/verify-pengujar-v2.js --network arcTestnet",
+    "clean": "hardhat clean"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^6.1.2",
     "ethers": "^6.13.0",
     "hardhat": "^2.22.5"
   },
   "dependencies": {
+    "@openzeppelin/contracts": "^5.6.1",
     "dotenv": "^17.4.2"
   }
 }

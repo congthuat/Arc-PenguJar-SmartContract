@@ -1,0 +1,242 @@
+"use client";
+
+import { FormEvent, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { getAddress, type Address, type Hash } from "viem";
+import { useConnection, usePublicClient, useReadContract, useWriteContract } from "wagmi";
+import { arcTestnet } from "viem/chains";
+import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
+import { usePreferences } from "@/hooks/usePreferences";
+import { useWalletBalances } from "@/hooks/useWalletBalances";
+import { erc20BalanceAbi } from "@/lib/abi/erc20";
+import { penguJarV2Abi } from "@/lib/abi/penguJarV2";
+import { ARC_EXPLORER_URL, contractAddress, EXPECTED_USDC_ADDRESS } from "@/lib/config";
+import { parseDepositAmount } from "@/lib/deposit";
+import { formatUsdc, shortAddress } from "@/lib/format";
+import type { Jar } from "@/lib/types";
+
+type Step = "form" | "review" | "checking" | "approval-required" | "approval-wallet" | "approval-submitted" | "approval-confirmed" | "ready" | "deposit-wallet" | "deposit-submitted" | "confirming" | "success" | "error";
+
+export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; open: boolean; onClose(): void; onSuccess(): Promise<void> }) {
+  const { t } = usePreferences();
+  const connection = useConnection();
+  const queryClient = useQueryClient();
+  const verifiedChain = useVerifiedWalletChain();
+  const publicClient = usePublicClient({ chainId: arcTestnet.id });
+  const { writeContractAsync } = useWriteContract();
+  const balances = useWalletBalances(connection.address, connection.isConnected && verifiedChain.isArc);
+  const allowance = useReadContract({
+    address: EXPECTED_USDC_ADDRESS,
+    abi: erc20BalanceAbi,
+    functionName: "allowance",
+    args: connection.address && contractAddress ? [connection.address, contractAddress] : undefined,
+    chainId: arcTestnet.id,
+    query: { enabled: Boolean(open && connection.address && contractAddress && verifiedChain.isArc) },
+  });
+  const [value, setValue] = useState("");
+  const [step, setStep] = useState<Step>("form");
+  const [error, setError] = useState<string>();
+  const [approvalHash, setApprovalHash] = useState<Hash>();
+  const [depositHash, setDepositHash] = useState<Hash>();
+  const amount = useMemo(() => { try { return parseDepositAmount(value); } catch { return undefined; } }, [value]);
+
+  function review(event: FormEvent) {
+    event.preventDefault();
+    try {
+      const parsed = parseDepositAmount(value);
+      if (balances.usdc.data !== undefined && parsed > balances.usdc.data) throw new Error("Deposit exceeds your available USDC balance.");
+      setError(undefined);
+      setStep("review");
+    } catch {
+      setError(t("validation.amount"));
+    }
+  }
+
+  async function checkAllowance() {
+    if (!amount) return;
+    setError(undefined);
+    setStep("checking");
+    try {
+      await assertCurrentOwner(jar.owner, connection.connector, verifiedChain.isArc);
+      assertJarAcceptsDeposits(jar);
+      const [freshAllowance, freshBalance] = await Promise.all([allowance.refetch(), balances.usdc.refetch()]);
+      if (freshBalance.data === undefined || freshBalance.data < amount) throw new Error("Your wallet does not have enough USDC for this deposit.");
+      if ((freshAllowance.data ?? 0n) >= amount) {
+        setStep("ready");
+        return;
+      }
+      setStep("approval-required");
+    } catch (reason) {
+      setError(transactionError(reason, "approval", t));
+      setStep("error");
+    }
+  }
+
+  async function approve() {
+    if (!amount) return;
+    setError(undefined);
+    try {
+      await assertCurrentOwner(jar.owner, connection.connector, verifiedChain.isArc);
+      assertJarAcceptsDeposits(jar);
+      const [freshAllowance, freshBalance] = await Promise.all([allowance.refetch(), balances.usdc.refetch()]);
+      if (freshBalance.data === undefined || freshBalance.data < amount) throw new Error("Your wallet does not have enough USDC for this deposit.");
+      if ((freshAllowance.data ?? 0n) >= amount) {
+        setStep("ready");
+        return;
+      }
+      if (!contractAddress || !connection.address || !publicClient) throw new Error("Deposit configuration is unavailable.");
+
+      setStep("approval-wallet");
+      const hash = await writeContractAsync({
+        address: EXPECTED_USDC_ADDRESS,
+        abi: erc20BalanceAbi,
+        functionName: "approve",
+        args: [contractAddress, amount],
+        account: connection.address,
+        chainId: arcTestnet.id,
+      });
+      setApprovalHash(hash);
+      setStep("approval-submitted");
+      let replacementReason: string | undefined;
+      const receipt = await publicClient.waitForTransactionReceipt({ hash, confirmations: 1, onReplaced: (replacement) => {
+        replacementReason = replacement.reason;
+        setApprovalHash(replacement.transaction.hash);
+      } });
+      if (replacementReason === "cancelled") throw new Error("The approval transaction was cancelled.");
+      if (receipt.status !== "success") throw new Error("The USDC approval reverted.");
+      setStep("approval-confirmed");
+      const confirmedAllowance = await allowance.refetch();
+      if ((confirmedAllowance.data ?? 0n) < amount) throw new Error("The confirmed USDC allowance is still too low.");
+    } catch (reason) {
+      setError(transactionError(reason, "approval", t));
+      setStep("error");
+    }
+  }
+
+  async function deposit() {
+    if (!amount) return;
+    setError(undefined);
+    try {
+      await assertCurrentOwner(jar.owner, connection.connector, verifiedChain.isArc);
+      assertJarAcceptsDeposits(jar);
+      const [freshAllowance, freshBalance] = await Promise.all([allowance.refetch(), balances.usdc.refetch()]);
+      if ((freshAllowance.data ?? 0n) < amount) throw new Error("USDC allowance changed. Check it again before depositing.");
+      if (freshBalance.data === undefined || freshBalance.data < amount) throw new Error("Your wallet no longer has enough USDC.");
+      if (!contractAddress || !connection.address || !publicClient) throw new Error("Deposit configuration is unavailable.");
+
+      setStep("deposit-wallet");
+      const hash = await writeContractAsync({
+        address: contractAddress,
+        abi: penguJarV2Abi,
+        functionName: "depositToJar",
+        args: [jar.id, amount],
+        account: connection.address,
+        chainId: arcTestnet.id,
+      });
+      setDepositHash(hash);
+      setStep("deposit-submitted");
+      setStep("confirming");
+      let replacementReason: string | undefined;
+      const receipt = await publicClient.waitForTransactionReceipt({ hash, confirmations: 1, onReplaced: (replacement) => {
+        replacementReason = replacement.reason;
+        setDepositHash(replacement.transaction.hash);
+      } });
+      if (replacementReason === "cancelled") throw new Error("The deposit transaction was cancelled.");
+      if (receipt.status !== "success") throw new Error("The jar deposit reverted.");
+      await Promise.all([onSuccess(), balances.usdc.refetch(), allowance.refetch(), queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "jar-activity" })]);
+      setStep("success");
+    } catch (reason) {
+      setError(transactionError(reason, "deposit", t));
+      setStep("error");
+    }
+  }
+
+  function close() {
+    if (isBusy(step)) return;
+    setValue("");
+    setStep("form");
+    setError(undefined);
+    setApprovalHash(undefined);
+    setDepositHash(undefined);
+    onClose();
+  }
+
+  if (!open) return null;
+  const expectedBalance = amount === undefined ? undefined : jar.balance + amount;
+
+  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
+    <section className="create-modal deposit-modal" role="dialog" aria-modal="true" aria-labelledby="deposit-title">
+      <div className="modal-header"><div><p className="eyebrow">{t("flow.ownerDeposit")} · {t("jar.number", { id: jar.id.toString() })}</p><h2 id="deposit-title">{t("flow.addTo", { name: jar.name })}</h2></div><button onClick={close} disabled={isBusy(step)} aria-label={t("common.close")}>×</button></div>
+
+      {step === "form" && <form className="create-form" onSubmit={review}>
+        <div className="deposit-summary"><span>{t("flow.currentBalance")}<strong>{formatUsdc(jar.balance)} USDC</strong></span><span>{t("jar.target")}<strong>{formatUsdc(jar.targetAmount)} USDC</strong></span><span>{t("flow.walletBalance")}<strong>{balances.usdc.data === undefined ? t("common.loading") : `${formatUsdc(balances.usdc.data)} USDC`}</strong></span></div>
+        <label>{t("flow.depositAmount")}<div className="unit-input"><input inputMode="decimal" value={value} onChange={(event) => setValue(event.target.value)} placeholder="0.00" autoFocus /><span>USDC</span></div><small>{t("create.amountHelp")}</small></label>
+        {error && <p className="form-alert" role="alert">{error}</p>}
+        <div className="modal-actions"><button type="button" className="cancel-action" onClick={close}>{t("common.cancel")}</button><button type="submit" className="primary-action">{t("flow.reviewDeposit")}</button></div>
+      </form>}
+
+      {step === "review" && amount && expectedBalance !== undefined && <div className="review-panel">
+        <dl><div><dt>{t("actions.deposit")}</dt><dd>{formatUsdc(amount)} USDC</dd></div><div><dt>{t("jar.number", { id: jar.id.toString() })}</dt><dd>{jar.name}</dd></div><div><dt>{t("flow.currentBalance")}</dt><dd>{formatUsdc(jar.balance)} USDC</dd></div><div><dt>{t("flow.expectedBalance")}</dt><dd>{formatUsdc(expectedBalance)} USDC</dd></div><div><dt>{t("wallet.wallet")}</dt><dd>{connection.address ? shortAddress(connection.address) : t("validation.disconnected")}</dd></div><div><dt>{t("wallet.network")}</dt><dd>Arc Testnet</dd></div></dl>
+        <p className="review-note">Arc network gas is paid separately in native USDC. If approval is needed, it will be limited to this deposit amount—never unlimited.</p>
+        <div className="modal-actions"><button className="cancel-action" onClick={() => setStep("form")}>{t("common.back")}</button><button className="primary-action" onClick={() => void checkAllowance()}>{t("flow.checkAllowance")}</button></div>
+      </div>}
+
+      {step === "approval-required" && <TransactionPanel title={t("flow.approvalRequired")} copy={t("flow.approvalExactCopy")} hashes={{ approvalHash }} action={<button className="primary-action standalone-action" onClick={() => void approve()}>{t("flow.approveExact")}</button>} />}
+      {step === "approval-confirmed" && <TransactionPanel title={t("flow.approvalConfirmed")} copy={t("tx.success")} hashes={{ approvalHash }} action={<button className="primary-action standalone-action" onClick={() => setStep("ready")}>{t("flow.continue")}</button>} />}
+      {step === "ready" && <TransactionPanel title={t("flow.readyDeposit")} copy={t("create.waitingCopy")} hashes={{ approvalHash }} action={<button className="primary-action standalone-action" onClick={() => void deposit()}>{t("flow.confirmDeposit")}</button>} />}
+      {step === "success" && <TransactionPanel title={t("flow.depositSuccess")} copy={t("tx.success")} hashes={{ approvalHash, depositHash }} action={<button className="primary-action standalone-action" onClick={close}>{t("flow.updatedJar")}</button>} />}
+      {step === "error" && <TransactionPanel title={t("flow.depositFailed")} copy={error ?? t("tx.failed")} hashes={{ approvalHash, depositHash }} action={<button className="primary-action standalone-action" onClick={() => setStep("review")}>{t("flow.reviewRetry")}</button>} />}
+      {!["form", "review", "approval-required", "approval-confirmed", "ready", "success", "error"].includes(step) && <TransactionPanel title={stepTitle(step, t)} copy={stepCopy(step, t)} hashes={{ approvalHash, depositHash }} />}
+    </section>
+  </div>;
+}
+
+function TransactionPanel({ title, copy, hashes, action }: { title: string; copy: string; hashes: { approvalHash?: Hash; depositHash?: Hash }; action?: React.ReactNode }) {
+  const { t } = usePreferences();
+  return <div className="transaction-state"><span>↻</span><h3>{title}</h3><p>{copy}</p><div className="transaction-links">{hashes.approvalHash && <a href={`${ARC_EXPLORER_URL}/tx/${hashes.approvalHash}`} target="_blank" rel="noreferrer">{t("tx.arcscan")} ↗</a>}{hashes.depositHash && <a href={`${ARC_EXPLORER_URL}/tx/${hashes.depositHash}`} target="_blank" rel="noreferrer">{t("tx.arcscan")} ↗</a>}</div>{action}</div>;
+}
+
+function stepTitle(step: Step, t: ReturnType<typeof usePreferences>["t"]) {
+  const labels: Partial<Record<Step, string>> = { checking: t("flow.checkAllowance"), "approval-wallet": t("tx.waiting"), "approval-submitted": t("tx.submitted"), "approval-confirmed": t("flow.approvalConfirmed"), "deposit-wallet": t("tx.waiting"), "deposit-submitted": t("tx.submitted"), confirming: t("tx.confirming") };
+  return labels[step] ?? "Working…";
+}
+
+function stepCopy(step: Step, t: ReturnType<typeof usePreferences>["t"]) {
+  if (step.startsWith("approval")) return t("flow.approvalExactCopy");
+  if (step === "checking") return t("flow.checkAllowance");
+  return t("create.submittedCopy");
+}
+
+function isBusy(step: Step) {
+  return ["checking", "approval-wallet", "approval-submitted", "deposit-wallet", "deposit-submitted", "confirming"].includes(step);
+}
+
+async function assertCurrentOwner(owner: Address, connector: ReturnType<typeof useConnection>["connector"], verifiedArc: boolean) {
+  if (!connector || !verifiedArc) throw new Error("Switch the connected wallet to Arc Testnet before depositing.");
+  const provider = await connector.getProvider() as { request(args: { method: string }): Promise<unknown> } | undefined;
+  if (!provider) throw new Error("The connected wallet provider is unavailable.");
+  const [accountsValue, providerChainValue, connectorChainId] = await Promise.all([
+    provider.request({ method: "eth_accounts" }),
+    provider.request({ method: "eth_chainId" }),
+    connector.getChainId(),
+  ]);
+  const accounts = Array.isArray(accountsValue) ? accountsValue : [];
+  if (typeof accounts[0] !== "string" || getAddress(accounts[0]) !== getAddress(owner)) throw new Error("Only the jar owner can deposit into this jar.");
+  const providerChainId = typeof providerChainValue === "string" ? Number.parseInt(providerChainValue, 16) : Number(providerChainValue);
+  if (providerChainId !== arcTestnet.id || connectorChainId !== arcTestnet.id) throw new Error("The connected wallet is not verified on Arc Testnet.");
+}
+
+function transactionError(reason: unknown, action: "approval" | "deposit", t: ReturnType<typeof usePreferences>["t"]) {
+  const message = reason instanceof Error ? reason.message : "";
+  if (/reject|denied|4001|replac|cancel/i.test(message)) return t("tx.rejected");
+  if (/balance/i.test(message)) return t("validation.balance");
+  if (/owner/i.test(message)) return t("common.ownerOnly");
+  if (/network|Arc|provider/i.test(message)) return t("wallet.switch");
+  if (/revert|execution/i.test(message)) return t("validation.reverted");
+  return action === "approval" ? t("flow.approvalRequired") : t("tx.rpc");
+}
+
+function assertJarAcceptsDeposits(jar: Jar) {
+  if (jar.closed) throw new Error("This jar is closed and cannot receive deposits.");
+  if (BigInt(Math.floor(Date.now() / 1000)) >= jar.unlockTime) throw new Error("This jar has reached its unlock time and cannot receive deposits.");
+}

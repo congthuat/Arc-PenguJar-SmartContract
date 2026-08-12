@@ -1,4 +1,26 @@
+# Dependencies and generated output
 node_modules/
-.DS_Store
-.env
+frontend/node_modules/
+artifacts/
+cache/
+coverage/
 dist/
+frontend/.next/
+*.tsbuildinfo
+
+# Local environment and secrets
+.env
+.env.local
+.env.*.local
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# Temporary output
+*.log
+frontend/AGENTS.md
+frontend/CLAUDE.md
+
+# OS/editor files
+.DS_Store
+Thumbs.db
