@@ -11,6 +11,9 @@ contract PenguJarV3 is ReentrancyGuard {
     uint256 public constant MAX_NAME_LENGTH = 64;
     uint256 public constant MIN_WITHDRAWAL_DELAY = 1 hours;
     uint256 public constant MAX_WITHDRAWAL_DELAY = 30 days;
+    uint256 public constant GUARDIAN_FREEZE_RECOVERY_DELAY = 7 days;
+    uint256 public constant GUARDIAN_CHANGE_DELAY = 7 days;
+    uint256 public constant OWNER_RECOVERY_DELAY = 7 days;
 
     enum JarMode {
         SAFE,
@@ -37,6 +40,16 @@ contract PenguJarV3 is ReentrancyGuard {
         uint256 withdrawalDelay;
         uint256 withdrawalReadyAt;
         bytes32 metadataCommitment;
+        address guardian;
+        bool frozen;
+        uint256 freezeRecoveryReadyAt;
+        address pendingGuardian;
+        uint256 guardianChangeReadyAt;
+        address recoveryWallet;
+        bool guardianChangeRecoveryApproved;
+        address pendingOwner;
+        uint256 ownerRecoveryReadyAt;
+        bool guardianApprovedOwnerRecovery;
         string name;
     }
 
@@ -67,6 +80,25 @@ contract PenguJarV3 is ReentrancyGuard {
     error WithdrawalRequestMissing(uint256 jarId);
     error WithdrawalRequestAlreadyActive(uint256 jarId);
     error SecurityDelayActive(uint256 jarId, uint256 readyAt);
+    error InvalidGuardian(address guardian);
+    error GuardianNotConfigured(uint256 jarId);
+    error NotJarGuardian(uint256 jarId, address caller);
+    error JarFrozen(uint256 jarId);
+    error JarNotFrozen(uint256 jarId);
+    error FreezeRecoveryActive(uint256 jarId, uint256 readyAt);
+    error GuardianChangeAlreadyPending(uint256 jarId);
+    error GuardianChangeMissing(uint256 jarId);
+    error GuardianChangeDelayActive(uint256 jarId, uint256 readyAt);
+    error GuardianUnchanged(uint256 jarId, address guardian);
+    error InvalidRecoveryWallet(address recoveryWallet);
+    error NotRecoveryWallet(uint256 jarId, address caller);
+    error GuardianChangeNotApproved(uint256 jarId);
+    error OwnerRecoveryAlreadyPending(uint256 jarId);
+    error OwnerRecoveryMissing(uint256 jarId);
+    error InvalidRecoveredOwner(address newOwner);
+    error OwnerRecoveryNotApproved(uint256 jarId);
+    error OwnerRecoveryDelayActive(uint256 jarId, uint256 readyAt);
+    error NotPendingOwner(uint256 jarId, address caller);
 
     event JarCreated(
         uint256 indexed jarId,
@@ -114,6 +146,46 @@ contract PenguJarV3 is ReentrancyGuard {
         uint256 indexed jarId,
         address indexed owner
     );
+    event WithdrawalFrozen(
+        uint256 indexed jarId,
+        address indexed guardian,
+        uint256 recoveryReadyAt
+    );
+    event JarUnfrozen(uint256 indexed jarId, address indexed owner);
+    event GuardianChangeRequested(
+        uint256 indexed jarId,
+        address indexed currentGuardian,
+        address indexed newGuardian,
+        uint256 readyAt
+    );
+    event GuardianChangeCancelled(
+        uint256 indexed jarId,
+        address indexed guardian
+    );
+    event GuardianChanged(
+        uint256 indexed jarId,
+        address indexed oldGuardian,
+        address indexed newGuardian
+    );
+    event GuardianChangeApproved(
+        uint256 indexed jarId,
+        address indexed recoveryWallet
+    );
+    event OwnerRecoveryRequested(
+        uint256 indexed jarId,
+        address indexed recoveryWallet,
+        address indexed newOwner,
+        uint256 readyAt
+    );
+    event OwnerRecoveryApproved(
+        uint256 indexed jarId,
+        address indexed guardian
+    );
+    event OwnerRecovered(
+        uint256 indexed jarId,
+        address indexed oldOwner,
+        address indexed newOwner
+    );
 
     constructor(address usdcAddress) {
         if (usdcAddress == address(0)) revert ZeroAddress();
@@ -134,7 +206,9 @@ contract PenguJarV3 is ReentrancyGuard {
             JarMode.SAFE,
             0,
             PrivacyMode.PUBLIC,
-            bytes32(0)
+            bytes32(0),
+            address(0),
+            address(0)
         );
     }
 
@@ -164,7 +238,36 @@ contract PenguJarV3 is ReentrancyGuard {
             JarMode.SHIELDED,
             withdrawalDelay,
             PrivacyMode.PUBLIC,
-            bytes32(0)
+            bytes32(0),
+            address(0),
+            address(0)
+        );
+    }
+
+    function createGuardianShieldedJar(
+        string calldata name,
+        uint256 targetAmount,
+        uint64 unlockTime,
+        uint256 initialDeposit,
+        uint256 withdrawalDelay,
+        address guardian,
+        address recoveryWallet
+    ) external nonReentrant returns (uint256 jarId) {
+        _validateWithdrawalDelay(withdrawalDelay);
+        _validateGuardian(guardian);
+        _validateRecoveryWallet(recoveryWallet, guardian);
+
+        jarId = _createJar(
+            name,
+            targetAmount,
+            unlockTime,
+            initialDeposit,
+            JarMode.SHIELDED,
+            withdrawalDelay,
+            PrivacyMode.PUBLIC,
+            bytes32(0),
+            guardian,
+            recoveryWallet
         );
     }
 
@@ -185,7 +288,9 @@ contract PenguJarV3 is ReentrancyGuard {
             JarMode.SAFE,
             0,
             PrivacyMode.PRIVATE,
-            metadataCommitment
+            metadataCommitment,
+            address(0),
+            address(0)
         );
     }
 
@@ -217,7 +322,38 @@ contract PenguJarV3 is ReentrancyGuard {
             JarMode.SHIELDED,
             withdrawalDelay,
             PrivacyMode.PRIVATE,
-            metadataCommitment
+            metadataCommitment,
+            address(0),
+            address(0)
+        );
+    }
+
+    function createPrivateGuardianShieldedJar(
+        bytes32 metadataCommitment,
+        uint64 unlockTime,
+        uint256 initialDeposit,
+        uint256 withdrawalDelay,
+        address guardian,
+        address recoveryWallet
+    ) external nonReentrant returns (uint256 jarId) {
+        if (metadataCommitment == bytes32(0)) {
+            revert InvalidMetadataCommitment();
+        }
+        _validateWithdrawalDelay(withdrawalDelay);
+        _validateGuardian(guardian);
+        _validateRecoveryWallet(recoveryWallet, guardian);
+
+        jarId = _createJar(
+            "",
+            0,
+            unlockTime,
+            initialDeposit,
+            JarMode.SHIELDED,
+            withdrawalDelay,
+            PrivacyMode.PRIVATE,
+            metadataCommitment,
+            guardian,
+            recoveryWallet
         );
     }
 
@@ -229,7 +365,9 @@ contract PenguJarV3 is ReentrancyGuard {
         JarMode mode,
         uint256 withdrawalDelay,
         PrivacyMode privacyMode,
-        bytes32 metadataCommitment
+        bytes32 metadataCommitment,
+        address guardian,
+        address recoveryWallet
     ) private returns (uint256 jarId) {
         if (privacyMode == PrivacyMode.PUBLIC) {
             uint256 nameLength = bytes(name).length;
@@ -252,6 +390,16 @@ contract PenguJarV3 is ReentrancyGuard {
             withdrawalDelay: withdrawalDelay,
             withdrawalReadyAt: 0,
             metadataCommitment: metadataCommitment,
+            guardian: guardian,
+            frozen: false,
+            freezeRecoveryReadyAt: 0,
+            pendingGuardian: address(0),
+            guardianChangeReadyAt: 0,
+            recoveryWallet: recoveryWallet,
+            guardianChangeRecoveryApproved: false,
+            pendingOwner: address(0),
+            ownerRecoveryReadyAt: 0,
+            guardianApprovedOwnerRecovery: false,
             name: name
         });
         _ownerJarIds[msg.sender].push(jarId);
@@ -272,6 +420,7 @@ contract PenguJarV3 is ReentrancyGuard {
         if (jar.mode != JarMode.SHIELDED) {
             revert InvalidJarMode(jarId, JarMode.SHIELDED);
         }
+        if (jar.frozen) revert JarFrozen(jarId);
         if (block.timestamp < jar.unlockTime) {
             revert JarStillLocked(jarId, jar.unlockTime);
         }
@@ -283,6 +432,199 @@ contract PenguJarV3 is ReentrancyGuard {
         jar.withdrawalReadyAt = readyAt;
 
         emit WithdrawalRequested(jarId, msg.sender, block.timestamp, readyAt);
+    }
+
+    function freezeWithdrawal(uint256 jarId) external {
+        Jar storage jar = _getExistingJar(jarId);
+        if (msg.sender != jar.guardian) revert NotJarGuardian(jarId, msg.sender);
+        if (jar.closed) revert JarClosed(jarId);
+        if (jar.mode != JarMode.SHIELDED) {
+            revert InvalidJarMode(jarId, JarMode.SHIELDED);
+        }
+        if (jar.guardian == address(0)) revert GuardianNotConfigured(jarId);
+        if (jar.frozen) revert JarFrozen(jarId);
+        if (jar.withdrawalReadyAt == 0) {
+            revert WithdrawalRequestMissing(jarId);
+        }
+
+        uint256 recoveryReadyAt = block.timestamp + GUARDIAN_FREEZE_RECOVERY_DELAY;
+        jar.frozen = true;
+        jar.withdrawalReadyAt = 0;
+        jar.freezeRecoveryReadyAt = recoveryReadyAt;
+        jar.pendingGuardian = address(0);
+        jar.guardianChangeReadyAt = 0;
+        jar.guardianChangeRecoveryApproved = false;
+
+        emit WithdrawalFrozen(jarId, msg.sender, recoveryReadyAt);
+    }
+
+    function unfreezeJar(uint256 jarId) external {
+        Jar storage jar = _getExistingJar(jarId);
+        if (msg.sender != jar.owner) revert NotJarOwner(jarId, msg.sender);
+        if (jar.closed) revert JarClosed(jarId);
+        if (!jar.frozen) revert JarNotFrozen(jarId);
+        if (jar.pendingOwner != address(0)) {
+            revert OwnerRecoveryAlreadyPending(jarId);
+        }
+        if (block.timestamp < jar.freezeRecoveryReadyAt) {
+            revert FreezeRecoveryActive(jarId, jar.freezeRecoveryReadyAt);
+        }
+
+        jar.frozen = false;
+        jar.freezeRecoveryReadyAt = 0;
+
+        emit JarUnfrozen(jarId, msg.sender);
+    }
+
+    function requestGuardianChange(uint256 jarId, address newGuardian) external {
+        Jar storage jar = _getExistingJar(jarId);
+        if (msg.sender != jar.owner) revert NotJarOwner(jarId, msg.sender);
+        _requireGuardianJar(jarId, jar);
+        if (jar.frozen) revert JarFrozen(jarId);
+        if (
+            newGuardian == address(0) ||
+            newGuardian == jar.owner ||
+            newGuardian == jar.recoveryWallet
+        ) {
+            revert InvalidGuardian(newGuardian);
+        }
+        if (newGuardian == jar.guardian) {
+            revert GuardianUnchanged(jarId, newGuardian);
+        }
+        if (jar.pendingGuardian != address(0)) {
+            revert GuardianChangeAlreadyPending(jarId);
+        }
+
+        uint256 readyAt = block.timestamp + GUARDIAN_CHANGE_DELAY;
+        jar.pendingGuardian = newGuardian;
+        jar.guardianChangeReadyAt = readyAt;
+        jar.guardianChangeRecoveryApproved = false;
+
+        emit GuardianChangeRequested(jarId, jar.guardian, newGuardian, readyAt);
+    }
+
+    function approveGuardianChange(uint256 jarId) external {
+        Jar storage jar = _getExistingJar(jarId);
+        if (msg.sender != jar.recoveryWallet) {
+            revert NotRecoveryWallet(jarId, msg.sender);
+        }
+        _requireGuardianJar(jarId, jar);
+        if (jar.frozen) revert JarFrozen(jarId);
+        if (jar.pendingGuardian == address(0)) revert GuardianChangeMissing(jarId);
+
+        jar.guardianChangeRecoveryApproved = true;
+
+        emit GuardianChangeApproved(jarId, msg.sender);
+    }
+
+    function cancelGuardianChange(uint256 jarId) external {
+        Jar storage jar = _getExistingJar(jarId);
+        if (msg.sender != jar.owner) revert NotJarOwner(jarId, msg.sender);
+        _requireGuardianJar(jarId, jar);
+        if (jar.frozen) revert JarFrozen(jarId);
+        address pendingGuardian = jar.pendingGuardian;
+        if (pendingGuardian == address(0)) revert GuardianChangeMissing(jarId);
+
+        jar.pendingGuardian = address(0);
+        jar.guardianChangeReadyAt = 0;
+        jar.guardianChangeRecoveryApproved = false;
+
+        emit GuardianChangeCancelled(jarId, pendingGuardian);
+    }
+
+    function executeGuardianChange(uint256 jarId) external {
+        Jar storage jar = _getExistingJar(jarId);
+        if (msg.sender != jar.owner) revert NotJarOwner(jarId, msg.sender);
+        _requireGuardianJar(jarId, jar);
+        if (jar.frozen) revert JarFrozen(jarId);
+        address newGuardian = jar.pendingGuardian;
+        if (newGuardian == address(0)) revert GuardianChangeMissing(jarId);
+        if (jar.withdrawalReadyAt != 0) {
+            revert WithdrawalRequestAlreadyActive(jarId);
+        }
+        if (!jar.guardianChangeRecoveryApproved) {
+            revert GuardianChangeNotApproved(jarId);
+        }
+        if (block.timestamp < jar.guardianChangeReadyAt) {
+            revert GuardianChangeDelayActive(jarId, jar.guardianChangeReadyAt);
+        }
+
+        address oldGuardian = jar.guardian;
+        jar.guardian = newGuardian;
+        jar.pendingGuardian = address(0);
+        jar.guardianChangeReadyAt = 0;
+        jar.guardianChangeRecoveryApproved = false;
+
+        emit GuardianChanged(jarId, oldGuardian, newGuardian);
+    }
+
+    function requestOwnerRecovery(uint256 jarId, address newOwner) external {
+        Jar storage jar = _getExistingJar(jarId);
+        if (msg.sender != jar.recoveryWallet) {
+            revert NotRecoveryWallet(jarId, msg.sender);
+        }
+        if (jar.closed) revert JarClosed(jarId);
+        if (!jar.frozen) revert JarNotFrozen(jarId);
+        if (
+            newOwner == address(0) ||
+            newOwner == jar.owner ||
+            newOwner == jar.guardian ||
+            newOwner == jar.recoveryWallet
+        ) {
+            revert InvalidRecoveredOwner(newOwner);
+        }
+        if (jar.pendingOwner != address(0)) {
+            revert OwnerRecoveryAlreadyPending(jarId);
+        }
+
+        uint256 readyAt = block.timestamp + OWNER_RECOVERY_DELAY;
+        jar.pendingOwner = newOwner;
+        jar.ownerRecoveryReadyAt = readyAt;
+        jar.guardianApprovedOwnerRecovery = false;
+
+        emit OwnerRecoveryRequested(jarId, msg.sender, newOwner, readyAt);
+    }
+
+    function approveOwnerRecovery(uint256 jarId) external {
+        Jar storage jar = _getExistingJar(jarId);
+        if (msg.sender != jar.guardian) revert NotJarGuardian(jarId, msg.sender);
+        if (jar.closed) revert JarClosed(jarId);
+        if (!jar.frozen) revert JarNotFrozen(jarId);
+        if (jar.pendingOwner == address(0)) revert OwnerRecoveryMissing(jarId);
+
+        jar.guardianApprovedOwnerRecovery = true;
+
+        emit OwnerRecoveryApproved(jarId, msg.sender);
+    }
+
+    function executeOwnerRecovery(uint256 jarId) external {
+        Jar storage jar = _getExistingJar(jarId);
+        address newOwner = jar.pendingOwner;
+        if (msg.sender != newOwner) revert NotPendingOwner(jarId, msg.sender);
+        if (jar.closed) revert JarClosed(jarId);
+        if (!jar.frozen) revert JarNotFrozen(jarId);
+        if (newOwner == address(0)) revert OwnerRecoveryMissing(jarId);
+        if (!jar.guardianApprovedOwnerRecovery) {
+            revert OwnerRecoveryNotApproved(jarId);
+        }
+        if (block.timestamp < jar.ownerRecoveryReadyAt) {
+            revert OwnerRecoveryDelayActive(jarId, jar.ownerRecoveryReadyAt);
+        }
+
+        address oldOwner = jar.owner;
+        jar.owner = newOwner;
+        jar.pendingOwner = address(0);
+        jar.ownerRecoveryReadyAt = 0;
+        jar.guardianApprovedOwnerRecovery = false;
+        jar.withdrawalReadyAt = 0;
+        jar.pendingGuardian = address(0);
+        jar.guardianChangeReadyAt = 0;
+        jar.guardianChangeRecoveryApproved = false;
+        jar.freezeRecoveryReadyAt = 0;
+        jar.frozen = false;
+        _ownerJarIds[newOwner].push(jarId);
+
+        emit OwnerRecovered(jarId, oldOwner, newOwner);
     }
 
     function cancelWithdrawalRequest(uint256 jarId) external {
@@ -333,6 +675,7 @@ contract PenguJarV3 is ReentrancyGuard {
         Jar storage jar = _getExistingJar(jarId);
         if (msg.sender != jar.owner) revert NotJarOwner(jarId, msg.sender);
         if (jar.closed) revert JarClosed(jarId);
+        if (jar.frozen) revert JarFrozen(jarId);
         if (block.timestamp < jar.unlockTime) {
             revert JarStillLocked(jarId, jar.unlockTime);
         }
@@ -391,5 +734,45 @@ contract PenguJarV3 is ReentrancyGuard {
     function _requireActive(uint256 jarId, Jar storage jar) private view {
         if (jar.closed) revert JarClosed(jarId);
         if (block.timestamp >= jar.unlockTime) revert JarMatured(jarId);
+    }
+
+    function _validateWithdrawalDelay(uint256 withdrawalDelay) private pure {
+        if (
+            withdrawalDelay < MIN_WITHDRAWAL_DELAY ||
+            withdrawalDelay > MAX_WITHDRAWAL_DELAY
+        ) {
+            revert InvalidWithdrawalDelay(
+                withdrawalDelay,
+                MIN_WITHDRAWAL_DELAY,
+                MAX_WITHDRAWAL_DELAY
+            );
+        }
+    }
+
+    function _validateGuardian(address guardian) private view {
+        if (guardian == address(0) || guardian == msg.sender) {
+            revert InvalidGuardian(guardian);
+        }
+    }
+
+    function _validateRecoveryWallet(
+        address recoveryWallet,
+        address guardian
+    ) private view {
+        if (
+            recoveryWallet == address(0) ||
+            recoveryWallet == msg.sender ||
+            recoveryWallet == guardian
+        ) {
+            revert InvalidRecoveryWallet(recoveryWallet);
+        }
+    }
+
+    function _requireGuardianJar(uint256 jarId, Jar storage jar) private view {
+        if (jar.closed) revert JarClosed(jarId);
+        if (jar.mode != JarMode.SHIELDED) {
+            revert InvalidJarMode(jarId, JarMode.SHIELDED);
+        }
+        if (jar.guardian == address(0)) revert GuardianNotConfigured(jarId);
     }
 }
