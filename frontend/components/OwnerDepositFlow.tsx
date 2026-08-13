@@ -9,7 +9,7 @@ import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
 import { usePreferences } from "@/hooks/usePreferences";
 import { useWalletBalances } from "@/hooks/useWalletBalances";
 import { erc20BalanceAbi } from "@/lib/abi/erc20";
-import { penguJarV2Abi } from "@/lib/abi/penguJarV2";
+import { penguJarV3Abi } from "@/lib/abi/penguJarV3";
 import { ARC_EXPLORER_URL, contractAddress, EXPECTED_USDC_ADDRESS } from "@/lib/config";
 import { parseDepositAmount } from "@/lib/deposit";
 import { formatUsdc, shortAddress } from "@/lib/format";
@@ -127,7 +127,7 @@ export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; 
       setStep("deposit-wallet");
       const hash = await writeContractAsync({
         address: contractAddress,
-        abi: penguJarV2Abi,
+        abi: penguJarV3Abi,
         functionName: "depositToJar",
         args: [jar.id, amount],
         account: connection.address,

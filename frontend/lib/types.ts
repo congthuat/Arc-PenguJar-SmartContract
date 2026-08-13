@@ -8,6 +8,11 @@ export type Jar = {
   unlockTime: bigint;
   createdAt: bigint;
   closed: boolean;
+  mode: number | bigint;
+  privacyMode: number | bigint;
+  withdrawalDelay: bigint;
+  withdrawalReadyAt: bigint;
+  metadataCommitment: `0x${string}`;
   name: string;
   totalContributed: bigint;
 };

@@ -9,7 +9,7 @@ import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
 import { usePreferences } from "@/hooks/usePreferences";
 import { useWalletBalances } from "@/hooks/useWalletBalances";
 import { erc20BalanceAbi } from "@/lib/abi/erc20";
-import { penguJarV2Abi } from "@/lib/abi/penguJarV2";
+import { penguJarV3Abi } from "@/lib/abi/penguJarV3";
 import { ARC_EXPLORER_URL, contractAddress, EXPECTED_USDC_ADDRESS } from "@/lib/config";
 import { parseContributionAmount } from "@/lib/deposit";
 import { formatUsdc, shortAddress } from "@/lib/format";
@@ -105,14 +105,14 @@ export function SharedContributionFlow({ jar, open, onClose, onSuccess }: { jar:
       if (freshBalance.data === undefined || freshBalance.data < amount) throw new Error("Your wallet no longer has enough USDC.");
       if (!contractAddress || !publicClient) throw new Error("Contribution configuration is unavailable.");
       const [onchainJarBefore, latestBlock] = await Promise.all([
-        publicClient.readContract({ address: contractAddress, abi: penguJarV2Abi, functionName: "getJar", args: [jar.id] }),
+        publicClient.readContract({ address: contractAddress, abi: penguJarV3Abi, functionName: "getJar", args: [jar.id] }),
         publicClient.getBlock({ blockTag: "latest" }),
       ]);
       if (getAddress(onchainJarBefore.owner) !== getAddress(jar.owner)) throw new Error("Jar ownership changed; contribution was stopped.");
       if (onchainJarBefore.closed || latestBlock.timestamp >= onchainJarBefore.unlockTime) throw new Error("This jar can no longer receive contributions.");
 
       setStep("contribution-wallet");
-      const hash = await writeContractAsync({ address: contractAddress, abi: penguJarV2Abi, functionName: "contributeToJar", args: [jar.id, amount], account: contributor, chainId: arcTestnet.id });
+      const hash = await writeContractAsync({ address: contractAddress, abi: penguJarV3Abi, functionName: "contributeToJar", args: [jar.id, amount], account: contributor, chainId: arcTestnet.id });
       setContributionHash(hash);
       setStep("contribution-submitted");
       setStep("confirming");
@@ -120,7 +120,7 @@ export function SharedContributionFlow({ jar, open, onClose, onSuccess }: { jar:
       const receipt = await publicClient.waitForTransactionReceipt({ hash, confirmations: 1, onReplaced: (replacement) => { replacementReason = replacement.reason; setContributionHash(replacement.transaction.hash); } });
       if (replacementReason === "cancelled") throw new Error("The contribution transaction was cancelled.");
       if (receipt.status !== "success") throw new Error("The contribution reverted.");
-      const onchainJarAfter = await publicClient.readContract({ address: contractAddress, abi: penguJarV2Abi, functionName: "getJar", args: [jar.id] });
+      const onchainJarAfter = await publicClient.readContract({ address: contractAddress, abi: penguJarV3Abi, functionName: "getJar", args: [jar.id] });
       if (getAddress(onchainJarAfter.owner) !== getAddress(jar.owner)) throw new Error("Post-contribution ownership verification failed.");
       await Promise.all([onSuccess(), balances.usdc.refetch(), allowance.refetch(), queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "jar-activity" })]);
       setStep("success");

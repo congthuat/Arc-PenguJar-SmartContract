@@ -20,6 +20,7 @@ import { usePreferences } from "@/hooks/usePreferences";
 import { useJarActivity } from "@/hooks/useJarActivity";
 import { JarActivity } from "./JarActivity";
 import { ShareJar } from "./ShareJar";
+import { PrivateMetadataPanel } from "./PrivateMetadataPanel";
 
 export function JarDetail({ jarIdParam }: { jarIdParam: string }) {
   const { t } = usePreferences();
@@ -74,6 +75,7 @@ export function JarDetail({ jarIdParam }: { jarIdParam: string }) {
         <div className="detail-title"><span className={`status-pill ${status.toLowerCase()}`}>{statusLabel}</span><p className="eyebrow">{t("jar.number", { id: jar.id.toString() })}</p><h1>{jar.name}</h1><p>{t("jar.created", { date: formatDate(jar.createdAt) })} · {jar.totalContributed > 0n ? t("jar.sharedActivity") : t("jar.personal")}</p><ShareJar jar={jar} /></div>
         <div className="detail-mascot" aria-hidden="true"><span>•ᴗ•</span></div>
       </section>
+      <PrivateMetadataPanel jar={jar} />
       <section className="detail-grid">
         <article className="balance-card"><p>{t("jar.saved")}</p><div><strong>{formatUsdc(jar.balance)}</strong><span>USDC</span></div><div className="detail-progress-label"><span>{t("jar.percentSaved", { percent: progress.toFixed(1) })} · {t("jar.target")} {formatUsdc(jar.targetAmount)} USDC</span><span>{statusLabel}</span></div><ProgressBar value={progress} /></article>
         <article className="facts-card"><div><span>{t("jar.unlockDate")}</span><strong>{formatDate(jar.unlockTime)}</strong><small>{status === "Locked" ? t("jar.lockedUntil") : statusLabel}</small></div><div><span>{t("jar.owner")}</span><strong title={jar.owner}>{shortAddress(jar.owner)}</strong><small>{t("jar.ownerCanWithdraw")}</small></div><div><span>{t("jar.shared")}</span><strong>{formatUsdc(jar.totalContributed)} USDC</strong><small>{t("jar.sentContribution")}</small></div><div><span>{t("jar.yourShared")}</span><strong>{viewerContribution === undefined ? "—" : `${formatUsdc(viewerContribution)} USDC`}</strong><small>{viewer ? shortAddress(viewer) : t("jar.connectToView")}</small></div></article>

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { usePublicClient } from "wagmi";
 import { arcTestnet } from "viem/chains";
 import { decodeEventLog, encodeEventTopics, toHex, type Hex } from "viem";
-import { penguJarV2Abi } from "@/lib/abi/penguJarV2";
+import { penguJarV3Abi } from "@/lib/abi/penguJarV3";
 import { contractAddress, PENGUJAR_DEPLOYMENT_BLOCK } from "@/lib/config";
 import type { JarActivityItem } from "@/lib/types";
 
@@ -48,7 +48,7 @@ export function useJarActivity(jarId?: bigint) {
         const latestBlock = await queuedRpc(() => publicClient.getBlockNumber());
         const logs: ActivityLog[] = [];
         const eventNames = ["JarCreated", "JarDeposited", "JarContributed", "JarWithdrawn"] as const;
-        const eventTopics = eventNames.map((eventName) => encodeEventTopics({ abi: penguJarV2Abi, eventName })[0]);
+        const eventTopics = eventNames.map((eventName) => encodeEventTopics({ abi: penguJarV3Abi, eventName })[0]);
         const jarTopic = toHex(jarId, { size: 32 });
 
         async function fetchActivityRange(fromBlock: bigint, toBlock: bigint): Promise<ActivityLog[]> {
@@ -64,7 +64,7 @@ export function useJarActivity(jarId?: bigint) {
                 }],
               })) as RawRpcLog[];
               return eventLogs.map((log) => {
-                const decoded = decodeEventLog({ abi: penguJarV2Abi, data: log.data, topics: log.topics });
+                const decoded = decodeEventLog({ abi: penguJarV3Abi, data: log.data, topics: log.topics });
                 return {
                   eventName: decoded.eventName,
                   args: decoded.args as Record<string, unknown>,

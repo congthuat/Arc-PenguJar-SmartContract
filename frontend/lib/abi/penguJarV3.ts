@@ -1,4 +1,14 @@
-export const penguJarV2Abi = [
+export const penguJarV3Abi = [
+  {
+    type: "event",
+    name: "JarPrivacyConfigured",
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: "jarId", type: "uint256" },
+      { indexed: false, name: "privacyMode", type: "uint8" },
+      { indexed: false, name: "metadataCommitment", type: "bytes32" },
+    ],
+  },
   {
     type: "event",
     name: "JarWithdrawn",
@@ -59,6 +69,42 @@ export const penguJarV2Abi = [
   },
   {
     type: "function",
+    name: "createShieldedJar",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "name", type: "string" },
+      { name: "targetAmount", type: "uint256" },
+      { name: "unlockTime", type: "uint64" },
+      { name: "initialDeposit", type: "uint256" },
+      { name: "withdrawalDelay", type: "uint256" },
+    ],
+    outputs: [{ name: "jarId", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "createPrivateJar",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "metadataCommitment", type: "bytes32" },
+      { name: "unlockTime", type: "uint64" },
+      { name: "initialDeposit", type: "uint256" },
+    ],
+    outputs: [{ name: "jarId", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "createPrivateShieldedJar",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "metadataCommitment", type: "bytes32" },
+      { name: "unlockTime", type: "uint64" },
+      { name: "initialDeposit", type: "uint256" },
+      { name: "withdrawalDelay", type: "uint256" },
+    ],
+    outputs: [{ name: "jarId", type: "uint256" }],
+  },
+  {
+    type: "function",
     name: "depositToJar",
     stateMutability: "nonpayable",
     inputs: [
@@ -115,6 +161,11 @@ export const penguJarV2Abi = [
           { name: "unlockTime", type: "uint64", internalType: "uint64" },
           { name: "createdAt", type: "uint64", internalType: "uint64" },
           { name: "closed", type: "bool", internalType: "bool" },
+          { name: "mode", type: "uint8", internalType: "enum PenguJarV3.JarMode" },
+          { name: "privacyMode", type: "uint8", internalType: "enum PenguJarV3.PrivacyMode" },
+          { name: "withdrawalDelay", type: "uint256", internalType: "uint256" },
+          { name: "withdrawalReadyAt", type: "uint256", internalType: "uint256" },
+          { name: "metadataCommitment", type: "bytes32", internalType: "bytes32" },
           { name: "name", type: "string", internalType: "string" },
         ],
       },

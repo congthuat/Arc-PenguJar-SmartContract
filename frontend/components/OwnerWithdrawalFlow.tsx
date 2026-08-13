@@ -6,7 +6,7 @@ import { getAddress, type Hash } from "viem";
 import { useConnection, usePublicClient, useWriteContract, type Connector } from "wagmi";
 import { arcTestnet } from "viem/chains";
 import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
-import { penguJarV2Abi } from "@/lib/abi/penguJarV2";
+import { penguJarV3Abi } from "@/lib/abi/penguJarV3";
 import { ARC_EXPLORER_URL, contractAddress } from "@/lib/config";
 import { formatDate, formatUsdc, shortAddress } from "@/lib/format";
 import type { Jar } from "@/lib/types";
@@ -32,7 +32,7 @@ export function OwnerWithdrawalFlow({ jar, open, onClose, onSuccess }: { jar: Ja
       if (!contractAddress || !publicClient) throw new Error("Withdrawal configuration is unavailable.");
 
       const [freshJar, latestBlock] = await Promise.all([
-        publicClient.readContract({ address: contractAddress, abi: penguJarV2Abi, functionName: "getJar", args: [jar.id] }),
+        publicClient.readContract({ address: contractAddress, abi: penguJarV3Abi, functionName: "getJar", args: [jar.id] }),
         publicClient.getBlock({ blockTag: "latest" }),
       ]);
       if (getAddress(freshJar.owner) !== getAddress(owner)) throw new Error("Only the jar owner can withdraw.");
@@ -43,7 +43,7 @@ export function OwnerWithdrawalFlow({ jar, open, onClose, onSuccess }: { jar: Ja
       setStep("wallet");
       const submittedHash = await writeContractAsync({
         address: contractAddress,
-        abi: penguJarV2Abi,
+        abi: penguJarV3Abi,
         functionName: "withdrawJar",
         args: [jar.id],
         account: owner,
@@ -64,7 +64,7 @@ export function OwnerWithdrawalFlow({ jar, open, onClose, onSuccess }: { jar: Ja
       if (replacementReason === "cancelled") throw new Error("The withdrawal transaction was cancelled.");
       if (receipt.status !== "success") throw new Error("The withdrawal reverted on Arc.");
 
-      const withdrawnJar = await publicClient.readContract({ address: contractAddress, abi: penguJarV2Abi, functionName: "getJar", args: [jar.id] });
+      const withdrawnJar = await publicClient.readContract({ address: contractAddress, abi: penguJarV3Abi, functionName: "getJar", args: [jar.id] });
       if (!withdrawnJar.closed || withdrawnJar.balance !== 0n) throw new Error("Arc confirmed the transaction, but the closed jar state could not be verified.");
       if (getAddress(withdrawnJar.owner) !== getAddress(jar.owner)) throw new Error("Post-withdrawal owner verification failed.");
       await Promise.all([onSuccess(), queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "jar-activity" })]);

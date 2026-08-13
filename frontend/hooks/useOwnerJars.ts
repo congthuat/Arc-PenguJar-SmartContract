@@ -2,14 +2,14 @@
 
 import { useReadContract, useReadContracts } from "wagmi";
 import type { Address } from "viem";
-import { penguJarV2Abi } from "@/lib/abi/penguJarV2";
+import { penguJarV3Abi } from "@/lib/abi/penguJarV3";
 import { contractAddress } from "@/lib/config";
 import type { Jar, RawJar } from "@/lib/types";
 
 export function useOwnerJars(owner?: Address) {
   const idsQuery = useReadContract({
     address: contractAddress,
-    abi: penguJarV2Abi,
+    abi: penguJarV3Abi,
     functionName: "getOwnerJarIds",
     args: owner ? [owner] : undefined,
     query: { enabled: Boolean(contractAddress && owner) },
@@ -19,13 +19,13 @@ export function useOwnerJars(owner?: Address) {
   const contracts = ids.flatMap((id) => [
     {
       address: contractAddress!,
-      abi: penguJarV2Abi,
+      abi: penguJarV3Abi,
       functionName: "getJar" as const,
       args: [id] as const,
     },
     {
       address: contractAddress!,
-      abi: penguJarV2Abi,
+      abi: penguJarV3Abi,
       functionName: "getTotalContributed" as const,
       args: [id] as const,
     },
@@ -51,6 +51,11 @@ export function useOwnerJars(owner?: Address) {
         unlockTime: raw.unlockTime,
         createdAt: raw.createdAt,
         closed: raw.closed,
+        mode: raw.mode,
+        privacyMode: raw.privacyMode,
+        withdrawalDelay: raw.withdrawalDelay,
+        withdrawalReadyAt: raw.withdrawalReadyAt,
+        metadataCommitment: raw.metadataCommitment,
         name: raw.name,
         totalContributed: contributionResult.result as bigint,
       });

@@ -10,7 +10,7 @@ import { StatePanel } from "./StatePanel";
 import { useOwnerJars } from "@/hooks/useOwnerJars";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
-import { penguJarV2Abi } from "@/lib/abi/penguJarV2";
+import { penguJarV3Abi } from "@/lib/abi/penguJarV3";
 import { contractAddress, contractAddressError, EXPECTED_USDC_ADDRESS } from "@/lib/config";
 import { formatUsdc, jarStatus } from "@/lib/format";
 import { usePreferences } from "@/hooks/usePreferences";
@@ -34,7 +34,7 @@ export function Dashboard({ initialOwner }: { initialOwner?: string }) {
   const refetchAfterCreate = useCallback(async () => { await refetch(); }, [refetch]);
   const usdcQuery = useReadContract({
     address: contractAddress,
-    abi: penguJarV2Abi,
+    abi: penguJarV3Abi,
     functionName: "USDC",
     query: { enabled: Boolean(contractAddress) },
   });

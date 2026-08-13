@@ -2,7 +2,7 @@
 
 import { useReadContracts } from "wagmi";
 import type { Address } from "viem";
-import { penguJarV2Abi } from "@/lib/abi/penguJarV2";
+import { penguJarV3Abi } from "@/lib/abi/penguJarV3";
 import { contractAddress } from "@/lib/config";
 import type { Jar, RawJar } from "@/lib/types";
 
@@ -12,13 +12,13 @@ export function useJar(jarId?: bigint, viewer?: Address) {
     ? [
         {
           address: contractAddress!,
-          abi: penguJarV2Abi,
+          abi: penguJarV3Abi,
           functionName: "getJar" as const,
           args: [jarId!] as const,
         },
         {
           address: contractAddress!,
-          abi: penguJarV2Abi,
+          abi: penguJarV3Abi,
           functionName: "getTotalContributed" as const,
           args: [jarId!] as const,
         },
@@ -26,7 +26,7 @@ export function useJar(jarId?: bigint, viewer?: Address) {
           ? [
               {
                 address: contractAddress!,
-                abi: penguJarV2Abi,
+                abi: penguJarV3Abi,
                 functionName: "getContribution" as const,
                 args: [jarId!, viewer] as const,
               },
@@ -51,6 +51,11 @@ export function useJar(jarId?: bigint, viewer?: Address) {
       unlockTime: raw.unlockTime,
       createdAt: raw.createdAt,
       closed: raw.closed,
+      mode: raw.mode,
+      privacyMode: raw.privacyMode,
+      withdrawalDelay: raw.withdrawalDelay,
+      withdrawalReadyAt: raw.withdrawalReadyAt,
+      metadataCommitment: raw.metadataCommitment,
       name: raw.name,
       totalContributed: totalResult.result as bigint,
     };
