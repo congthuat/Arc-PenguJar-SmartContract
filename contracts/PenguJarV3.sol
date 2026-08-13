@@ -17,6 +17,11 @@ contract PenguJarV3 is ReentrancyGuard {
         SHIELDED
     }
 
+    enum PrivacyMode {
+        PUBLIC,
+        PRIVATE
+    }
+
     IERC20 public immutable USDC;
     uint256 public nextJarId = 1;
 
@@ -28,8 +33,10 @@ contract PenguJarV3 is ReentrancyGuard {
         uint64 createdAt;
         bool closed;
         JarMode mode;
+        PrivacyMode privacyMode;
         uint256 withdrawalDelay;
         uint256 withdrawalReadyAt;
+        bytes32 metadataCommitment;
         string name;
     }
 
@@ -50,6 +57,7 @@ contract PenguJarV3 is ReentrancyGuard {
     error JarMatured(uint256 jarId);
     error JarStillLocked(uint256 jarId, uint256 unlockTime);
     error EmptyJar(uint256 jarId);
+    error InvalidMetadataCommitment();
     error InvalidWithdrawalDelay(
         uint256 withdrawalDelay,
         uint256 minimumDelay,
@@ -71,6 +79,11 @@ contract PenguJarV3 is ReentrancyGuard {
         uint256 indexed jarId,
         JarMode mode,
         uint256 withdrawalDelay
+    );
+    event JarPrivacyConfigured(
+        uint256 indexed jarId,
+        PrivacyMode privacyMode,
+        bytes32 metadataCommitment
     );
     event JarDeposited(
         uint256 indexed jarId,
@@ -119,7 +132,9 @@ contract PenguJarV3 is ReentrancyGuard {
             unlockTime,
             initialDeposit,
             JarMode.SAFE,
-            0
+            0,
+            PrivacyMode.PUBLIC,
+            bytes32(0)
         );
     }
 
@@ -147,22 +162,81 @@ contract PenguJarV3 is ReentrancyGuard {
             unlockTime,
             initialDeposit,
             JarMode.SHIELDED,
-            withdrawalDelay
+            withdrawalDelay,
+            PrivacyMode.PUBLIC,
+            bytes32(0)
+        );
+    }
+
+    function createPrivateJar(
+        bytes32 metadataCommitment,
+        uint64 unlockTime,
+        uint256 initialDeposit
+    ) external nonReentrant returns (uint256 jarId) {
+        if (metadataCommitment == bytes32(0)) {
+            revert InvalidMetadataCommitment();
+        }
+
+        jarId = _createJar(
+            "",
+            0,
+            unlockTime,
+            initialDeposit,
+            JarMode.SAFE,
+            0,
+            PrivacyMode.PRIVATE,
+            metadataCommitment
+        );
+    }
+
+    function createPrivateShieldedJar(
+        bytes32 metadataCommitment,
+        uint64 unlockTime,
+        uint256 initialDeposit,
+        uint256 withdrawalDelay
+    ) external nonReentrant returns (uint256 jarId) {
+        if (metadataCommitment == bytes32(0)) {
+            revert InvalidMetadataCommitment();
+        }
+        if (
+            withdrawalDelay < MIN_WITHDRAWAL_DELAY ||
+            withdrawalDelay > MAX_WITHDRAWAL_DELAY
+        ) {
+            revert InvalidWithdrawalDelay(
+                withdrawalDelay,
+                MIN_WITHDRAWAL_DELAY,
+                MAX_WITHDRAWAL_DELAY
+            );
+        }
+
+        jarId = _createJar(
+            "",
+            0,
+            unlockTime,
+            initialDeposit,
+            JarMode.SHIELDED,
+            withdrawalDelay,
+            PrivacyMode.PRIVATE,
+            metadataCommitment
         );
     }
 
     function _createJar(
-        string calldata name,
+        string memory name,
         uint256 targetAmount,
         uint64 unlockTime,
         uint256 initialDeposit,
         JarMode mode,
-        uint256 withdrawalDelay
+        uint256 withdrawalDelay,
+        PrivacyMode privacyMode,
+        bytes32 metadataCommitment
     ) private returns (uint256 jarId) {
-        uint256 nameLength = bytes(name).length;
-        if (nameLength == 0) revert EmptyName();
-        if (nameLength > MAX_NAME_LENGTH) revert NameTooLong(nameLength);
-        if (targetAmount == 0) revert InvalidTargetAmount();
+        if (privacyMode == PrivacyMode.PUBLIC) {
+            uint256 nameLength = bytes(name).length;
+            if (nameLength == 0) revert EmptyName();
+            if (nameLength > MAX_NAME_LENGTH) revert NameTooLong(nameLength);
+            if (targetAmount == 0) revert InvalidTargetAmount();
+        }
         if (unlockTime <= block.timestamp) revert InvalidUnlockTime(unlockTime);
 
         jarId = nextJarId++;
@@ -174,14 +248,17 @@ contract PenguJarV3 is ReentrancyGuard {
             createdAt: uint64(block.timestamp),
             closed: false,
             mode: mode,
+            privacyMode: privacyMode,
             withdrawalDelay: withdrawalDelay,
             withdrawalReadyAt: 0,
+            metadataCommitment: metadataCommitment,
             name: name
         });
         _ownerJarIds[msg.sender].push(jarId);
 
         emit JarCreated(jarId, msg.sender, name, targetAmount, unlockTime);
         emit JarSecurityConfigured(jarId, mode, withdrawalDelay);
+        emit JarPrivacyConfigured(jarId, privacyMode, metadataCommitment);
 
         if (initialDeposit > 0) {
             _deposit(jarId, msg.sender, initialDeposit);
