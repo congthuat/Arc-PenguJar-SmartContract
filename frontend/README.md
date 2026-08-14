@@ -7,7 +7,8 @@ The PenguJar web app is a Next.js 16 application using React, TypeScript, wagmi,
 Copy `.env.example` to `.env.local` only when overriding checked-in public defaults:
 
 ```dotenv
-NEXT_PUBLIC_PENGUJAR_ADDRESS=0xE77129Baa1614bB242d1703C40a568249a53BF44
+NEXT_PUBLIC_PENGUJAR_ADDRESS=0x2d2C30ACe5d1f057C6eC2e2E8219A43355Dd226a
+NEXT_PUBLIC_ARC_RPC_URL=https://rpc.testnet.arc.network
 ```
 
 Never place `PRIVATE_KEY`, wallet secrets, or authenticated RPC credentials in this directory or in a `NEXT_PUBLIC_*` variable.
@@ -34,7 +35,7 @@ The app supports English/Vietnamese and System/Light/Dark preferences. Preferenc
 
 ## Transaction boundary
 
-Reads use the fixed Arc Testnet chain, deployed PenguJarV2 address, and public RPC fallback. Writes are requested only after explicit review and wallet confirmation:
+Reads use the fixed Arc Testnet chain, verified PenguJarV3 address, and public RPC fallback. Writes are requested only after explicit review and wallet confirmation.
 
 - `createJar(name, targetAmount, unlockTime, 0)`
 - `depositToJar(jarId, amount)` for the owner

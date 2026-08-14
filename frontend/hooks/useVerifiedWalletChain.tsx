@@ -111,7 +111,7 @@ export function WalletNetworkProvider({ children }: { children: ReactNode }) {
               chainId: "0x4cef52",
               chainName: arcTestnet.name,
               nativeCurrency: arcTestnet.nativeCurrency,
-              rpcUrls: ["https://rpc.testnet.arc.io"],
+              rpcUrls: ["https://rpc.testnet.arc.network"],
               blockExplorerUrls: ["https://testnet.arcscan.app"],
             }],
           });
