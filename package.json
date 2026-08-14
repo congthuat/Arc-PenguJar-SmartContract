@@ -10,6 +10,10 @@
     "deploy:validate": "hardhat run scripts/validate-deployment.js",
     "deploy:arc": "hardhat run scripts/deploy-pengujar-v2.js --network arcTestnet",
     "deploy:verify": "hardhat run scripts/verify-pengujar-v2.js --network arcTestnet",
+    "deploy:v3:arc": "hardhat run scripts/deploy-pengujar-v3.js --network arcTestnet",
+    "validate:v3:arc": "hardhat run scripts/validate-pengujar-v3.js --network arcTestnet",
+    "verify:v3:arc": "hardhat run scripts/verify-pengujar-v3.js --network arcTestnet",
+    "smoke:v3:arc": "hardhat run scripts/smoke-test-pengujar-v3.js --network arcTestnet",
     "clean": "hardhat clean"
   },
   "devDependencies": {
