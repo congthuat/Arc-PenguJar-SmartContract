@@ -21,6 +21,7 @@ import { useJarActivity } from "@/hooks/useJarActivity";
 import { JarActivity } from "./JarActivity";
 import { ShareJar } from "./ShareJar";
 import { PrivateMetadataPanel } from "./PrivateMetadataPanel";
+import { JarSecurityPanel } from "./JarSecurityPanel";
 
 export function JarDetail({ jarIdParam }: { jarIdParam: string }) {
   const { t } = usePreferences();
@@ -53,7 +54,7 @@ export function JarDetail({ jarIdParam }: { jarIdParam: string }) {
   const ownerConnected = Boolean(hydrated && connection.isConnected && connection.address?.toLowerCase() === jar.owner.toLowerCase());
   const depositEnabled = ownerConnected && verifiedChain.isArc && status === "Locked";
   const contributeEnabled = Boolean(hydrated && connection.isConnected && verifiedChain.isArc && status === "Locked");
-  const withdrawEnabled = Boolean(ownerConnected && verifiedChain.isArc && unlockedOnchain && jar.balance > 0n && !jar.closed);
+  const withdrawEnabled = Boolean(ownerConnected && verifiedChain.isArc && unlockedOnchain && jar.balance > 0n && !jar.closed && jar.mode === 0 && !jar.frozen);
   const depositReason = jar.closed ? t("actions.closed") : !ownerConnected ? t("common.ownerOnly") : !verifiedChain.isArc ? t("common.arcRequired") : unlockedOnchain ? `${t("status.unlocked")} ${formatDate(jar.unlockTime)}` : t("common.ready");
   const contributeReason = jar.closed ? t("actions.closed") : !hydrated || !connection.isConnected ? t("actions.connectContribute") : !verifiedChain.isArc ? t("common.arcRequired") : unlockedOnchain ? `${t("status.unlocked")} ${formatDate(jar.unlockTime)}` : t("common.ready");
   const withdrawReason = !ownerConnected
@@ -80,8 +81,10 @@ export function JarDetail({ jarIdParam }: { jarIdParam: string }) {
         <article className="balance-card"><p>{t("jar.saved")}</p><div><strong>{formatUsdc(jar.balance)}</strong><span>USDC</span></div><div className="detail-progress-label"><span>{t("jar.percentSaved", { percent: progress.toFixed(1) })} · {t("jar.target")} {formatUsdc(jar.targetAmount)} USDC</span><span>{statusLabel}</span></div><ProgressBar value={progress} /></article>
         <article className="facts-card"><div><span>{t("jar.unlockDate")}</span><strong>{formatDate(jar.unlockTime)}</strong><small>{status === "Locked" ? t("jar.lockedUntil") : statusLabel}</small></div><div><span>{t("jar.owner")}</span><strong title={jar.owner}>{shortAddress(jar.owner)}</strong><small>{t("jar.ownerCanWithdraw")}</small></div><div><span>{t("jar.shared")}</span><strong>{formatUsdc(jar.totalContributed)} USDC</strong><small>{t("jar.sentContribution")}</small></div><div><span>{t("jar.yourShared")}</span><strong>{viewerContribution === undefined ? "—" : `${formatUsdc(viewerContribution)} USDC`}</strong><small>{viewer ? shortAddress(viewer) : t("jar.connectToView")}</small></div></article>
       </section>
+      <div className="security-badges"><span>{jar.mode === 0 ? "SAFE" : "SHIELDED"}</span>{jar.guardian !== "0x0000000000000000000000000000000000000000" && <span>GUARDIAN PROTECTED</span>}{jar.privacyMode === 1 && <span>PRIVATE METADATA</span>}</div>
       <p className="accounting-note">{t("jar.accounting")}</p>
       <DisabledActions depositEnabled={depositEnabled} contributeEnabled={contributeEnabled} withdrawEnabled={withdrawEnabled} depositReason={depositReason} contributeReason={contributeReason} withdrawReason={withdrawReason} ownerConnected={ownerConnected} onDeposit={() => setDepositOpen(true)} onContribute={() => setContributionOpen(true)} onWithdraw={() => setWithdrawalOpen(true)} />
+      <JarSecurityPanel jar={jar} now={chainTimestamp ?? 0n} onRefresh={async () => { await Promise.all([refetch(), latestBlock.refetch(), activity.refetch()]); }} onWithdraw={() => setWithdrawalOpen(true)} />
       <JarActivity items={activityItems} isLoading={activity.isLoading} isError={activity.isError} onRetry={() => void activity.refetch()} />
       <section className="trust-note"><span aria-hidden="true">⌁</span><div><strong>{t("jar.lockMeansLocked")}</strong><p>{t("jar.lockRule")}</p></div></section>
       <footer><span>PenguJar · Arc Testnet</span><span>{t("footer.rule")}</span></footer>

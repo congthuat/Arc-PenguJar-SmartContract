@@ -37,7 +37,9 @@ export function OwnerWithdrawalFlow({ jar, open, onClose, onSuccess }: { jar: Ja
       ]);
       if (getAddress(freshJar.owner) !== getAddress(owner)) throw new Error("Only the jar owner can withdraw.");
       if (freshJar.closed) throw new Error("This jar has already been withdrawn.");
+      if (freshJar.frozen) throw new Error("Emergency Freeze is active. Withdrawal is unavailable.");
       if (latestBlock.timestamp < freshJar.unlockTime) throw new Error(`This jar remains locked until ${formatDate(freshJar.unlockTime)}.`);
+      if (freshJar.mode === 1 && (freshJar.withdrawalReadyAt === 0n || latestBlock.timestamp < freshJar.withdrawalReadyAt)) throw new Error("The Withdrawal Shield delay has not completed.");
       if (freshJar.balance === 0n) throw new Error("This jar has no balance to withdraw.");
 
       setStep("wallet");

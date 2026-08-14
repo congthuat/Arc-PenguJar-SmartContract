@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { decodeEventLog, formatUnits } from "viem";
+import { decodeEventLog, formatUnits, getAddress, isAddress, zeroAddress } from "viem";
 import { useConnection, useSignMessage, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { arcTestnet } from "viem/chains";
 import { penguJarV3Abi } from "@/lib/abi/penguJarV3";
@@ -31,6 +31,9 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
   const [privacy, setPrivacy] = useState<"public" | "private">("public");
   const [jarMode, setJarMode] = useState<"safe" | "shielded">("safe");
   const [withdrawalDelayHours, setWithdrawalDelayHours] = useState("24");
+  const [guardianProtection, setGuardianProtection] = useState(false);
+  const [guardianWallet, setGuardianWallet] = useState("");
+  const [recoveryWallet, setRecoveryWallet] = useState("");
   const [minimumUnlock] = useState(minimumUnlockLocal);
   const [step, setStep] = useState<Step>("form");
   const [formError, setFormError] = useState<string>();
@@ -52,6 +55,7 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
         if (!Number.isInteger(hours) || hours < 1 || hours > 720) {
           throw new Error("Withdrawal delay must be between 1 and 720 hours.");
         }
+        if (guardianProtection) validateProtectionWallets(guardianWallet, recoveryWallet, connection.address);
       }
       setFormError(undefined);
       setStep("review");
@@ -68,6 +72,9 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
     setTransactionError(undefined);
     try {
       const withdrawalDelay = BigInt(withdrawalDelayHours) * 60n * 60n;
+      const protection = guardianProtection
+        ? validateProtectionWallets(guardianWallet, recoveryWallet, connection.address)
+        : undefined;
       let hash: `0x${string}`;
       if (privacy === "private") {
         const signature = await signMessage.mutateAsync({
@@ -88,12 +95,16 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
         });
         pendingEncrypted.current = encrypted;
         hash = jarMode === "shielded"
-          ? await write.mutateAsync({ address: contractAddress, abi: penguJarV3Abi, functionName: "createPrivateShieldedJar", args: [encrypted.metadataCommitment, safe.unlockTime, 0n, withdrawalDelay], chainId: arcTestnet.id, account: connection.address })
+          ? protection
+            ? await write.mutateAsync({ address: contractAddress, abi: penguJarV3Abi, functionName: "createPrivateGuardianShieldedJar", args: [encrypted.metadataCommitment, safe.unlockTime, 0n, withdrawalDelay, protection.guardian, protection.recovery], chainId: arcTestnet.id, account: connection.address })
+            : await write.mutateAsync({ address: contractAddress, abi: penguJarV3Abi, functionName: "createPrivateShieldedJar", args: [encrypted.metadataCommitment, safe.unlockTime, 0n, withdrawalDelay], chainId: arcTestnet.id, account: connection.address })
           : await write.mutateAsync({ address: contractAddress, abi: penguJarV3Abi, functionName: "createPrivateJar", args: [encrypted.metadataCommitment, safe.unlockTime, 0n], chainId: arcTestnet.id, account: connection.address });
       } else {
         pendingEncrypted.current = undefined;
         hash = jarMode === "shielded"
-          ? await write.mutateAsync({ address: contractAddress, abi: penguJarV3Abi, functionName: "createShieldedJar", args: [safe.name, safe.targetAmount, safe.unlockTime, 0n, withdrawalDelay], chainId: arcTestnet.id, account: connection.address })
+          ? protection
+            ? await write.mutateAsync({ address: contractAddress, abi: penguJarV3Abi, functionName: "createGuardianShieldedJar", args: [safe.name, safe.targetAmount, safe.unlockTime, 0n, withdrawalDelay, protection.guardian, protection.recovery], chainId: arcTestnet.id, account: connection.address })
+            : await write.mutateAsync({ address: contractAddress, abi: penguJarV3Abi, functionName: "createShieldedJar", args: [safe.name, safe.targetAmount, safe.unlockTime, 0n, withdrawalDelay], chainId: arcTestnet.id, account: connection.address })
           : await write.mutateAsync({ address: contractAddress, abi: penguJarV3Abi, functionName: "createJar", args: [safe.name, safe.targetAmount, safe.unlockTime, 0n], chainId: arcTestnet.id, account: connection.address });
       }
       if (pendingEncrypted.current) {
@@ -161,6 +172,11 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
           <label>{t("create.target")}<div className="unit-input"><input inputMode="decimal" value={values.target} onChange={(event) => setValues({ ...values, target: event.target.value })} placeholder="250.50" /><span>USDC</span></div><small>{t("create.amountHelp")}</small></label>
           {privacy === "private" && <label>Private note<textarea value={note} maxLength={1000} onChange={(event) => setNote(event.target.value)} placeholder="Optional note encrypted on this device" /><small>Metadata encrypted on this device. Addresses, balances, transfers, and timestamps remain public.</small></label>}
           {jarMode === "shielded" && <label>Withdrawal delay<div className="unit-input"><input inputMode="numeric" value={withdrawalDelayHours} onChange={(event) => setWithdrawalDelayHours(event.target.value)} /><span>hours</span></div><small>1 to 720 hours after requesting withdrawal.</small></label>}
+          {jarMode === "shielded" && <fieldset className="create-choice"><legend>Guardian protection</legend><label><input type="radio" name="guardian" checked={!guardianProtection} onChange={() => setGuardianProtection(false)} /> Off</label><label><input type="radio" name="guardian" checked={guardianProtection} onChange={() => setGuardianProtection(true)} /> On</label></fieldset>}
+          {jarMode === "shielded" && guardianProtection && <div className="security-fields">
+            <label>Guardian wallet<input value={guardianWallet} onChange={(event) => setGuardianWallet(event.target.value)} placeholder="0x…" /><small>Can freeze a suspicious withdrawal but can never access or receive your funds.</small></label>
+            <label>Recovery wallet<input value={recoveryWallet} onChange={(event) => setRecoveryWallet(event.target.value)} placeholder="0x…" /><small>Acts as a second security authorization factor. It cannot withdraw or receive Jar funds.</small></label>
+          </div>}
           <label>{t("create.unlock")}<div className="date-time-24"><input aria-label={t("jar.unlockDate")} type="date" value={unlockParts.date} min={minimumUnlock.slice(0, 10)} onChange={(event) => setValues({ ...values, unlockLocal: joinLocalDateTime(event.target.value, unlockParts.hour, unlockParts.minute) })} /><select aria-label={t("create.unlock")} value={unlockParts.hour} onChange={(event) => setValues({ ...values, unlockLocal: joinLocalDateTime(unlockParts.date, event.target.value, unlockParts.minute) })}>{timeOptions(24).map((hour) => <option key={hour} value={hour}>{hour}</option>)}</select><span>:</span><select aria-label={t("create.unlock")} value={unlockParts.minute} onChange={(event) => setValues({ ...values, unlockLocal: joinLocalDateTime(unlockParts.date, unlockParts.hour, event.target.value) })}>{timeOptions(60).map((minute) => <option key={minute} value={minute}>{minute}</option>)}</select></div><small>{parsed ? t("create.selected", { date: formatLocalDateTime(parsed.unlockDate) }) : t("create.timeHelp")}</small></label>
           {formError && <p className="form-alert" role="alert">{formError}</p>}
           <div className="modal-actions"><button type="button" className="cancel-action" onClick={onClose}>{t("common.cancel")}</button><button type="submit" className="primary-action">{t("create.reviewJar")}</button></div>
@@ -171,6 +187,7 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
           <dl><div><dt>{t("jar.target")}</dt><dd>{formatUsdc(parsed.targetAmount)} USDC</dd></div><div><dt>{t("jar.unlocks")}</dt><dd>{formatLocalDateTime(parsed.unlockDate)}</dd></div><div><dt>{t("wallet.wallet")}</dt><dd>{connection.address ? shortAddress(connection.address) : t("actions.connect")}</dd></div><div><dt>{t("wallet.network")}</dt><dd>{onArc ? "Arc Testnet" : t("wallet.switch")}</dd></div><div><dt>{t("create.starting")}</dt><dd>0 USDC</dd></div></dl>
           <p className="review-note">{t("create.noDeposit")}</p>
           {privacy === "private" && <p className="review-note">Private metadata will be encrypted locally after a wallet message signature. Only its commitment is sent onchain.</p>}
+          {jarMode === "shielded" && guardianProtection && <p className="review-note">Guardian protected · Guardian {shortAddress(getAddress(guardianWallet))} · Recovery {shortAddress(getAddress(recoveryWallet))}. Neither wallet can withdraw or receive Jar funds.</p>}
           {!connection.isConnected && <p className="form-alert">{t("create.connectBefore")}</p>}
           {connection.isConnected && !onArc && <button className="switch-review" onClick={() => void verifiedChain.switchToArc()} disabled={["waiting", "switching", "missing"].includes(verifiedChain.switchStatus)}>{verifiedChain.switchStatus === "waiting" || verifiedChain.switchStatus === "missing" ? "Waiting for wallet…" : verifiedChain.switchStatus === "switching" ? "Switching network…" : "Switch to Arc Testnet"}</button>}
           {connection.isConnected && !onArc && verifiedChain.switchMessage && <p className="form-alert">{verifiedChain.switchMessage}</p>}
@@ -222,4 +239,15 @@ function transactionErrorMessage(error: unknown, t: ReturnType<typeof usePrefere
   if (/revert|execution/i.test(message)) return t("validation.reverted");
   if (/chain|network/i.test(message)) return t("wallet.switch");
   return t("tx.rpc");
+}
+
+function validateProtectionWallets(guardianValue: string, recoveryValue: string, owner?: `0x${string}`) {
+  if (!owner || !isAddress(guardianValue) || !isAddress(recoveryValue)) throw new Error("Enter valid Guardian and Recovery wallet addresses.");
+  const guardian = getAddress(guardianValue);
+  const recovery = getAddress(recoveryValue);
+  const normalizedOwner = getAddress(owner);
+  if (guardian === zeroAddress || recovery === zeroAddress || guardian === normalizedOwner || recovery === normalizedOwner || guardian === recovery) {
+    throw new Error("Owner, Guardian, and Recovery wallet must be three different non-zero addresses.");
+  }
+  return { guardian, recovery };
 }

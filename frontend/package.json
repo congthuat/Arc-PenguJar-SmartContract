@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "test": "node --experimental-strip-types --test lib/privateMetadata.test.ts",
+    "test": "node --experimental-strip-types --test lib/*.test.ts lib/abi/*.test.ts",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit --incremental false"

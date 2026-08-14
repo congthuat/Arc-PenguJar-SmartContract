@@ -13,6 +13,16 @@ export type Jar = {
   withdrawalDelay: bigint;
   withdrawalReadyAt: bigint;
   metadataCommitment: `0x${string}`;
+  guardian: Address;
+  frozen: boolean;
+  freezeRecoveryReadyAt: bigint;
+  pendingGuardian: Address;
+  guardianChangeReadyAt: bigint;
+  recoveryWallet: Address;
+  guardianChangeRecoveryApproved: boolean;
+  pendingOwner: Address;
+  ownerRecoveryReadyAt: bigint;
+  guardianApprovedOwnerRecovery: boolean;
   name: string;
   totalContributed: bigint;
 };

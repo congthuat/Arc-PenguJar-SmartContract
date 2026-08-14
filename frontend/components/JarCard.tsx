@@ -24,6 +24,7 @@ export function JarCard({ jar }: { jar: Jar }) {
         <span className={`status-pill ${status.toLowerCase()}`}>{statusLabel}</span>
         <span className="jar-number">{t("jar.number", { id: jar.id.toString() })}</span>
       </div>
+      <div className="security-badges"><span>{jar.mode === 0 ? "SAFE" : "SHIELDED"}</span>{jar.guardian !== "0x0000000000000000000000000000000000000000" && <span>GUARDIAN PROTECTED</span>}{privateMetadata.isPrivate && <span>PRIVATE METADATA</span>}{jar.frozen && <span className="danger">FROZEN</span>}</div>
       <div className="jar-card-heading">
         <p className="eyebrow">{jar.totalContributed > 0n ? `✦ ${t("jar.sharedActivity")}` : t("jar.personal")}</p>
         <h3>{privateMetadata.isPrivate ? `🔒 ${displayName}` : displayName}</h3>
