@@ -6,6 +6,7 @@ export type WalletActivity = {
   direction: "send";
   amount: bigint;
   counterparty: Address;
+  confirmedAt: number;
 };
 
 export function normalizeRecipient(value: string): Address | undefined {
@@ -23,13 +24,26 @@ export function parseUsdcAmount(value: string): bigint | undefined {
   }
 }
 
-export function validateUsdcSend(recipient: string, amount: string, balance: bigint) {
+export function isSelfSend(recipient: Address, sender?: Address) {
+  return Boolean(sender && recipient.toLowerCase() === sender.toLowerCase());
+}
+
+export function maxUsdcAmount(balance: bigint) {
+  return balance < 0n ? 0n : balance;
+}
+
+export function remainingUsdcBalance(balance: bigint, amount: bigint) {
+  return amount > balance ? undefined : balance - amount;
+}
+
+export function validateUsdcSend(recipient: string, amount: string, balance: bigint, sender?: Address) {
   const address = normalizeRecipient(recipient);
   if (!address) return { error: "address" as const };
+  if (isSelfSend(address, sender)) return { error: "self" as const };
   const parsedAmount = parseUsdcAmount(amount);
   if (!parsedAmount) return { error: "amount" as const };
   if (parsedAmount > balance) return { error: "balance" as const };
-  return { address, amount: parsedAmount };
+  return { address, amount: parsedAmount, remaining: balance - parsedAmount };
 }
 
 export const arcScanTransactionUrl = (hash: Hash | string) => `${ARC_SCAN_URL}/tx/${hash}`;

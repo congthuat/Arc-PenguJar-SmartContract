@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatUnits } from "viem";
 import { useConnection } from "wagmi";
 
@@ -20,6 +20,7 @@ import { useWalletBalances } from "@/hooks/useWalletBalances";
 import { ARC_EXPLORER_URL } from "@/lib/config";
 import { formatUsdc, jarStatus, shortAddress } from "@/lib/format";
 import { arcScanTransactionUrl, type WalletActivity } from "@/lib/wallet";
+import { addWalletActivity, loadWalletActivity } from "@/lib/walletActivity";
 import styles from "./MakotoWallet.module.css";
 
 type Action = "send" | "receive" | "swap";
@@ -57,8 +58,8 @@ export function WalletDashboard() {
           saveSub: "Tiết kiệm với PenguJar",
           companionTitle: "Người bạn đồng hành ví Arc của bạn",
           companionCopy: "Đơn giản. Non-custodial. Dành cho Arc.",
-          activity: "Hoạt động gần đây",
-          activityEyebrow: "GIAO DỊCH TRONG PHIÊN MAKOTO NÀY",
+          activity: "Hoạt động Makoto",
+          activityEyebrow: "GIAO DỊCH ĐƯỢC TẠO BẰNG MAKOTO",
           sessionOnly: "Chỉ phiên này",
           noActivity: "Chưa có giao dịch nào trong phiên này.",
           noActivitySub: "Giao dịch bạn tạo tại đây sẽ xuất hiện sau khi Arc xác nhận.",
@@ -91,8 +92,8 @@ export function WalletDashboard() {
           saveSub: "Save with PenguJar",
           companionTitle: "Your friendly Arc wallet companion",
           companionCopy: "Simple. Non-custodial. Made for Arc.",
-          activity: "Recent Activity",
-          activityEyebrow: "TRANSACTIONS FROM THIS MAKOTO SESSION",
+          activity: "Makoto Activity",
+          activityEyebrow: "TRANSACTIONS CREATED WITH MAKOTO",
           sessionOnly: "Session only",
           noActivity: "No transactions in this session yet.",
           noActivitySub: "Activity you create here appears after Arc confirms it.",
@@ -126,6 +127,14 @@ export function WalletDashboard() {
   const [action, setAction] = useState<Action>();
   const [activities, setActivities] = useState<WalletActivity[]>([]);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const address = connection.address;
+    const frame = window.requestAnimationFrame(() => {
+      setActivities(hydrated && onArc && address ? loadWalletActivity(address, 5042002) : []);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [connection.address, hydrated, onArc]);
 
   const totals = useMemo(
     () => ({
@@ -408,7 +417,7 @@ export function WalletDashboard() {
                           <strong>
                             {c.send} {formatUsdc(item.amount)} USDC
                           </strong>
-                          <small>{shortAddress(item.counterparty)}</small>
+                          <small>{shortAddress(item.counterparty)} · {formatActivityTime(item.confirmedAt, locale)}</small>
                         </div>
                         <span className={styles.activityStatus}>
                           {c.confirmed}
@@ -509,7 +518,7 @@ export function WalletDashboard() {
           balance={balances.usdc.data ?? 0n}
           onClose={() => setAction(undefined)}
           onConfirmed={(item) => {
-            setActivities((current) => [item, ...current]);
+            if (connection.address) setActivities(addWalletActivity(connection.address, 5042002, item));
             void balances.usdc.refetch();
           }}
         />
@@ -527,4 +536,11 @@ export function WalletDashboard() {
       )}
     </main>
   );
+}
+
+function formatActivityTime(timestamp: number, locale: "en" | "vi") {
+  return new Intl.DateTimeFormat(locale === "vi" ? "vi-VN" : "en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(timestamp));
 }
