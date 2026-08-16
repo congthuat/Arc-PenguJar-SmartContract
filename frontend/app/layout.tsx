@@ -3,32 +3,32 @@ import { cookies } from "next/headers";
 import { Manrope, Sora } from "next/font/google";
 import { Providers } from "./providers";
 import "./globals.css";
+import { LEGACY_LOCALE_COOKIE, LEGACY_THEME_COOKIE, MAKOTO_LOCALE_COOKIE, MAKOTO_THEME_COOKIE, resolvePreference } from "@/lib/preferences";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-body" });
 const sora = Sora({ subsets: ["latin"], variable: "--font-display" });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const locale = (await cookies()).get("pengujar_locale")?.value === "vi" ? "vi" : "en";
-  const title = locale === "vi" ? "Makoto Wallet — Ví đơn giản cho Arc" : "Makoto Wallet — Simple wallet for Arc";
+  const store = await cookies();
+  const locale = resolvePreference(store.get(MAKOTO_LOCALE_COOKIE)?.value, store.get(LEGACY_LOCALE_COOKIE)?.value, ["en", "vi"] as const, "en");
+  const title = locale === "vi" ? "Makoto Wallet — Ví mini cho Arc" : "Makoto Wallet — Mini wallet for Arc";
   const description = locale === "vi"
-    ? "Gửi, nhận và quản lý USDC trên Arc, với PenguJar cho các mục tiêu tiết kiệm."
-    : "Send, receive, and manage USDC on Arc, with PenguJar for goal-based savings.";
-  const socialDescription = locale === "vi" ? "Trải nghiệm ví đơn giản cho Arc." : "Simple wallet experience for Arc.";
+    ? "Gửi và nhận tài sản được hỗ trợ trên Arc Testnet, theo dõi hoạt động Makoto và tiết kiệm USDC với PenguJar."
+    : "Send and receive supported assets on Arc Testnet, track Makoto activity, and save USDC with PenguJar.";
   return {
-    title,
-    description,
+    metadataBase: new URL("https://makoto-wallet.vercel.app"), title, description,
+    alternates: { canonical: "/" },
     applicationName: "Makoto Wallet",
     icons: { icon: "/makoto/logo.png", apple: "/makoto/logo.png" },
-    openGraph: { type: "website", siteName: "Makoto Wallet", title: "Makoto Wallet", description: socialDescription },
-    twitter: { card: "summary", title: "Makoto Wallet", description: socialDescription },
+    openGraph: { type: "website", url: "/", siteName: "Makoto Wallet", title, description, images: [{ url: "/makoto/logo.png", alt: "Makoto Wallet" }] },
+    twitter: { card: "summary", title, description, images: ["/makoto/logo.png"] },
   };
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const cookieStore = await cookies();
-  const locale = cookieStore.get("pengujar_locale")?.value === "vi" ? "vi" : "en";
-  const rawTheme = cookieStore.get("pengujar_theme")?.value;
-  const theme = rawTheme === "light" || rawTheme === "dark" ? rawTheme : "system";
+  const locale = resolvePreference(cookieStore.get(MAKOTO_LOCALE_COOKIE)?.value, cookieStore.get(LEGACY_LOCALE_COOKIE)?.value, ["en", "vi"] as const, "en");
+  const theme = resolvePreference(cookieStore.get(MAKOTO_THEME_COOKIE)?.value, cookieStore.get(LEGACY_THEME_COOKIE)?.value, ["light", "dark", "system"] as const, "system");
   return (
     <html lang={locale} data-theme={theme}>
       <body className={`${manrope.variable} ${sora.variable}`}>

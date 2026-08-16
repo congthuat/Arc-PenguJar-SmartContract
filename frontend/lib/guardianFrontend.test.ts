@@ -26,9 +26,10 @@ test("PUBLIC SAFE and SHIELDED creation remain compatible", () => {
   assert.match(create, /functionName: "createGuardianShieldedJar"/);
 });
 
-test("V3 app source has no user-facing Sepolia label", () => {
+test("V3 app source has no user-facing obsolete test-network label", () => {
+  const obsoleteNetwork = ["sepo", "lia"].join("");
   const files = walk(".").filter((path) => /\.(ts|tsx|css|md)$/.test(path) && !path.endsWith("guardianFrontend.test.ts"));
-  for (const file of files) assert.doesNotMatch(read(file), /sepolia/i, file);
+  for (const file of files) assert.equal(read(file).toLowerCase().includes(obsoleteNetwork), false, file);
 });
 
 function walk(directory: string): string[] {

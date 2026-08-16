@@ -28,6 +28,9 @@ export function AppHeader() {
       : theme === "dark"
         ? t("preferences.switchLight")
         : t("preferences.systemMode");
+  const betaInfo = locale === "vi"
+    ? "Makoto Wallet hiện đang chạy trên Arc Testnet. Tài sản testnet chỉ dùng để thử nghiệm và không có giá trị thực dự kiến."
+    : "Makoto Wallet is currently running on Arc Testnet. Testnet assets are for testing and have no intended real-world value.";
 
   return (
     <header className={styles.header}>
@@ -76,9 +79,9 @@ export function AppHeader() {
       </nav>
 
       <div className={styles.headerActions}>
-        <span className={styles.networkPill}>
+        <span className={styles.networkPill} title={betaInfo} aria-label={`Public Beta · Arc Testnet. ${betaInfo}`}>
           <Image src="/makoto/nav/network.png" alt="" width={24} height={24} className={styles.pillIcon} />
-          <span>Arc Testnet</span>
+          <span>Public Beta · Arc Testnet</span>
         </span>
 
         <label className={styles.languagePill}>

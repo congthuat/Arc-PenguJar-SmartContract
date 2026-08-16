@@ -78,6 +78,8 @@ export function WalletDashboard() {
           connectTitle: "Kết nối ví để bắt đầu",
           connectCopy: "Makoto Wallet hiển thị số dư thật trên Arc Testnet và không giữ private key của bạn.",
           switchNetwork: "Chuyển sang Arc Testnet",
+          balanceError: "Không thể tải số dư lúc này. Hãy thử làm mới.",
+          betaInfo: "Makoto Wallet hiện đang chạy trên Arc Testnet. Tài sản testnet chỉ dùng để thử nghiệm và không có giá trị thực dự kiến.",
         }
       : {
           totalBalance: "USDC Balance",
@@ -114,6 +116,8 @@ export function WalletDashboard() {
           connectTitle: "Connect your wallet to begin",
           connectCopy: "Makoto Wallet shows real Arc Testnet balances and never stores your private key.",
           switchNetwork: "Switch to Arc Testnet",
+          balanceError: "Balances could not be loaded. Try refreshing.",
+          betaInfo: "Makoto Wallet is currently running on Arc Testnet. Testnet assets are for testing and have no intended real-world value.",
         };
 
   const hydrated = useHydrated();
@@ -274,6 +278,7 @@ export function WalletDashboard() {
                       {c.switchNetwork}
                     </button>
                   )}
+                  {onArc && (balances.usdc.isError || balances.native.isError) && <p className={styles.balanceError} role="alert">{c.balanceError}</p>}
                 </div>
               </article>
 
@@ -526,8 +531,8 @@ export function WalletDashboard() {
           </>
         )}
 
-        <footer className={styles.footer}>
-          <span>Makoto Wallet · Arc Testnet</span>
+        <footer className={styles.footer} title={c.betaInfo}>
+          <span>Makoto Wallet · Public Beta · Arc Testnet</span>
           <span>PenguJar Savings</span>
         </footer>
       </div>

@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { translate, type Locale, type ThemePreference, type TranslationKey } from "@/i18n";
+import { MAKOTO_LOCALE_COOKIE, MAKOTO_THEME_COOKIE } from "@/lib/preferences";
 
 type PreferenceContextValue = {
   locale: Locale;
@@ -24,12 +25,12 @@ export function PreferenceProvider({ children, initialLocale, initialTheme }: { 
 
   const setLocale = useCallback((next: Locale) => {
     updateLocale(next);
-    document.cookie = `pengujar_locale=${next}; Path=/; Max-Age=31536000; SameSite=Lax`;
+    document.cookie = `${MAKOTO_LOCALE_COOKIE}=${next}; Path=/; Max-Age=31536000; SameSite=Lax`;
   }, []);
 
   const setTheme = useCallback((next: ThemePreference) => {
     updateTheme(next);
-    document.cookie = `pengujar_theme=${next}; Path=/; Max-Age=31536000; SameSite=Lax`;
+    document.cookie = `${MAKOTO_THEME_COOKIE}=${next}; Path=/; Max-Age=31536000; SameSite=Lax`;
   }, []);
 
   const t = useCallback((key: TranslationKey, values?: Record<string, string | number>) => translate(locale, key, values), [locale]);

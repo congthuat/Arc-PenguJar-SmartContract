@@ -58,6 +58,7 @@ html[data-theme="dark"] {
 }
 
 * { box-sizing: border-box; }
+html,body{max-width:100%;overflow-x:hidden}:is(a,button,input,select,textarea,[tabindex]):focus-visible{outline:3px solid #8a6cff;outline-offset:3px}.create-modal:focus-visible{outline:none}.release-state{min-height:100dvh;padding:32px;display:grid;place-content:center;justify-items:center;gap:12px;text-align:center;background:radial-gradient(circle at top,#eee8ff,transparent 45%),#f8f9ff;color:var(--ink)}.release-state img{object-fit:contain}.release-state p{margin:0;color:var(--purple);font-size:10px;font-weight:900;letter-spacing:1.4px}.release-state h1{margin:0;font:800 clamp(28px,6vw,46px) var(--font-display)}.release-state>span{max-width:520px;color:var(--muted);line-height:1.6}.release-state>div{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}.release-state a,.release-state button{min-height:44px;padding:0 18px;border:0;border-radius:13px;display:inline-flex;align-items:center;color:white;background:var(--purple);font-weight:800;text-decoration:none;cursor:pointer}.release-loader{width:160px!important;height:7px;border-radius:99px;background:linear-gradient(90deg,#7857ff,#4dc9f6,#7857ff);background-size:200% 100%;animation:release-loading 1.2s linear infinite}@keyframes release-loading{to{background-position:-200% 0}}
 html { background: var(--cream); }
 body { margin: 0; color: var(--ink); background: radial-gradient(circle at 85% 0%, #f0edff 0, transparent 26rem), var(--cream); font-family: var(--font-body), sans-serif; }
 button, input { font: inherit; }

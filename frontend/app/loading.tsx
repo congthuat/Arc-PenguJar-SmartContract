@@ -1,0 +1,2 @@
+import Image from "next/image";
+export default function Loading() { return <main className="release-state" aria-live="polite" aria-busy="true"><Image src="/makoto/logo.png" alt="" width={72} height={72} priority /><p>Public Beta · Arc Testnet</p><h1>Loading Makoto Wallet…</h1><span className="release-loader" aria-hidden="true" /></main>; }
