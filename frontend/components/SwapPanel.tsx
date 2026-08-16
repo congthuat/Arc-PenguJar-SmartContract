@@ -1,0 +1,4 @@
+"use client";
+import { usePreferences } from "@/hooks/usePreferences";
+import { WalletPanel } from "./WalletPanel";
+export function SwapPanel({ onClose }: { onClose(): void }) { const { locale } = usePreferences(); const c = locale === "vi" ? { title:"Hoán đổi", heading:"Mô-đun tiếp theo", copy:"Tích hợp thanh khoản và bộ định tuyến cho Arc đang được nghiên cứu. Chưa có tỷ giá, phê duyệt token hoặc giao dịch nào được tạo.", close:"Đóng" } : { title:"Swap", heading:"The next module", copy:"Arc liquidity and router integration is being researched. No quote, token approval, or transaction is created here yet.", close:"Close" }; return <WalletPanel title={c.title} onClose={onClose}><div className="transaction-state"><span>↔</span><h3>{c.heading}</h3><p>{c.copy}</p><button className="standalone-action" onClick={onClose}>{c.close}</button></div></WalletPanel>; }

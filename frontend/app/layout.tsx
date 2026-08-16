@@ -9,17 +9,17 @@ const sora = Sora({ subsets: ["latin"], variable: "--font-display" });
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await cookies()).get("pengujar_locale")?.value === "vi" ? "vi" : "en";
-  const title = locale === "vi" ? "PenguJar — Tiết kiệm có mục tiêu trên Arc" : "PenguJar — Save with purpose on Arc";
+  const title = locale === "vi" ? "Makoto Wallet — Ví đơn giản cho Arc" : "Makoto Wallet — Simple wallet for Arc";
   const description = locale === "vi"
-    ? "Tạo mục tiêu tiết kiệm USDC, mời mọi người đóng góp và mở khóa tiền theo kế hoạch với PenguJar trên Arc."
-    : "Create USDC savings goals, invite contributions, and unlock funds on your schedule with PenguJar on Arc.";
-  const socialDescription = locale === "vi" ? "Tiết kiệm có mục tiêu trên Arc." : "Save with purpose on Arc.";
+    ? "Gửi, nhận và quản lý USDC trên Arc, với PenguJar cho các mục tiêu tiết kiệm."
+    : "Send, receive, and manage USDC on Arc, with PenguJar for goal-based savings.";
+  const socialDescription = locale === "vi" ? "Trải nghiệm ví đơn giản cho Arc." : "Simple wallet experience for Arc.";
   return {
     title,
     description,
-    applicationName: "PenguJar",
-    openGraph: { type: "website", siteName: "PenguJar", title: "PenguJar", description: socialDescription },
-    twitter: { card: "summary", title: "PenguJar", description: socialDescription },
+    applicationName: "Makoto Wallet",
+    openGraph: { type: "website", siteName: "Makoto Wallet", title: "Makoto Wallet", description: socialDescription },
+    twitter: { card: "summary", title: "Makoto Wallet", description: socialDescription },
   };
 }
 

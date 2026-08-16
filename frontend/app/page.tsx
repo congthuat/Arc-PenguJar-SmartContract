@@ -1,6 +1,3 @@
-import { Dashboard } from "@/components/Dashboard";
+import { WalletDashboard } from "@/components/WalletDashboard";
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ owner?: string }> }) {
-  const { owner } = await searchParams;
-  return <Dashboard initialOwner={owner} />;
-}
+export default function Home() { return <WalletDashboard />; }

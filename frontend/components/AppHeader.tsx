@@ -21,12 +21,13 @@ export function AppHeader() {
       : t("preferences.systemMode");
   return (
     <header className="app-header">
-      <Link className="brand" href="/" aria-label="PenguJar home">
+      <Link className="brand" href="/" aria-label="Makoto Wallet home">
         <span className="brand-mark" aria-hidden="true">
           <span className="penguin-face">•ᴗ•</span>
         </span>
-        <span>PenguJar</span>
+        <span>Makoto Wallet</span>
       </Link>
+      <nav className="app-nav" aria-label="Primary"><Link href="/">{locale === "vi" ? "Ví" : "Wallet"}</Link><Link href="/savings">{locale === "vi" ? "Tiết kiệm" : "Savings"}</Link></nav>
       <div className="header-actions">
         <span className="network-badge"><i /> {t("network.arc")}</span>
         <label className="language-quick"><span aria-hidden="true">◎</span><select aria-label={t("preferences.language")} value={locale} onChange={(event) => setLocale(event.target.value as "en" | "vi")}><option value="en">EN</option><option value="vi">VI</option></select></label>

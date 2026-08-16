@@ -53,7 +53,7 @@ export function Dashboard({ initialOwner }: { initialOwner?: string }) {
     const normalized = getAddress(input.trim());
     setManualOwner(normalized);
     setInputError(undefined);
-    window.history.replaceState({}, "", `/?owner=${normalized}`);
+    window.history.replaceState({}, "", `/savings?owner=${normalized}`);
   }
 
   const usdcMismatch = usdcQuery.data && usdcQuery.data.toLowerCase() !== EXPECTED_USDC_ADDRESS.toLowerCase();
@@ -123,7 +123,7 @@ export function Dashboard({ initialOwner }: { initialOwner?: string }) {
             <div className="card-grid">{jars.map((jar) => <JarCard key={jar.id.toString()} jar={jar} />)}</div>
           )}
         </section>
-        <footer><span>PenguJar · Arc Testnet</span><span>{t("footer.rule")}</span></footer>
+        <footer><span>Makoto Wallet · PenguJar Savings · Arc Testnet</span><span>{t("footer.rule")}</span></footer>
         <CreateJarFlow open={createOpen} onClose={() => setCreateOpen(false)} onConfirmed={refetchAfterCreate} />
       </div>
     </main>
