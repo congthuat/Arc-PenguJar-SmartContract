@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Manrope, Sora } from "next/font/google";
 import { Providers } from "./providers";
@@ -13,15 +13,15 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = resolvePreference(store.get(MAKOTO_LOCALE_COOKIE)?.value, store.get(LEGACY_LOCALE_COOKIE)?.value, ["en", "vi"] as const, "en");
   const title = locale === "vi" ? "Makoto Wallet — Ví mini cho Arc" : "Makoto Wallet — Mini wallet for Arc";
   const description = locale === "vi"
-    ? "Gửi và nhận tài sản được hỗ trợ trên Arc Testnet, theo dõi hoạt động Makoto và tiết kiệm USDC với PenguJar."
+    ? "Gửi và nhận tài sản được hỗ trợ trên Arc Testnet, theo dõi hoạt động và tiết kiệm USDC với PenguJar."
     : "Send and receive supported assets on Arc Testnet, track Makoto activity, and save USDC with PenguJar.";
   return {
     metadataBase: new URL("https://makoto-wallet.vercel.app"), title, description,
     alternates: { canonical: "/" },
     applicationName: "Makoto Wallet",
-    icons: { icon: "/makoto/logo.png", apple: "/makoto/logo.png" },
-    openGraph: { type: "website", url: "/", siteName: "Makoto Wallet", title, description, images: [{ url: "/makoto/logo.png", alt: "Makoto Wallet" }] },
-    twitter: { card: "summary", title, description, images: ["/makoto/logo.png"] },
+    icons: { icon: "/makoto/logo-pro-v2.png", apple: "/makoto/logo-pro-v2.png" },
+    openGraph: { type: "website", url: "/", siteName: "Makoto Wallet", title, description, images: [{ url: "/makoto/logo-pro-v2.png", alt: "Makoto Wallet" }] },
+    twitter: { card: "summary", title, description, images: ["/makoto/logo-pro-v2.png"] },
   };
 }
 

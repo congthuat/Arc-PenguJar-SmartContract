@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -38,6 +38,14 @@ function progressPercent(balance: bigint, target: bigint) {
   return Math.min(100, Number(basisPoints) / 100);
 }
 
+function ChevronRightIcon() {
+  return <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m7 4 6 6-6 6" /></svg>;
+}
+
+function ExternalLinkIcon() {
+  return <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 10 12 4M7 4h5v5" /><path d="M12 10v2H4V4h2" /></svg>;
+}
+
 export function WalletDashboard() {
   const { locale } = usePreferences();
 
@@ -59,10 +67,11 @@ export function WalletDashboard() {
           receiveSub: "Nhận USDC vào ví",
           swapSub: "Sắp ra mắt",
           saveSub: "PenguJar · Tiết kiệm USDC",
-          companionTitle: "Người bạn đồng hành ví Arc của bạn",
-          companionCopy: "Đơn giản. Non-custodial. Dành cho Arc.",
-          activity: "Hoạt động Makoto",
-          activityEyebrow: "GIAO DỊCH ĐƯỢC TẠO BẰNG MAKOTO",
+          companionTitle: "Gặp Makoto 💜",
+          companionCopy: "Người bạn đồng hành cùng ví của bạn trên Arc.",
+          companionSupport: "Đơn giản. Non-custodial. Dành cho Arc.",
+          activity: "Hoạt động",
+          activityEyebrow: "GIAO DỊCH ĐƯỢC TẠO",
           sessionOnly: "Chỉ phiên này",
           noActivity: "Chưa có giao dịch nào trong phiên này.",
           noActivitySub: "Giao dịch bạn tạo tại đây sẽ xuất hiện sau khi Arc xác nhận.",
@@ -97,10 +106,11 @@ export function WalletDashboard() {
           receiveSub: "Receive USDC to your wallet",
           swapSub: "Coming next",
           saveSub: "PenguJar · USDC Savings",
-          companionTitle: "Your friendly Arc wallet companion",
-          companionCopy: "Simple. Non-custodial. Made for Arc.",
-          activity: "Makoto Activity",
-          activityEyebrow: "TRANSACTIONS CREATED WITH MAKOTO",
+          companionTitle: "Meet Makoto 💜",
+          companionCopy: "Your friendly wallet companion on Arc.",
+          companionSupport: "Simple. Non-custodial. Made for Arc.",
+          activity: "Activity",
+          activityEyebrow: "TRANSACTIONS CREATED",
           sessionOnly: "Session only",
           noActivity: "No transactions in this session yet.",
           noActivitySub: "Activity you create here appears after Arc confirms it.",
@@ -174,7 +184,7 @@ export function WalletDashboard() {
   }
 
   const usdcBalance =
-    balances.usdc.data === undefined ? "…" : formatUsdc(balances.usdc.data);
+    balances.usdc.data === undefined ? "..." : formatUsdc(balances.usdc.data);
 
   const nativeBalance = balances.native.data
     ? `${Number(
@@ -183,7 +193,7 @@ export function WalletDashboard() {
           balances.native.data.decimals,
         ),
       ).toFixed(4)} ${balances.native.data.symbol}`
-    : "…";
+    : "...";
 
   return (
     <main className={styles.page}>
@@ -193,7 +203,7 @@ export function WalletDashboard() {
         {!connected ? (
           <section className={styles.disconnected}>
             <div className={styles.disconnectedCopy}>
-              <span className={styles.kicker}>MAKOTO WALLET · ARC TESTNET</span>
+              <span className={styles.kicker}>MAKOTO WALLET{" · "}ARC TESTNET</span>
               <h1>{c.connectTitle}</h1>
               <p>{c.connectCopy}</p>
             </div>
@@ -217,18 +227,18 @@ export function WalletDashboard() {
               >
                 <div className={styles.heroArt} aria-hidden="true">
                   <Image
-                    src="/makoto/hero-art.jpg"
+                    src="/makoto/hero-wallet-pro-v2.png"
                     alt=""
                     fill
                     priority
-                    className={styles.coverImage}
+                    className={styles.heroWallet}
                   />
                 </div>
                 <div className={styles.heroShade} aria-hidden="true" />
 
                 <div className={styles.heroContent}>
                   <span className={styles.balanceLabel}>
-                    {c.totalBalance} <span aria-hidden="true">◉</span>
+                    {c.totalBalance} <span className={styles.balanceDot} aria-hidden="true" />
                   </span>
                   <div className={styles.balanceValue}>
                     {usdcBalance}
@@ -293,10 +303,8 @@ export function WalletDashboard() {
                   />
                 </div>
                 <div className={styles.companionText}>
-                  <h2>
-                    {c.companionTitle} <span aria-hidden="true">💜</span>
-                  </h2>
-                  <p>{c.companionCopy}</p>
+                  <h2>{c.companionTitle}</h2>
+                  <p>{c.companionCopy}<br />{c.companionSupport}</p>
                 </div>
               </article>
 
@@ -308,7 +316,7 @@ export function WalletDashboard() {
                   disabled={!onArc}
                 >
                   <Image
-                    src="/makoto/icon-send.png"
+                    src="/makoto/icon-send-pro-v2.png"
                     alt=""
                     width={92}
                     height={92}
@@ -318,7 +326,7 @@ export function WalletDashboard() {
                     <strong>{c.send}</strong>
                     <small>{c.sendSub}</small>
                   </span>
-                  <span className={styles.chevron}>›</span>
+                  <span className={styles.chevron}><ChevronRightIcon /></span>
                 </button>
 
                 <button
@@ -328,7 +336,7 @@ export function WalletDashboard() {
                   disabled={!onArc}
                 >
                   <Image
-                    src="/makoto/icon-receive.png"
+                    src="/makoto/icon-receive-pro-v2.png"
                     alt=""
                     width={92}
                     height={92}
@@ -338,7 +346,7 @@ export function WalletDashboard() {
                     <strong>{c.receive}</strong>
                     <small>{c.receiveSub}</small>
                   </span>
-                  <span className={styles.chevron}>›</span>
+                  <span className={styles.chevron}><ChevronRightIcon /></span>
                 </button>
 
                 <button
@@ -348,7 +356,7 @@ export function WalletDashboard() {
                   disabled={!onArc}
                 >
                   <Image
-                    src="/makoto/icon-swap.png"
+                    src="/makoto/icon-swap-pro-v2.png"
                     alt=""
                     width={92}
                     height={92}
@@ -358,7 +366,7 @@ export function WalletDashboard() {
                     <strong>{c.swap}</strong>
                     <small>{c.swapSub}</small>
                   </span>
-                  <span className={styles.chevron}>›</span>
+                  <span className={styles.chevron}><ChevronRightIcon /></span>
                 </button>
 
                 <Link
@@ -366,7 +374,7 @@ export function WalletDashboard() {
                   href="/savings"
                 >
                   <Image
-                    src="/makoto/icon-save.png"
+                    src="/makoto/icon-save-pro-v2.png"
                     alt=""
                     width={92}
                     height={92}
@@ -376,7 +384,7 @@ export function WalletDashboard() {
                     <strong>{c.save}</strong>
                     <small>{c.saveSub}</small>
                   </span>
-                  <span className={styles.chevron}>›</span>
+                  <span className={styles.chevron}><ChevronRightIcon /></span>
                 </Link>
               </div>
             </section>
@@ -386,10 +394,16 @@ export function WalletDashboard() {
               <div className={styles.assetRows}>{SUPPORTED_ASSETS.map((asset) => {
                 const query = balances.assets[asset.id];
                 return <article className={`${styles.assetRow} ${asset.id === "usdc" ? styles.assetUsdc : styles.assetEurc}`} key={asset.id}>
-                  <span className={styles.assetBadge}>{asset.symbol}</span>
+                  <Image
+                    src={asset.id === "usdc" ? "/makoto/token-usdc-3d.png" : "/makoto/token-eurc-3d.png"}
+                    alt={`${asset.symbol} 3D logo`}
+                    width={64}
+                    height={64}
+                    className={styles.assetLogo3d}
+                  />
                   <div><strong>{asset.symbol}</strong><small>{asset.name}</small></div>
-                  <div className={styles.assetContract}><span>{shortAddress(asset.address)}</span><a href={`${ARC_EXPLORER_URL}/address/${asset.address}`} target="_blank" rel="noreferrer">ArcScan ↗</a></div>
-                  <strong className={styles.assetBalance}>{query.data === undefined ? "…" : formatAssetAmount(query.data, asset)} {asset.symbol}</strong>
+                  <div className={styles.assetContract}><span>{shortAddress(asset.address)}</span><a href={`${ARC_EXPLORER_URL}/address/${asset.address}`} target="_blank" rel="noreferrer">ArcScan <ExternalLinkIcon /></a></div>
+                  <strong className={styles.assetBalance}>{query.data === undefined ? "..." : formatAssetAmount(query.data, asset)} {asset.symbol}</strong>
                 </article>;
               })}</div>
             </section>
@@ -418,7 +432,7 @@ export function WalletDashboard() {
                 {activities.length === 0 ? (
                   <div className={styles.emptyActivity}>
                     <Image
-                      src="/makoto/logo.png"
+                      src="/makoto/logo-pro-v2.png"
                       alt=""
                       width={62}
                       height={62}
@@ -431,7 +445,7 @@ export function WalletDashboard() {
                     {activities.map((item) => (
                       <li key={item.hash}>
                         <Image
-                          src="/makoto/icon-send.png"
+                          src="/makoto/icon-send-pro-v2.png"
                           alt=""
                           width={54}
                           height={54}
@@ -441,7 +455,7 @@ export function WalletDashboard() {
                           <strong>
                             {c.send} {formatAssetAmount(item.amount, getAssetById(item.assetId)!)} {item.assetSymbol}
                           </strong>
-                          <small>{shortAddress(item.counterparty)} · {formatActivityTime(item.confirmedAt, locale)}</small>
+                          <small>{shortAddress(item.counterparty)}{" · "}{formatActivityTime(item.confirmedAt, locale)}</small>
                         </div>
                         <span className={styles.activityStatus}>
                           {c.confirmed}
@@ -452,7 +466,7 @@ export function WalletDashboard() {
                           rel="noreferrer"
                           className={styles.activityLink}
                         >
-                          ArcScan ↗
+                          ArcScan <ExternalLinkIcon />
                         </a>
                       </li>
                     ))}
@@ -472,7 +486,7 @@ export function WalletDashboard() {
                 </header>
 
                 {jarsLoading ? (
-                  <div className={styles.savingsLoading}>…</div>
+                  <div className={styles.savingsLoading}>...</div>
                 ) : visibleJars.length === 0 ? (
                   <div className={styles.emptyJars}>
                     <p>{c.noJars}</p>
@@ -513,7 +527,7 @@ export function WalletDashboard() {
                               {formatUsdc(jar.targetAmount)} USDC
                             </small>
                           </div>
-                          <span className={styles.jarArrow}>›</span>
+                          <span className={styles.jarArrow}><ChevronRightIcon /></span>
                         </Link>
                       );
                     })}
@@ -532,7 +546,7 @@ export function WalletDashboard() {
         )}
 
         <footer className={styles.footer} title={c.betaInfo}>
-          <span>Makoto Wallet · Public Beta · Arc Testnet</span>
+          <span>Makoto Wallet{" · "}Public Beta{" · "}Arc Testnet</span>
           <span>PenguJar Savings</span>
         </footer>
       </div>
