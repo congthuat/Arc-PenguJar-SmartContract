@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { arcScanTransactionUrl, maxUsdcAmount, normalizeRecipient, parseUsdcAmount, remainingUsdcBalance, validateUsdcSend } from "./wallet.ts";
+import { validateAssetSend } from "./wallet.ts";
+import { formatAssetAmount, getAssetById } from "./assets.ts";
 
 test("normalizes a valid EVM recipient and rejects malformed input", () => {
   assert.equal(normalizeRecipient(" 0x000000000000000000000000000000000000dEaD "), "0x000000000000000000000000000000000000dEaD");
@@ -36,4 +38,21 @@ test("remaining balance uses bigint arithmetic", () => {
 test("builds an ArcScan transaction URL", () => {
   const hash = `0x${"12".repeat(32)}`;
   assert.equal(arcScanTransactionUrl(hash), `https://testnet.arcscan.app/tx/${hash}`);
+});
+
+test("selected USDC and EURC MAX use their own balances", () => {
+  const recipient = "0x000000000000000000000000000000000000dEaD";
+  for (const [id, balance] of [["usdc", 2_000_000n], ["eurc", 7_500_000n]] as const) {
+    const asset = getAssetById(id)!;
+    const result = validateAssetSend(recipient, formatAssetAmount(balance, asset), balance, asset);
+    assert.equal("error" in result, false);
+    if (!("error" in result)) { assert.equal(result.remaining, 0n); assert.equal(result.tokenAddress, asset.address); }
+  }
+});
+
+test("EURC validation rejects insufficient balance and self-send", () => {
+  const eurc = getAssetById("eurc")!;
+  const sender = "0x000000000000000000000000000000000000dEaD";
+  assert.deepEqual(validateAssetSend("0x0000000000000000000000000000000000000001", "2", 1_000_000n, eurc), { error: "balance" });
+  assert.deepEqual(validateAssetSend(sender.toLowerCase(), "1", 2_000_000n, eurc, sender), { error: "self" });
 });

@@ -1,7 +1,8 @@
-import { getAddress, isAddress, type Address } from "viem";
+import { getAddress, isAddress } from "viem";
+import { getAssetById } from "./assets";
 
 export const ARC_EXPLORER_URL = "https://testnet.arcscan.app";
-export const EXPECTED_USDC_ADDRESS = "0x3600000000000000000000000000000000000000" as Address;
+export const EXPECTED_USDC_ADDRESS = getAssetById("usdc")!.address;
 export const DEFAULT_PENGUJAR_ADDRESS = "0x2d2C30ACe5d1f057C6eC2e2E8219A43355Dd226a";
 export const DEFAULT_ARC_RPC_URL = "https://rpc.testnet.arc.network";
 export const arcRpcUrl = process.env.NEXT_PUBLIC_ARC_RPC_URL?.trim() || DEFAULT_ARC_RPC_URL;

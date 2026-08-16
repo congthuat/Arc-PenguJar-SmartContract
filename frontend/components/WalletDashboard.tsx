@@ -18,6 +18,7 @@ import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
 import { useWalletBalances } from "@/hooks/useWalletBalances";
 
 import { ARC_EXPLORER_URL } from "@/lib/config";
+import { formatAssetAmount, getAssetById, SUPPORTED_ASSETS } from "@/lib/assets";
 import { formatUsdc, jarStatus, shortAddress } from "@/lib/format";
 import { arcScanTransactionUrl, type WalletActivity } from "@/lib/wallet";
 import { addWalletActivity, loadWalletActivity } from "@/lib/walletActivity";
@@ -43,7 +44,9 @@ export function WalletDashboard() {
   const c =
     locale === "vi"
       ? {
-          totalBalance: "Tổng số dư",
+          totalBalance: "Số dư USDC",
+          assets: "Tài sản",
+          assetsEyebrow: "TÀI SẢN ĐƯỢC HỖ TRỢ",
           native: "Số dư Arc",
           copy: "Sao chép",
           copied: "Đã sao chép",
@@ -55,7 +58,7 @@ export function WalletDashboard() {
           sendSub: "Gửi USDC tới địa chỉ",
           receiveSub: "Nhận USDC vào ví",
           swapSub: "Sắp ra mắt",
-          saveSub: "Tiết kiệm với PenguJar",
+          saveSub: "PenguJar · Tiết kiệm USDC",
           companionTitle: "Người bạn đồng hành ví Arc của bạn",
           companionCopy: "Đơn giản. Non-custodial. Dành cho Arc.",
           activity: "Hoạt động Makoto",
@@ -77,7 +80,9 @@ export function WalletDashboard() {
           switchNetwork: "Chuyển sang Arc Testnet",
         }
       : {
-          totalBalance: "Total Balance",
+          totalBalance: "USDC Balance",
+          assets: "Assets",
+          assetsEyebrow: "SUPPORTED ASSETS",
           native: "Native balance",
           copy: "Copy",
           copied: "Copied",
@@ -89,7 +94,7 @@ export function WalletDashboard() {
           sendSub: "Send USDC to any address",
           receiveSub: "Receive USDC to your wallet",
           swapSub: "Coming next",
-          saveSub: "Save with PenguJar",
+          saveSub: "PenguJar · USDC Savings",
           companionTitle: "Your friendly Arc wallet companion",
           companionCopy: "Simple. Non-custodial. Made for Arc.",
           activity: "Makoto Activity",
@@ -159,6 +164,7 @@ export function WalletDashboard() {
     await Promise.all([
       balances.native.refetch(),
       balances.usdc.refetch(),
+      balances.eurc.refetch(),
       refetchJars(),
     ]);
   }
@@ -246,7 +252,7 @@ export function WalletDashboard() {
                       type="button"
                       onClick={() => void refresh()}
                       disabled={
-                        balances.usdc.isFetching || balances.native.isFetching
+                        balances.usdc.isFetching || balances.eurc.isFetching || balances.native.isFetching
                       }
                     >
                       {c.refresh}
@@ -370,6 +376,19 @@ export function WalletDashboard() {
               </div>
             </section>
 
+            <section className={styles.assetsSection} aria-labelledby="assets-title">
+              <header className={styles.assetsHeader}><p>{c.assetsEyebrow}</p><h2 id="assets-title">{c.assets}</h2></header>
+              <div className={styles.assetRows}>{SUPPORTED_ASSETS.map((asset) => {
+                const query = balances.assets[asset.id];
+                return <article className={`${styles.assetRow} ${asset.id === "usdc" ? styles.assetUsdc : styles.assetEurc}`} key={asset.id}>
+                  <span className={styles.assetBadge}>{asset.symbol}</span>
+                  <div><strong>{asset.symbol}</strong><small>{asset.name}</small></div>
+                  <div className={styles.assetContract}><span>{shortAddress(asset.address)}</span><a href={`${ARC_EXPLORER_URL}/address/${asset.address}`} target="_blank" rel="noreferrer">ArcScan ↗</a></div>
+                  <strong className={styles.assetBalance}>{query.data === undefined ? "…" : formatAssetAmount(query.data, asset)} {asset.symbol}</strong>
+                </article>;
+              })}</div>
+            </section>
+
             <section className={styles.lowerGrid}>
               <article className={styles.activityCard} id="activity">
                 <header className={styles.sectionHeader}>
@@ -415,7 +434,7 @@ export function WalletDashboard() {
                         />
                         <div className={styles.activityMain}>
                           <strong>
-                            {c.send} {formatUsdc(item.amount)} USDC
+                            {c.send} {formatAssetAmount(item.amount, getAssetById(item.assetId)!)} {item.assetSymbol}
                           </strong>
                           <small>{shortAddress(item.counterparty)} · {formatActivityTime(item.confirmedAt, locale)}</small>
                         </div>
@@ -515,11 +534,12 @@ export function WalletDashboard() {
 
       {action === "send" && (
         <SendFlow
-          balance={balances.usdc.data ?? 0n}
+          balances={{ usdc: balances.usdc.data ?? 0n, eurc: balances.eurc.data ?? 0n }}
           onClose={() => setAction(undefined)}
           onConfirmed={(item) => {
             if (connection.address) setActivities(addWalletActivity(connection.address, 5042002, item));
             void balances.usdc.refetch();
+            void balances.eurc.refetch();
           }}
         />
       )}

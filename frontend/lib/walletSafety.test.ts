@@ -30,4 +30,8 @@ describe("isLargeSend", () => {
     assert.equal(isLargeSend(0n, 100n), false);
     assert.equal(isLargeSend(1n, 0n), false);
   });
+
+  it("applies the same threshold to EURC balances", () => {
+    assert.equal(isLargeSend(6_000_000n, 10_000_000n), true);
+  });
 });
