@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>A colorful, non-custodial mini wallet for Arc.</strong><br/>
-  Send, receive, track USDC, and save with PenguJar — all from one lightweight interface.
+  Send and receive USDC or EURC, track confirmed Makoto activity, and save USDC with PenguJar.
 </p>
 
 <p align="center">
@@ -26,10 +26,9 @@ The project started as **PenguJar**, an onchain USDC savings dApp. PenguJar is n
 Makoto Wallet currently focuses on a simple set of everyday actions:
 
 - Connect an injected wallet such as OKX Wallet
-- View the connected wallet's real USDC and Arc Testnet native balance
-- Send USDC
-- Receive USDC
-- Review activity created during the current Makoto session
+- View real USDC, EURC, and separate Arc Testnet native balances
+- Send and receive supported assets (USDC and EURC)
+- Review confirmed Makoto activity with safe v1-to-v2 local migration
 - Open PenguJar savings jars
 - Switch between English and Vietnamese
 - Use light/dark appearance controls
@@ -54,9 +53,8 @@ The main Makoto Wallet dashboard provides the connected-wallet experience:
 - Real onchain balance reads
 - Arc Testnet detection
 - Wallet connection controls
-- USDC Send flow
-- Receive/address flow
-- Session activity with ArcScan transaction links
+- Multi-asset USDC/EURC Send and Receive flows
+- Persistent confirmed activity with asset identity and ArcScan links
 - Colorful 3D Makoto interface and responsive navigation
 
 Makoto Wallet is **non-custodial**: the frontend does not store or control the user's private key. Transactions are prepared by the app and signed by the connected wallet.
@@ -87,10 +85,11 @@ Guardian and Recovery roles are designed as defensive controls. They do not rece
 | Wallet connection | ✅ Available |
 | Arc Testnet detection | ✅ Available |
 | Real USDC balance | ✅ Available |
+| Real EURC balance | ✅ Available |
 | Native Arc Testnet balance | ✅ Available |
-| Send USDC | ✅ Available |
-| Receive USDC | ✅ Available |
-| Session activity | ✅ Available |
+| Send USDC / EURC | ✅ Available |
+| Receive USDC / EURC | ✅ Available |
+| Confirmed Makoto activity | ✅ Available |
 | PenguJar savings | ✅ Available |
 | Public/private jar metadata | ✅ Available |
 | Guardian & Recovery | ✅ Available |
@@ -108,6 +107,7 @@ Guardian and Recovery roles are designed as defensive controls. They do not rece
 | RPC | `https://rpc.testnet.arc.network` |
 | Explorer | `https://testnet.arcscan.app` |
 | Arc Testnet USDC | `0x3600000000000000000000000000000000000000` |
+| Arc Testnet EURC | `0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a` |
 | PenguJar V3 | `0x2d2C30ACe5d1f057C6eC2e2E8219A43355Dd226a` |
 | V3 deployment block | `56927475` |
 | USDC decimals | `6` |
@@ -167,7 +167,7 @@ npm run lint
 npm run build
 ```
 
-At the current UI checkpoint, the frontend test suite reports **27 passing tests** with no failures.
+Run the commands above for the current verified frontend test count.
 
 PenguJar V3 development also includes dedicated privacy, guardian, recovery, and adversarial security tests in the repository's Hardhat test suite.
 
@@ -276,19 +276,20 @@ Makoto Wallet is being developed in phases.
 - Responsive colorful wallet dashboard
 - Production Vercel deployment
 
-### Phase 2 — Mini Wallet Core
+### Completed
 
-Planned direction includes deeper wallet functionality and transaction UX improvements.
+- Phase 1 — Wallet Foundation
+- Phase 2 — Mini Wallet Core
+- Phase 4 — Wallet Safety
+- Phase 5 — Multi-Asset Wallet (USDC and EURC)
+- Phase 7 — Public Beta polish and release readiness
 
-### Later
+### Pending
 
-Potential future work includes:
+- Phase 3 — Real Swap
+- Phase 6 — Arc-native integrations
 
-- Real swap integration after protocol/router evaluation
-- Broader asset support
-- Improved transaction history
-- Additional Arc-native integrations
-- Stronger cross-device private metadata recovery
+Swap remains `Coming next`. The roadmap is not fully complete.
 
 Roadmap items are plans, not promises of release or availability.
 
