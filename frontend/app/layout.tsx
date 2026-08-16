@@ -18,6 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title,
     description,
     applicationName: "Makoto Wallet",
+    icons: { icon: "/makoto/logo.png", apple: "/makoto/logo.png" },
     openGraph: { type: "website", siteName: "Makoto Wallet", title: "Makoto Wallet", description: socialDescription },
     twitter: { card: "summary", title: "Makoto Wallet", description: socialDescription },
   };
