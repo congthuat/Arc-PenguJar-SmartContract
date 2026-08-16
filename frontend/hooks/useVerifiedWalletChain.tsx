@@ -25,6 +25,7 @@ type WalletNetworkState = {
   isArc: boolean;
   switchStatus: SwitchStatus;
   switchMessage?: string;
+  verifyNow(): Promise<boolean>;
   switchToArc(): Promise<void>;
 };
 
@@ -149,14 +150,25 @@ export function WalletNetworkProvider({ children }: { children: ReactNode }) {
   }, [connection.status, connector, switchChainAsync, synchronize]);
 
   const current = verified?.connectorUid === connector?.uid ? verified : undefined;
+  const verifyNow = useCallback(async () => {
+    try {
+      const next = await readConnectedChain();
+      setVerified(next);
+      return isVerifiedArc(next);
+    } catch {
+      setVerified(undefined);
+      return false;
+    }
+  }, [readConnectedChain]);
   const value = useMemo<WalletNetworkState>(() => ({
     connectorChainId: current?.connectorChainId,
     providerChainId: current?.providerChainId,
     isArc: isVerifiedArc(current),
     switchStatus,
     switchMessage,
+    verifyNow,
     switchToArc,
-  }), [current, switchMessage, switchStatus, switchToArc]);
+  }), [current, switchMessage, switchStatus, switchToArc, verifyNow]);
 
   return <WalletNetworkContext.Provider value={value}>{children}</WalletNetworkContext.Provider>;
 }
