@@ -1,239 +1,318 @@
-# PenguJar
+# Makoto Wallet
 
-A simple onchain USDC savings jar built on Arc Testnet.
+<p align="center">
+  <img src="frontend/public/makoto/logo.png" alt="Makoto Wallet" width="96" />
+</p>
 
-PenguJar helps people define a savings goal, lock USDC until a chosen date, save over time, and optionally accept contributions from other wallets. Funds remain locked under the jar's onchain rules, and only the jar owner can withdraw after the unlock time.
+<p align="center">
+  <strong>A colorful, non-custodial mini wallet for Arc.</strong><br/>
+  Send, receive, track USDC, and save with PenguJar — all from one lightweight interface.
+</p>
+
+<p align="center">
+  <a href="https://makoto-wallet.vercel.app"><strong>Open Makoto Wallet</strong></a>
+  ·
+  <a href="https://testnet.arcscan.app/address/0x2d2C30ACe5d1f057C6eC2e2E8219A43355Dd226a">PenguJar V3 on ArcScan</a>
+</p>
+
+---
+
+## Overview
+
+Makoto Wallet is a client-side mini wallet experience built for **Arc Testnet**.
+
+The project started as **PenguJar**, an onchain USDC savings dApp. PenguJar is now one module inside a broader wallet experience rather than the entire product.
+
+Makoto Wallet currently focuses on a simple set of everyday actions:
+
+- Connect an injected wallet such as OKX Wallet
+- View the connected wallet's real USDC and Arc Testnet native balance
+- Send USDC
+- Receive USDC
+- Review activity created during the current Makoto session
+- Open PenguJar savings jars
+- Switch between English and Vietnamese
+- Use light/dark appearance controls
+- Work across responsive desktop and mobile layouts
+
+**Swap is planned and currently shown as `Coming next`; it is not presented as a completed feature.**
 
 ## Live App
 
-**[Open PenguJar on Arc Testnet](https://arc-pengu-jar-smart-contract.vercel.app)**
+**Production:** https://makoto-wallet.vercel.app
 
-PenguJar is currently an Arc Testnet release intended for testing and demonstration.
+The public app is deployed on Vercel and connected to Arc Testnet.
 
-## Why PenguJar
+> Makoto Wallet is currently a testnet product for development, testing, and demonstration. Testnet assets have no intended real-world monetary value.
 
-Saving for a specific goal should be easy to understand and difficult to undo impulsively. PenguJar turns a familiar savings-jar idea into a transparent onchain flow:
+## Product Structure
 
-- Set a clear target and unlock time.
-- Keep the savings rules visible onchain.
-- Save individually or invite others to contribute.
-- Preserve owner control without giving contributors withdrawal rights.
+### Wallet
 
-PenguJar does not offer yield, staking, swaps, lending, or a project token.
+The main Makoto Wallet dashboard provides the connected-wallet experience:
 
-## Core Features
+- Real onchain balance reads
+- Arc Testnet detection
+- Wallet connection controls
+- USDC Send flow
+- Receive/address flow
+- Session activity with ArcScan transaction links
+- Colorful 3D Makoto interface and responsive navigation
 
-- Multiple goal-based savings jars per owner
-- USDC deposits and additional owner deposits
-- Shared contributions from other wallets
-- Immutable unlock times and time-locked funds
-- Owner-only withdrawal after unlock
-- Closed jar state after withdrawal
-- Public, read-only jar pages and shareable links
-- Onchain activity history with ArcScan transaction links
-- OKX Wallet and injected-wallet support
-- Arc Testnet detection and network switching
-- English and Vietnamese interfaces
-- Light, Dark, and System appearance modes
-- Responsive desktop and mobile layout
+Makoto Wallet is **non-custodial**: the frontend does not store or control the user's private key. Transactions are prepared by the app and signed by the connected wallet.
 
-### Current Verified Functionality
+### Savings — PenguJar V3
 
-Verified on the public Vercel deployment connected to Arc Testnet:
+PenguJar remains available as Makoto Wallet's savings module.
 
-- Jar #4, **Public Test**, was created successfully.
-- The owner deposited `0.001 USDC`.
-- The jar unlocked correctly at `12/08/2026 21:59`.
-- The owner withdrew `0.001 USDC` after unlock.
-- The jar balance became `0 USDC` and its state became **Closed**.
-- Onchain Activity showed the complete lifecycle: Jar created, Deposited `0.001 USDC`, Unlock time reached, and Withdrawn · Jar closed `0.001 USDC`.
+The V3 design includes:
 
-## How It Works
+- Goal-based USDC savings jars
+- SAFE and SHIELDED jar modes
+- PUBLIC and PRIVATE metadata modes
+- Time-locked withdrawal flow
+- Optional Guardian protection for SHIELDED jars
+- Recovery Wallet support
+- Guardian-assisted owner recovery
+- Delayed guardian replacement
+- Defensive withdrawal freeze flow
+- Encrypted client-side private metadata support
 
-```text
-Connect wallet
-    -> Create Jar
-    -> Set a target and unlock time
-    -> Deposit USDC or accept contributions
-    -> Funds remain locked until the unlock time
-    -> Jar owner withdraws the full balance
-    -> Jar closes and its history remains public
-```
+Guardian and Recovery roles are designed as defensive controls. They do not receive an unrestricted path to withdraw or redirect a jar's USDC.
 
-Contributions belong to the jar owner. Contributors do not gain ownership, repayment claims, or withdrawal rights.
+## Current Feature Status
 
-## Architecture
+| Feature | Status |
+| --- | --- |
+| Wallet connection | ✅ Available |
+| Arc Testnet detection | ✅ Available |
+| Real USDC balance | ✅ Available |
+| Native Arc Testnet balance | ✅ Available |
+| Send USDC | ✅ Available |
+| Receive USDC | ✅ Available |
+| Session activity | ✅ Available |
+| PenguJar savings | ✅ Available |
+| Public/private jar metadata | ✅ Available |
+| Guardian & Recovery | ✅ Available |
+| EN / VI | ✅ Available |
+| Light / Dark UI | ✅ Available |
+| Swap | 🛠 Coming next |
+| Mainnet release | ⏳ Not released |
 
-PenguJar is a client-side dApp with no custodial application backend or application database.
-
-- **Frontend:** Next.js 16, React 19, and TypeScript
-- **Wallet and contract interaction:** wagmi and viem
-- **Client-side data:** TanStack Query
-- **Smart contract:** `PenguJarV2`, written in Solidity 0.8.24
-- **Contract libraries:** OpenZeppelin `SafeERC20` and `ReentrancyGuard`
-- **Development and testing:** Hardhat
-- **Network and asset:** Arc Testnet and USDC
-- **Hosting:** Vercel
-
-Public reads go directly to Arc Testnet RPC endpoints. Write operations are prepared by the frontend and signed by the connected wallet.
-
-More detail is available in the [release architecture](docs/architecture.md).
-
-## Smart Contract
+## Arc Testnet Configuration
 
 | Item | Value |
 | --- | --- |
 | Network | Arc Testnet |
 | Chain ID | `5042002` |
-| RPC | `https://rpc.testnet.arc.io` |
-| PenguJarV2 | [`0xE77129Baa1614bB242d1703C40a568249a53BF44`](https://testnet.arcscan.app/address/0xE77129Baa1614bB242d1703C40a568249a53BF44) |
-| Arc Testnet USDC | [`0x3600000000000000000000000000000000000000`](https://testnet.arcscan.app/address/0x3600000000000000000000000000000000000000) |
-| USDC application decimals | `6` |
-| Deployment block | `56583471` |
+| RPC | `https://rpc.testnet.arc.network` |
+| Explorer | `https://testnet.arcscan.app` |
+| Arc Testnet USDC | `0x3600000000000000000000000000000000000000` |
+| PenguJar V3 | `0x2d2C30ACe5d1f057C6eC2e2E8219A43355Dd226a` |
+| V3 deployment block | `56927475` |
+| USDC decimals | `6` |
 
-The PenguJarV2 source is verified on ArcScan. Arc native gas accounting uses 18 decimals, while application USDC transfers use the standard ERC-20 interface and 6-decimal token amounts.
+PenguJar V3 is verified on ArcScan:
+
+https://testnet.arcscan.app/address/0x2d2C30ACe5d1f057C6eC2e2E8219A43355Dd226a#code
+
+## Architecture
+
+Makoto Wallet is a client-side dApp. It does not require a custodial application backend to hold user funds or signing credentials.
+
+### Frontend
+
+- **Next.js 16.3**
+- **React 19**
+- **TypeScript**
+- **wagmi 3**
+- **viem 2**
+- **TanStack Query 5**
+- Responsive Makoto Wallet UI
+
+### Smart Contracts
+
+- Solidity
+- Hardhat
+- OpenZeppelin contracts
+- PenguJar V3 on Arc Testnet
+
+Public reads go to Arc Testnet RPC endpoints. Write operations are signed by the connected wallet.
 
 ## Security Model
 
-- The frontend never needs custody of wallet secrets.
-- Users review and sign write transactions in their connected wallet.
-- Only the jar owner can withdraw a jar's funds.
-- Withdrawal cannot occur before the immutable unlock time.
-- Contributors receive no withdrawal rights.
-- Deposits and contributions stop when a jar unlocks or closes.
-- Direct USDC transfers to the contract are not credited to a jar.
-- There is no administrator withdrawal, privileged fund sweep, upgrade proxy, or early-withdrawal bypass.
+Makoto Wallet is designed around non-custodial interaction:
 
-PenguJar has not undergone an independent professional security audit. See the [threat model](docs/06-security.md) and [release audit](docs/10-final-audit.md) for the project's internal security review.
+- The frontend does not require custody of wallet private keys
+- Wallet secrets must never be placed in frontend environment variables
+- Users approve and sign write transactions in their wallet
+- Contract state is read directly from Arc Testnet
+- PenguJar V3 uses `SafeERC20` and `ReentrancyGuard`
+- There is no intended administrator fund-withdrawal backdoor
+- Guardian controls are defensive and do not directly grant withdrawal rights
+- Owner recovery is delayed and approval-gated
+- Private jar metadata is encrypted client-side before local storage
 
-## Tested User Flows
+PenguJar V3 has undergone extensive project-level automated testing and adversarial-path testing, but **has not undergone an independent professional security audit**. Do not treat this repository as audited production financial software.
 
-- [x] Connect OKX Wallet or another injected wallet
-- [x] Detect and switch to Arc Testnet
-- [x] Create a savings jar
-- [x] Make an owner USDC deposit
-- [x] Contribute USDC from another wallet
-- [x] View a public jar without connecting a wallet
-- [x] Review onchain activity and ArcScan links
-- [x] Enforce owner-only withdrawal and block early withdrawal in contract tests
-- [x] Complete a successful post-unlock owner withdrawal in contract tests
-- [x] Complete a public Arc Testnet lifecycle from jar creation through withdrawal and Closed state
-- [x] Use responsive desktop and mobile layouts
-- [x] Switch between Light, Dark, and System appearance
-- [x] Switch between English and Vietnamese
+## Validation
 
-The current contract suite contains 19 passing tests: one preserved V1 regression test and 18 PenguJarV2 lifecycle, authorization, contribution, and accounting tests.
+The current Makoto Wallet frontend checkpoint has been validated with:
 
-## Screenshots and Demo
+```bash
+cd frontend
+npm test
+npm run typecheck
+npm run lint
+npm run build
+```
 
-Approved release screenshots have not yet been added to the repository. The planned set includes:
+At the current UI checkpoint, the frontend test suite reports **27 passing tests** with no failures.
 
-- Dashboard
-- Create Jar flow
-- Jar detail and progress
-- Onchain activity history
-- Shared contribution flow
-- Mobile view
-- Closed jar state
-- ArcScan verified contract
-
-See the [demo checklist](docs/demo-checklist.md) and [screenshot plan](docs/screenshots.md) for capture requirements. Screenshots should show real Arc Testnet state and must not expose wallet secrets or unrelated personal information.
+PenguJar V3 development also includes dedicated privacy, guardian, recovery, and adversarial security tests in the repository's Hardhat test suite.
 
 ## Local Development
 
-Requirements: Node.js 20 or later and npm.
+Requirements:
+
+- Node.js 20 or later
+- npm
+
+Clone the repository:
 
 ```bash
-git clone https://github.com/congthuat/Arc-PenguJar-SmartContract.git
-cd Arc-PenguJar-SmartContract
+git clone https://github.com/congthuat/Makoto-Wallet.git
+cd Makoto-Wallet
+```
 
-# Install smart-contract dependencies
+Install smart-contract dependencies:
+
+```bash
 npm ci
+```
 
-# Install and start the frontend
+Install and start the frontend:
+
+```bash
 cd frontend
 npm ci
 cp .env.example .env.local
 npm run dev
 ```
 
-Open `http://localhost:3000` after the development server starts.
+Open:
 
-On Windows PowerShell, copy the environment template with:
+```text
+http://localhost:3000
+```
+
+On Windows PowerShell:
 
 ```powershell
 Copy-Item .env.example .env.local
 ```
 
-### Frontend Environment Variable
+## Frontend Environment Variables
 
-The frontend uses one optional public override. The checked-in default already points to the deployed Arc Testnet contract.
+The checked-in defaults already point to the current Arc Testnet deployment. Public overrides can be supplied when needed:
 
 ```dotenv
-NEXT_PUBLIC_PENGUJAR_ADDRESS=0xE77129Baa1614bB242d1703C40a568249a53BF44
+NEXT_PUBLIC_PENGUJAR_ADDRESS=0x2d2C30ACe5d1f057C6eC2e2E8219A43355Dd226a
+NEXT_PUBLIC_ARC_RPC_URL=https://rpc.testnet.arc.network
 ```
 
-Use [`frontend/.env.example`](frontend/.env.example) as the source of truth. Do not place secret credentials in frontend environment variables.
+Only `NEXT_PUBLIC_*` configuration intended for the browser belongs in the frontend environment.
 
-## Smart Contract Development
+**Never put `PRIVATE_KEY` or other wallet signing secrets in the frontend, GitHub, or Vercel public environment variables.**
 
-Run these commands from the repository root:
+## Contract Development
+
+From the repository root:
 
 ```bash
 npm ci
 npm run compile
-npm test
+npx hardhat test
 ```
 
-Available release tooling:
+V3 deployment and verification tooling is available through:
 
 ```bash
-npm run deploy:validate
-npm run deploy:arc
-npm run deploy:verify
-npm run clean
+npm run deploy:v3:arc
+npm run validate:v3:arc
+npm run verify:v3:arc
+npm run smoke:v3:arc
 ```
 
-Deployment commands require deliberate local configuration and a dedicated Arc Testnet wallet. Review the [Arc Testnet deployment guide](docs/09-deployment.md) before using them.
-
-Frontend validation commands:
-
-```bash
-cd frontend
-npm run lint
-npm run typecheck
-npm run build
-```
+Deployment commands require deliberate local configuration and a dedicated Arc Testnet wallet.
 
 ## Deployment
 
-The frontend is deployed on Vercel:
+### Frontend
 
-- **Production URL:** [https://arc-pengu-jar-smart-contract.vercel.app](https://arc-pengu-jar-smart-contract.vercel.app)
+- **Hosting:** Vercel
+- **Production URL:** https://makoto-wallet.vercel.app
 - **Vercel Root Directory:** `frontend`
-- **Framework:** Next.js
+- **Production branch:** `makoto-wallet`
 
-The public contract address may be configured with `NEXT_PUBLIC_PENGUJAR_ADDRESS`. No wallet signing credential belongs in the Vercel frontend configuration.
+### Repository
 
-## Project Status
+- **Repository:** `congthuat/Makoto-Wallet`
+- **Active production branch:** `makoto-wallet`
 
-**Arc Testnet Release**
+The `main` branch contains earlier PenguJar project history and is retained as part of the project's evolution. The current Makoto Wallet production frontend is developed and deployed from `makoto-wallet`.
 
-The application, verified contract, public jar pages, wallet flows, localization, activity history, and responsive interface are available for Arc Testnet testing. A complete create, deposit, unlock, owner-withdrawal, and Closed-state lifecycle has been verified on the public Vercel deployment connected to Arc Testnet using Jar #4, **Public Test**. PenguJar is not presented as a mainnet production service.
+## Roadmap
 
-## Project Documentation
+Makoto Wallet is being developed in phases.
 
-- [Product requirements](docs/02-prd.md)
-- [Product decisions](docs/03-product-decisions.md)
-- [Technical architecture](docs/05-architecture.md)
-- [Security and threat model](docs/06-security.md)
-- [Arc Testnet deployment](docs/09-deployment.md)
-- [Final release audit](docs/10-final-audit.md)
+### Phase 1 — Wallet Foundation ✅
+
+- Makoto Wallet rebrand
+- Real Arc Testnet balances
+- Send / Receive
+- Session activity
+- PenguJar retained as Savings
+- Responsive colorful wallet dashboard
+- Production Vercel deployment
+
+### Phase 2 — Mini Wallet Core
+
+Planned direction includes deeper wallet functionality and transaction UX improvements.
+
+### Later
+
+Potential future work includes:
+
+- Real swap integration after protocol/router evaluation
+- Broader asset support
+- Improved transaction history
+- Additional Arc-native integrations
+- Stronger cross-device private metadata recovery
+
+Roadmap items are plans, not promises of release or availability.
+
+## PenguJar Project History
+
+PenguJar was the original project in this repository. It evolved through multiple iterations before becoming the savings module inside Makoto Wallet.
+
+That history remains useful because it contains the contract work behind:
+
+- Time-locked savings
+- Privacy modes
+- Guardian controls
+- Recovery flows
+- Security tests
+- Arc Testnet deployment tooling
+
+The Makoto Wallet rebrand does not remove PenguJar; it changes its role from the whole application to a focused savings feature.
 
 ## License
 
-PenguJar is available under the [MIT License](LICENSE).
+This project is available under the [MIT License](LICENSE).
 
 ## Disclaimer
 
-PenguJar is deployed on Arc Testnet for testing and demonstration. Testnet USDC is not real-world money and has no intended monetary value. The project is not a bank, investment product, or promise of returns.
+Makoto Wallet is currently deployed on **Arc Testnet** for testing and demonstration.
+
+It is not a bank, investment product, exchange, audited custody service, or promise of returns. Testnet assets are not intended to represent real-world monetary value. Users are responsible for reviewing wallet prompts and transaction details before signing.
