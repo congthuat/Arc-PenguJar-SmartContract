@@ -60,6 +60,7 @@ export function WalletDashboard() {
           copy: "Sao chép",
           copied: "Đã sao chép",
           refresh: "Làm mới",
+          refreshing: "Đang làm mới",
           send: "Gửi",
           receive: "Nhận",
           swap: "Hoán đổi",
@@ -90,6 +91,9 @@ export function WalletDashboard() {
           createJar: "Tạo hũ",
           noJars: "Chưa có hũ tiết kiệm.",
           viewSavings: "Xem tiết kiệm",
+          totalSaved: "Tổng đã tiết kiệm",
+          activeJars: "Hũ đang hoạt động",
+          completedJars: "Hũ hoàn thành",
           saved: "đã tiết kiệm",
           target: "mục tiêu",
           confirmed: "Đã xác nhận",
@@ -107,6 +111,7 @@ export function WalletDashboard() {
           copy: "Copy",
           copied: "Copied",
           refresh: "Refresh",
+          refreshing: "Refreshing",
           send: "Send",
           receive: "Receive",
           swap: "Swap",
@@ -137,6 +142,9 @@ export function WalletDashboard() {
           createJar: "Create a Jar",
           noJars: "No savings jars yet.",
           viewSavings: "View Savings",
+          totalSaved: "Total saved",
+          activeJars: "Active jars",
+          completedJars: "Completed jars",
           saved: "saved",
           target: "target",
           confirmed: "Completed",
@@ -178,11 +186,14 @@ export function WalletDashboard() {
       active: jars.filter(
         (jar) => jarStatus(jar.unlockTime, jar.closed) === "Locked",
       ).length,
+      completed: jars.filter((jar) => jar.closed).length,
     }),
     [jars],
   );
 
   const visibleJars = jars.slice(0, 3);
+  const visibleActivities = activities.slice(0, 5);
+  const refreshing = balances.usdc.isFetching || balances.eurc.isFetching;
 
   async function copyAddress() {
     if (!connection.address) return;
@@ -273,11 +284,12 @@ export function WalletDashboard() {
                     <button
                       type="button"
                       onClick={() => void refresh()}
-                      disabled={
-                        balances.usdc.isFetching || balances.eurc.isFetching
-                      }
+                      className={refreshing ? styles.refreshingButton : undefined}
+                      disabled={refreshing}
+                      aria-busy={refreshing}
                     >
-                      {c.refresh}
+                      <span className={styles.refreshIcon} aria-hidden="true">↻</span>
+                      {refreshing ? c.refreshing : c.refresh}
                     </button>
                   </div>
 
@@ -411,7 +423,7 @@ export function WalletDashboard() {
                   />
                   <div><strong>{asset.symbol}</strong><small>{asset.name}</small></div>
                   <div className={styles.assetContract}><span>{shortAddress(asset.address)}</span><a href={`${ARC_EXPLORER_URL}/address/${asset.address}`} target="_blank" rel="noreferrer">ArcScan <ExternalLinkIcon /></a></div>
-                  <strong className={styles.assetBalance}>{query.data === undefined ? "..." : formatAssetAmount(query.data, asset)} {asset.symbol}</strong>
+                  <strong className={`${styles.assetBalance} ${query.data === undefined ? styles.loadingValue : ""}`}>{query.data === undefined ? <span aria-label="Loading balance" /> : <>{formatAssetAmount(query.data, asset)} {asset.symbol}</>}</strong>
                 </article>;
               })}</div>
             </section>
@@ -440,7 +452,7 @@ export function WalletDashboard() {
                 {!onArc ? (
                   <div className={styles.emptyActivity}><strong>{c.activityWrongNetwork}</strong></div>
                 ) : activity.isLoading ? (
-                  <div className={styles.emptyActivity}><strong>{c.activityLoading}</strong></div>
+                  <div className={styles.activitySkeleton} aria-label={c.activityLoading}>{Array.from({ length: 3 }, (_, index) => <span key={index} />)}</div>
                 ) : activity.isError && activities.length === 0 ? (
                   <div className={styles.emptyActivity}><strong>{c.activityError}</strong><button type="button" className={styles.viewButton} onClick={() => void activity.refetch()}>{c.retry}</button></div>
                 ) : activities.length === 0 ? (
@@ -456,7 +468,7 @@ export function WalletDashboard() {
                   </div>
                 ) : (
                   <ul className={styles.activityList}>
-                    {activities.map((item) => (
+                    {visibleActivities.map((item) => (
                       <li key={activityIdentity(item)}>
                         <Image
                           src={item.kind === "swap" ? "/makoto/icon-swap-pro-v2.png" : item.direction === "receive" ? "/makoto/icon-receive-pro-v2.png" : "/makoto/icon-send-pro-v2.png"}
@@ -484,7 +496,6 @@ export function WalletDashboard() {
                         </a>
                       </li>
                     ))}
-                    {activity.hasNextPage && <li className={styles.activityLoadMore}><button type="button" className={styles.viewButton} onClick={() => void activity.loadMore()} disabled={activity.isLoadingMore}>{c.loadMore}</button></li>}
                   </ul>
                 )}
               </article>
@@ -501,14 +512,18 @@ export function WalletDashboard() {
                 </header>
 
                 {jarsLoading ? (
-                  <div className={styles.savingsLoading}>...</div>
+                  <div className={styles.jarSkeleton} aria-label="Loading savings jars">{Array.from({ length: 3 }, (_, index) => <span key={index} />)}</div>
                 ) : visibleJars.length === 0 ? (
                   <div className={styles.emptyJars}>
                     <p>{c.noJars}</p>
                     <Link href="/savings">{c.createJar}</Link>
                   </div>
                 ) : (
-                  <div className={styles.jarList}>
+                  <><dl className={styles.savingsSummary}>
+                    <div><dt>{c.totalSaved}</dt><dd>{formatUsdc(totals.locked)} USDC</dd></div>
+                    <div><dt>{c.activeJars}</dt><dd>{totals.active}</dd></div>
+                    <div><dt>{c.completedJars}</dt><dd>{totals.completed}</dd></div>
+                  </dl><div className={styles.jarList}>
                     {visibleJars.map((jar, index) => {
                       const progress = progressPercent(
                         jar.balance,
@@ -517,7 +532,7 @@ export function WalletDashboard() {
                       return (
                         <Link
                           href={`/jars/${jar.id.toString()}`}
-                          className={styles.jarRow}
+                          className={`${styles.jarRow} ${jar.closed ? styles.jarCompleted : ""}`}
                           key={jar.id.toString()}
                         >
                           <Image
@@ -530,7 +545,7 @@ export function WalletDashboard() {
                           <div className={styles.jarBody}>
                             <div className={styles.jarTitleRow}>
                               <strong>{jar.name || `Jar #${jar.id}`}</strong>
-                              <span>{Math.round(progress)}%</span>
+                              <span>{jar.closed ? c.confirmed : `${Math.round(progress)}%`}</span>
                             </div>
                             <div className={styles.progressTrack}>
                               <span
@@ -546,7 +561,7 @@ export function WalletDashboard() {
                         </Link>
                       );
                     })}
-                  </div>
+                  </div></>
                 )}
 
                 <footer className={styles.savingsFooter}>

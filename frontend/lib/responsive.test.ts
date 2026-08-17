@@ -42,9 +42,18 @@ test("mobile wallet account sheet escapes transformed header ancestors", () => {
   assert.match(globals, /\.connected-popover\.account-menu\s*\{[^}]*position:\s*fixed[^}]*bottom:\s*0[^}]*padding:[^}]*env\(safe-area-inset-bottom\)/s);
 });
 
-test("connected account panel stays focused on wallet information", () => {
-  assert.doesNotMatch(walletControl, /PreferenceFields|preference-fields|wallet\.preferences|about-menu|about\.title/);
+test("connected account panel preserves account context and preferences", () => {
+  assert.match(walletControl, /connection\.connector\?\.name/);
+  assert.match(walletControl, /PreferenceFields|preference-fields|wallet\.preferences|about-menu|about\.title/);
   assert.match(walletControl, /wallet\.account[\s\S]*wallet\.copy[\s\S]*wallet\.arcscan[\s\S]*wallet\.network[\s\S]*wallet\.usdcBalance[\s\S]*wallet\.disconnect/);
   assert.match(globals, /\.disconnect-button\{[^}]*border:\s*1px solid #efc8c3[^}]*color:\s*#a44338[^}]*background:\s*#fff6f4/);
   assert.match(globals, /html\[data-theme="dark"\] \.disconnect-button\{[^}]*color:\s*#ffb0a6[^}]*background:\s*#2a1b20/);
+});
+
+test("dashboard previews five activities and derives savings summary", () => {
+  assert.match(dashboard, /activities\.slice\(0,\s*5\)/);
+  assert.match(dashboard, /jars\.filter\(\(jar\)\s*=>\s*jar\.closed\)\.length/);
+  assert.match(dashboard, /savingsSummary/);
+  assert.doesNotMatch(dashboard, /activity\.loadMore\(\)/);
+  assert.match(wallet, /\.savingsSummary\s*\{[^}]*grid-template-columns:\s*repeat\(3/s);
 });
