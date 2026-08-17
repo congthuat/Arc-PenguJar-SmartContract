@@ -1147,6 +1147,11 @@
     padding-left: 5px;
   }
 
+  .walletControlWrap:hover,
+  .walletControlWrap:focus-within {
+    transform: none;
+  }
+
   .walletControlWrap .pillGlyph {
     display: none;
   }

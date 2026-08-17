@@ -270,6 +270,7 @@ html[data-theme="dark"] .address-panel,html[data-theme="dark"] .detail-hero,html
     cursor: default;
   }
   .connected-popover.account-menu {
+    position: fixed;
     top: auto;
     right: 0;
     bottom: 0;

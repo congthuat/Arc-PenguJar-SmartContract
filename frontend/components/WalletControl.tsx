@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useConnection, useDisconnect } from "wagmi";
 import { useWalletBalances } from "@/hooks/useWalletBalances";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -19,8 +20,24 @@ export function WalletControl() {
   const [accountOpen, setAccountOpen] = useState(false);
   const [message, setMessage] = useState<string>();
   const [copied, setCopied] = useState(false);
+  const [isMobileAccountSheet, setIsMobileAccountSheet] = useState(false);
   const onArc = verifiedChain.isArc;
   const balances = useWalletBalances(connection.address, connection.isConnected && onArc);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 620px)");
+    const sync = () => setIsMobileAccountSheet(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!accountOpen || !isMobileAccountSheet) return;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousBodyOverflow; };
+  }, [accountOpen, isMobileAccountSheet]);
 
   async function openWalletModal() {
     const appKit = getAppKit();
@@ -54,26 +71,33 @@ export function WalletControl() {
     </div>;
   }
 
+  const accountPanel = <div className="wallet-popover connected-popover account-menu" role="dialog" aria-modal={isMobileAccountSheet ? "true" : undefined} aria-label={t("wallet.connected")}>
+    <div className="wallet-popover-heading"><strong>{t("wallet.account")}</strong><button onClick={() => setAccountOpen(false)} aria-label={t("common.close")}>×</button></div>
+    <p className="account-address">{shortAddress(connection.address)}</p>
+    <div className="account-links"><button onClick={() => void copyAddress()}>{copied ? t("wallet.copied") : t("wallet.copy")}</button><a href={`${ARC_EXPLORER_URL}/address/${connection.address}`} target="_blank" rel="noreferrer">{t("wallet.arcscan")} ↗</a></div>
+    <div className="wallet-network-row"><span>{t("wallet.network")}</span><strong><i className={onArc ? "healthy-dot" : "warning-dot"} />{onArc ? t("network.arc") : t("wallet.wrongNetwork")}</strong></div>
+    {onArc ? <div className="wallet-balances"><div><span>{t("wallet.usdcBalance")}</span><strong>{balances.usdc.data === undefined ? "…" : formatUsdc(balances.usdc.data)} USDC</strong></div></div> : <button className="switch-button" onClick={() => void switchToArc()} disabled={isSwitchPending(verifiedChain.switchStatus)}>{switchButtonLabel(verifiedChain.switchStatus, t)}</button>}
+    {verifiedChain.switchMessage && <p className={verifiedChain.switchStatus === "connected" ? "wallet-success" : "wallet-error"} role="status">{verifiedChain.switchMessage}</p>}
+    {message && <p className="wallet-error" role="alert">{message}</p>}
+    <PreferenceFields locale={locale} theme={theme} setLocale={setLocale} setTheme={setTheme} t={t} />
+    <details className="about-menu"><summary>{t("about.title")}</summary><p>{t("about.copy")}</p></details>
+    <button className="disconnect-button" onClick={() => { disconnect.mutate(); setAccountOpen(false); setMessage(undefined); }}>{t("wallet.disconnect")}</button>
+  </div>;
+
+  const mobileAccountOverlay = accountOpen && isMobileAccountSheet && typeof document !== "undefined"
+    ? createPortal(<>
+        <button className="account-sheet-backdrop" type="button" onClick={() => setAccountOpen(false)} aria-label={t("common.close")} />
+        {accountPanel}
+      </>, document.body)
+    : null;
+
   return <div className="wallet-control connected">
     <button className={`wallet-summary ${onArc ? "on-arc" : "wrong-chain"}`} onClick={() => setAccountOpen((open) => !open)} aria-expanded={accountOpen}>
       <span className="wallet-status-dot" />
       <span><strong>{shortAddress(connection.address)}</strong><small>{onArc ? t("network.arc") : t("wallet.wrongNetwork")}</small></span>
     </button>
-    {accountOpen && <>
-      <button className="account-sheet-backdrop" type="button" onClick={() => setAccountOpen(false)} aria-label={t("common.close")} />
-      <div className="wallet-popover connected-popover account-menu" role="dialog" aria-label={t("wallet.connected")}>
-      <div className="wallet-popover-heading"><strong>{t("wallet.account")}</strong><button onClick={() => setAccountOpen(false)} aria-label={t("common.close")}>×</button></div>
-      <p className="account-address">{shortAddress(connection.address)}</p>
-      <div className="account-links"><button onClick={() => void copyAddress()}>{copied ? t("wallet.copied") : t("wallet.copy")}</button><a href={`${ARC_EXPLORER_URL}/address/${connection.address}`} target="_blank" rel="noreferrer">{t("wallet.arcscan")} ↗</a></div>
-      <div className="wallet-network-row"><span>{t("wallet.network")}</span><strong><i className={onArc ? "healthy-dot" : "warning-dot"} />{onArc ? t("network.arc") : t("wallet.wrongNetwork")}</strong></div>
-      {onArc ? <div className="wallet-balances"><div><span>{t("wallet.usdcBalance")}</span><strong>{balances.usdc.data === undefined ? "…" : formatUsdc(balances.usdc.data)} USDC</strong></div></div> : <button className="switch-button" onClick={() => void switchToArc()} disabled={isSwitchPending(verifiedChain.switchStatus)}>{switchButtonLabel(verifiedChain.switchStatus, t)}</button>}
-      {verifiedChain.switchMessage && <p className={verifiedChain.switchStatus === "connected" ? "wallet-success" : "wallet-error"} role="status">{verifiedChain.switchMessage}</p>}
-      {message && <p className="wallet-error" role="alert">{message}</p>}
-      <PreferenceFields locale={locale} theme={theme} setLocale={setLocale} setTheme={setTheme} t={t} />
-      <details className="about-menu"><summary>{t("about.title")}</summary><p>{t("about.copy")}</p></details>
-      <button className="disconnect-button" onClick={() => { disconnect.mutate(); setAccountOpen(false); setMessage(undefined); }}>{t("wallet.disconnect")}</button>
-      </div>
-    </>}
+    {accountOpen && !isMobileAccountSheet && accountPanel}
+    {mobileAccountOverlay}
   </div>;
 }
 
