@@ -1159,16 +1159,14 @@
 
 .themeButton:hover,
 .languageTrigger:hover,
-.walletControlWrap:hover,
-.walletControlWrap:focus-within {
+.walletControlWrap:hover {
   transform: translateY(-1px);
   box-shadow: 0 11px 27px rgba(55, 58, 125, .085);
 }
 
 .nav a:focus-visible,
 .languageTrigger:focus-visible,
-.themeButton:focus-visible,
-.walletControlWrap:focus-within {
+.themeButton:focus-visible {
   outline: 2px solid #8060f4;
   outline-offset: 2px;
 }
@@ -1216,8 +1214,7 @@
     padding-left: 5px;
   }
 
-  .walletControlWrap:hover,
-  .walletControlWrap:focus-within {
+  .walletControlWrap:hover {
     transform: none;
   }
 

@@ -50,7 +50,7 @@ test("mobile wallet account sheet escapes transformed header ancestors", () => {
   assert.match(walletControl, /accountOpen\s*&&\s*isMobileAccountSheet[\s\S]*?createPortal\([\s\S]*?account-sheet-backdrop[\s\S]*?document\.body\)/);
   assert.match(walletControl, /role="dialog"\s+aria-modal=\{isMobileAccountSheet\s*\?\s*"true"\s*:\s*undefined\}/);
   assert.match(walletControl, /previousBodyOverflow\s*=\s*document\.body\.style\.overflow[\s\S]*?document\.body\.style\.overflow\s*=\s*"hidden"[\s\S]*?document\.body\.style\.overflow\s*=\s*previousBodyOverflow/);
-  assert.match(wallet, /@media\s*\(max-width:\s*760px\)[\s\S]*?\.walletControlWrap:hover,\s*\.walletControlWrap:focus-within\s*\{\s*transform:\s*none/);
+  assert.match(wallet, /@media\s*\(max-width:\s*760px\)[\s\S]*?\.walletControlWrap:hover\s*\{\s*transform:\s*none/);
   assert.match(globals, /\.connected-popover\.account-menu\s*\{[^}]*position:\s*fixed[^}]*bottom:\s*0[^}]*padding:[^}]*env\(safe-area-inset-bottom\)/s);
 });
 
@@ -73,6 +73,8 @@ test("connected account focus and dismissal behavior remains accessible", () => 
   assert.match(walletControl, /onClick=\{\(event\)\s*=>\s*closeAccount\(event\.detail\s*===\s*0\)\}/);
   assert.match(walletControl, /triggerRef\.current\?\.focus\(\{\s*preventScroll:\s*true\s*\}\)/);
   assert.doesNotMatch(globals, /\.wallet-summary:focus-visible\s*\{[^}]*box-shadow/s);
+  assert.doesNotMatch(wallet, /\.walletControlWrap:focus-within/);
+  assert.match(wallet, /\.nav a:focus-visible,\s*\.languageTrigger:focus-visible,\s*\.themeButton:focus-visible\s*\{/s);
   assert.match(globals, /:is\(a,button,input,select,textarea,\[tabindex\]\):focus-visible/);
 });
 
