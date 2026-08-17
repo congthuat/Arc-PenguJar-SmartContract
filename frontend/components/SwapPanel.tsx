@@ -1,4 +1,30 @@
 "use client";
+
+import { useState } from "react";
 import { usePreferences } from "@/hooks/usePreferences";
 import { WalletPanel } from "./WalletPanel";
-export function SwapPanel({ onClose }: { onClose(): void }) { const { locale } = usePreferences(); const c = locale === "vi" ? { title:"Hoán đổi", heading:"Mô-đun tiếp theo", copy:"Tích hợp thanh khoản và bộ định tuyến cho Arc đang được nghiên cứu. Chưa có tỷ giá, phê duyệt token hoặc giao dịch nào được tạo.", close:"Đóng" } : { title:"Swap", heading:"The next module", copy:"Arc liquidity and router integration is being researched. No quote, token approval, or transaction is created here yet.", close:"Close" }; return <WalletPanel title={c.title} onClose={onClose}><div className="transaction-state"><span>↔</span><h3>{c.heading}</h3><p>{c.copy}</p><button className="standalone-action" onClick={onClose}>{c.close}</button></div></WalletPanel>; }
+import { RealSwapFlow } from "./RealSwapFlow";
+import { CctpBridgeFlow } from "./CctpBridgeFlow";
+
+type Mode = "swap" | "bridge";
+
+export function SwapPanel({ onClose }: { onClose(): void }) {
+  const { locale } = usePreferences();
+  const vi = locale === "vi";
+  const [mode, setMode] = useState<Mode>("swap");
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <WalletPanel title={vi ? "Hoán đổi & Bridge" : "Swap & Bridge"} onClose={onClose} closeDisabled={busy}>
+      <div className="modal-actions" style={{ justifyContent: "center", marginBottom: 20 }}>
+        <button type="button" className={mode === "swap" ? "primary-action" : "secondary-action"} onClick={() => setMode("swap")} disabled={busy}>
+          {vi ? "Hoán đổi" : "Swap"}
+        </button>
+        <button type="button" className={mode === "bridge" ? "primary-action" : "secondary-action"} onClick={() => setMode("bridge")} disabled={busy}>
+          Bridge USDC
+        </button>
+      </div>
+      {mode === "swap" ? <RealSwapFlow locale={locale} onBusyChange={setBusy} /> : <CctpBridgeFlow locale={locale} onBusyChange={setBusy} />}
+    </WalletPanel>
+  );
+}

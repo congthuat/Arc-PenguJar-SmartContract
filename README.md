@@ -34,7 +34,7 @@ Makoto Wallet currently focuses on a simple set of everyday actions:
 - Use light/dark appearance controls
 - Work across responsive desktop and mobile layouts
 
-**Swap is planned and currently shown as `Coming next`; it is not presented as a completed feature.**
+**Swap is available on Arc Testnet for the supported USDC ↔ EURC pair. Arc-native USDC bridging to Base Sepolia is also available through Circle CCTP V2 Forwarding Service.**
 
 ## Live App
 
@@ -95,7 +95,8 @@ Guardian and Recovery roles are designed as defensive controls. They do not rece
 | Guardian & Recovery | ✅ Available |
 | EN / VI | ✅ Available |
 | Light / Dark UI | ✅ Available |
-| Swap | 🛠 Coming next |
+| Swap USDC ↔ EURC | ✅ Available |
+| Arc → Base Sepolia CCTP bridge | ✅ Available |
 | Mainnet release | ⏳ Not released |
 
 ## Arc Testnet Configuration
@@ -280,16 +281,15 @@ Makoto Wallet is being developed in phases.
 
 - Phase 1 — Wallet Foundation
 - Phase 2 — Mini Wallet Core
+- Phase 3 — Real Swap
 - Phase 4 — Wallet Safety
 - Phase 5 — Multi-Asset Wallet (USDC and EURC)
+- Phase 6 — Arc-native integrations
 - Phase 7 — Public Beta polish and release readiness
 
-### Pending
+### Current checkpoint
 
-- Phase 3 — Real Swap
-- Phase 6 — Arc-native integrations
-
-Swap remains `Coming next`. The roadmap is not fully complete.
+Phase 3 and Phase 6 are implemented on Arc Testnet. Remaining roadmap work is future expansion beyond the current public-beta scope.
 
 Roadmap items are plans, not promises of release or availability.
 

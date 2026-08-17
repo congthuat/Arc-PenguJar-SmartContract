@@ -116,3 +116,11 @@ Flag as BLOCKING if a change:
 - introduces an owner/admin sweep of user funds
 - uses a stale/unverified Arc address
 - adds roadmap features without scope approval
+
+## Makoto Wallet promoted scope — 2026-08-17
+
+The user explicitly promoted the following roadmap items into Makoto Wallet scope:
+- Phase 3: real Arc Testnet USDC ↔ EURC swap with live quotes and wallet-signed execution.
+- Phase 6: Arc-native USDC crosschain integration using Circle CCTP V2 Forwarding Service.
+
+The older PenguJar MVP guardrails above remain historical constraints for the PenguJar MVP itself; they do not prohibit these explicitly promoted Makoto Wallet features.

@@ -27,9 +27,13 @@ test("PUBLIC SAFE and SHIELDED creation remain compatible", () => {
 });
 
 test("V3 app source has no user-facing obsolete test-network label", () => {
-  const obsoleteNetwork = ["sepo", "lia"].join("");
-  const files = walk(".").filter((path) => /\.(ts|tsx|css|md)$/.test(path) && !path.endsWith("guardianFrontend.test.ts"));
-  for (const file of files) assert.equal(read(file).toLowerCase().includes(obsoleteNetwork), false, file);
+  const obsoleteNetwork = /ethereum sepolia|sepolia testnet/i;
+  const files = walk(".").filter((path) =>
+    /\.(ts|tsx|css|md)$/.test(path)
+    && !path.startsWith(join("app", "api"))
+    && !path.endsWith("guardianFrontend.test.ts"),
+  );
+  for (const file of files) assert.equal(obsoleteNetwork.test(read(file)), false, file);
 });
 
 function walk(directory: string): string[] {

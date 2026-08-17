@@ -1,9 +1,8 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { formatUnits } from "viem";
 import { useConnection } from "wagmi";
 
 import { AppHeader } from "./AppHeader";
@@ -55,7 +54,7 @@ export function WalletDashboard() {
           totalBalance: "Số dư USDC",
           assets: "Tài sản",
           assetsEyebrow: "TÀI SẢN ĐƯỢC HỖ TRỢ",
-          native: "Số dư Arc",
+          native: "Phí gas",
           copy: "Sao chép",
           copied: "Đã sao chép",
           refresh: "Làm mới",
@@ -65,7 +64,7 @@ export function WalletDashboard() {
           save: "Tiết kiệm",
           sendSub: "Gửi USDC tới địa chỉ",
           receiveSub: "Nhận USDC vào ví",
-          swapSub: "Sắp ra mắt",
+          swapSub: "USDC ↔ EURC · báo giá trực tiếp",
           saveSub: "PenguJar · Tiết kiệm USDC",
           companionTitle: "Gặp Makoto 💜",
           companionCopy: "Người bạn đồng hành cùng ví của bạn trên Arc.",
@@ -94,7 +93,7 @@ export function WalletDashboard() {
           totalBalance: "USDC Balance",
           assets: "Assets",
           assetsEyebrow: "SUPPORTED ASSETS",
-          native: "Native balance",
+          native: "Gas token",
           copy: "Copy",
           copied: "Copied",
           refresh: "Refresh",
@@ -104,7 +103,7 @@ export function WalletDashboard() {
           save: "Save",
           sendSub: "Send USDC to any address",
           receiveSub: "Receive USDC to your wallet",
-          swapSub: "Coming next",
+          swapSub: "USDC ↔ EURC · live quotes",
           saveSub: "PenguJar · USDC Savings",
           companionTitle: "Meet Makoto 💜",
           companionCopy: "Your friendly wallet companion on Arc.",
@@ -186,15 +185,6 @@ export function WalletDashboard() {
   const usdcBalance =
     balances.usdc.data === undefined ? "..." : formatUsdc(balances.usdc.data);
 
-  const nativeBalance = balances.native.data
-    ? `${Number(
-        formatUnits(
-          balances.native.data.value,
-          balances.native.data.decimals,
-        ),
-      ).toFixed(4)} ${balances.native.data.symbol}`
-    : "...";
-
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
@@ -251,7 +241,7 @@ export function WalletDashboard() {
                       Arc Testnet
                     </span>
                     <span className={styles.heroPill}>
-                      {c.native}: {nativeBalance}
+                      {c.native}: USDC
                     </span>
                   </div>
 
