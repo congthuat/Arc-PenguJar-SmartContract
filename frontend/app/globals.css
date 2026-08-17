@@ -1232,6 +1232,82 @@ html[data-theme="dark"] .makoto-page{background:radial-gradient(circle at 10% 10
   }
 }
 
+/* Public beta micro-polish: compact mobile art, balanced CTA, and quiet accessible focus. */
+.wallet-summary:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.wallet-summary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--purple) 34%, transparent), 0 8px 24px rgba(71, 67, 136, .06);
+}
+
+.eyebrow,
+.card-footer,
+.savings-footer span,
+.jar-preview-info span,
+.jar-preview-info small,
+.savings-status-card .eyebrow,
+.savings-create-cta small {
+  line-height: 1.45;
+}
+
+.savings-status-card .eyebrow {
+  font-size: 10px;
+}
+
+.jar-preview-info span,
+.jar-preview-info small,
+.savings-create-cta small {
+  font-size: 10px;
+}
+
+footer {
+  color: color-mix(in srgb, var(--muted) 88%, var(--ink));
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+@media (max-width: 767px) {
+  .dashboard-top .companion-card {
+    min-height: 414px;
+  }
+
+  .dashboard-top .companion-dog {
+    height: calc(100% - 118px);
+  }
+
+  .dashboard-top .companion-copy {
+    min-height: 128px;
+    padding: 20px 21px;
+  }
+
+  .dashboard-top .companion-copy h2 {
+    font-size: 21px;
+  }
+
+  .savings-create-cta {
+    min-height: 76px;
+    padding: 13px 16px;
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 11px;
+    align-content: center;
+  }
+
+  .savings-create-cta > span {
+    grid-row: 1 / span 2;
+    align-self: center;
+    font-size: 22px;
+  }
+
+  .savings-create-cta strong,
+  .savings-create-cta small {
+    margin-top: 0;
+  }
+}
+
 @media (max-width: 767px) {
   .balance-dog {
     right: 0;

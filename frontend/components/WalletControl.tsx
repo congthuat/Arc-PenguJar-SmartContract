@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useConnection, useDisconnect } from "wagmi";
 import { useWalletBalances } from "@/hooks/useWalletBalances";
@@ -21,6 +21,7 @@ export function WalletControl() {
   const [message, setMessage] = useState<string>();
   const [copied, setCopied] = useState(false);
   const [isMobileAccountSheet, setIsMobileAccountSheet] = useState(false);
+  const controlRef = useRef<HTMLDivElement>(null);
   const onArc = verifiedChain.isArc;
   const balances = useWalletBalances(connection.address, connection.isConnected && onArc);
   const walletName = connection.connector?.name;
@@ -38,6 +39,22 @@ export function WalletControl() {
     const previousBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = previousBodyOverflow; };
+  }, [accountOpen, isMobileAccountSheet]);
+
+  useEffect(() => {
+    if (!accountOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setAccountOpen(false);
+    };
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (!isMobileAccountSheet && !controlRef.current?.contains(event.target as Node)) setAccountOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => {
+      document.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+    };
   }, [accountOpen, isMobileAccountSheet]);
 
   async function openWalletModal() {
@@ -92,7 +109,7 @@ export function WalletControl() {
       </>, document.body)
     : null;
 
-  return <div className="wallet-control connected">
+  return <div ref={controlRef} className="wallet-control connected">
     <button className={`wallet-summary ${onArc ? "on-arc" : "wrong-chain"}`} onClick={() => setAccountOpen((open) => !open)} aria-expanded={accountOpen}>
       <span className="wallet-status-dot" />
       <span><strong>{shortAddress(connection.address)}</strong><small>{onArc ? t("network.arc") : t("wallet.wrongNetwork")}</small></span>
