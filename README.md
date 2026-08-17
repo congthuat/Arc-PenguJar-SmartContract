@@ -234,7 +234,10 @@ The checked-in defaults already point to the current Arc Testnet deployment. Pub
 ```dotenv
 NEXT_PUBLIC_PENGUJAR_ADDRESS=0x2d2C30ACe5d1f057C6eC2e2E8219A43355Dd226a
 NEXT_PUBLIC_ARC_RPC_URL=https://rpc.testnet.arc.network
+NEXT_PUBLIC_REOWN_PROJECT_ID=your_reown_project_id
 ```
+
+`NEXT_PUBLIC_REOWN_PROJECT_ID` enables the Reown AppKit wallet chooser, including WalletConnect QR codes and mobile wallet deep links. Add the same public project ID to the Vercel project environment before deploying.
 
 Only `NEXT_PUBLIC_*` configuration intended for the browser belongs in the frontend environment.
 
