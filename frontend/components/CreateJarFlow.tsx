@@ -53,9 +53,9 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
       if (jarMode === "shielded") {
         const hours = Number(withdrawalDelayHours);
         if (!Number.isInteger(hours) || hours < 1 || hours > 720) {
-          throw new Error("Withdrawal delay must be between 1 and 720 hours.");
+          throw new Error(t("create.delayError"));
         }
-        if (guardianProtection) validateProtectionWallets(guardianWallet, recoveryWallet, connection.address);
+        if (guardianProtection) validateProtectionWallets(guardianWallet, recoveryWallet, connection.address, t("create.walletsError"), t("create.distinctWalletsError"));
       }
       setFormError(undefined);
       setStep("review");
@@ -73,7 +73,7 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
     try {
       const withdrawalDelay = BigInt(withdrawalDelayHours) * 60n * 60n;
       const protection = guardianProtection
-        ? validateProtectionWallets(guardianWallet, recoveryWallet, connection.address)
+        ? validateProtectionWallets(guardianWallet, recoveryWallet, connection.address, t("create.walletsError"), t("create.distinctWalletsError"))
         : undefined;
       let hash: `0x${string}`;
       if (privacy === "private") {
@@ -126,7 +126,7 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
       if (receipt.isSuccess && write.data && finalizedHash.current !== write.data) {
         const jarId = createdJarId(receipt.data?.logs ?? [], contractAddress);
         if (jarId === undefined) {
-          setTransactionError("The transaction was confirmed, but its JarCreated event could not be verified.");
+          setTransactionError(t("create.eventError"));
           setStep("error");
           return;
         }
@@ -166,16 +166,16 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
         <div className="step-indicator"><span className={step === "form" ? "active" : "done"}>1 {t("create.goal")}</span><i /><span className={step === "review" ? "active" : (["wallet","submitted","success"].includes(step) ? "done" : "")}>2 {t("create.review")}</span><i /><span className={["wallet","submitted"].includes(step) ? "active" : step === "success" ? "done" : ""}>3 {t("create.confirm")}</span></div>
 
         {step === "form" && <form className="create-form" onSubmit={review}>
-          <fieldset className="create-choice"><legend>Metadata visibility</legend><label><input type="radio" name="privacy" checked={privacy === "public"} onChange={() => setPrivacy("public")} /> Public</label><label><input type="radio" name="privacy" checked={privacy === "private"} onChange={() => setPrivacy("private")} /> Private metadata</label></fieldset>
-          <fieldset className="create-choice"><legend>Withdrawal protection</legend><label><input type="radio" name="mode" checked={jarMode === "safe"} onChange={() => setJarMode("safe")} /> Safe</label><label><input type="radio" name="mode" checked={jarMode === "shielded"} onChange={() => setJarMode("shielded")} /> Shielded</label></fieldset>
-          <label>{t("create.name")}<input value={values.name} maxLength={64} onChange={(event) => setValues({ ...values, name: event.target.value })} placeholder="Japan Trip" autoFocus /><small>{t("create.nameHelp")}</small></label>
+          <fieldset className="create-choice"><legend>{t("create.metadataVisibility")}</legend><label><input type="radio" name="privacy" checked={privacy === "public"} onChange={() => setPrivacy("public")} /> {t("create.public")}</label><label><input type="radio" name="privacy" checked={privacy === "private"} onChange={() => setPrivacy("private")} /> {t("create.privateMetadata")}</label></fieldset>
+          <fieldset className="create-choice"><legend>{t("create.withdrawalProtection")}</legend><label><input type="radio" name="mode" checked={jarMode === "safe"} onChange={() => setJarMode("safe")} /> {t("create.safe")}</label><label><input type="radio" name="mode" checked={jarMode === "shielded"} onChange={() => setJarMode("shielded")} /> {t("create.shielded")}</label></fieldset>
+          <label>{t("create.name")}<input value={values.name} maxLength={64} onChange={(event) => setValues({ ...values, name: event.target.value })} placeholder={t("create.namePlaceholder")} autoFocus /><small>{t("create.nameHelp")}</small></label>
           <label>{t("create.target")}<div className="unit-input"><input inputMode="decimal" value={values.target} onChange={(event) => setValues({ ...values, target: event.target.value })} placeholder="250.50" /><span>USDC</span></div><small>{t("create.amountHelp")}</small></label>
-          {privacy === "private" && <label>Private note<textarea value={note} maxLength={1000} onChange={(event) => setNote(event.target.value)} placeholder="Optional note encrypted on this device" /><small>Metadata encrypted on this device. Addresses, balances, transfers, and timestamps remain public.</small></label>}
-          {jarMode === "shielded" && <label>Withdrawal delay<div className="unit-input"><input inputMode="numeric" value={withdrawalDelayHours} onChange={(event) => setWithdrawalDelayHours(event.target.value)} /><span>hours</span></div><small>1 to 720 hours after requesting withdrawal.</small></label>}
-          {jarMode === "shielded" && <fieldset className="create-choice"><legend>Guardian protection</legend><label><input type="radio" name="guardian" checked={!guardianProtection} onChange={() => setGuardianProtection(false)} /> Off</label><label><input type="radio" name="guardian" checked={guardianProtection} onChange={() => setGuardianProtection(true)} /> On</label></fieldset>}
+          {privacy === "private" && <label>{t("create.privateNote")}<textarea value={note} maxLength={1000} onChange={(event) => setNote(event.target.value)} placeholder={t("create.privateNotePlaceholder")} /><small>{t("create.privateMetadataHelp")}</small></label>}
+          {jarMode === "shielded" && <label>{t("create.withdrawalDelay")}<div className="unit-input"><input inputMode="numeric" value={withdrawalDelayHours} onChange={(event) => setWithdrawalDelayHours(event.target.value)} /><span>{t("create.hours")}</span></div><small>{t("create.withdrawalDelayHelp")}</small></label>}
+          {jarMode === "shielded" && <fieldset className="create-choice"><legend>{t("create.guardianProtection")}</legend><label><input type="radio" name="guardian" checked={!guardianProtection} onChange={() => setGuardianProtection(false)} /> {t("create.off")}</label><label><input type="radio" name="guardian" checked={guardianProtection} onChange={() => setGuardianProtection(true)} /> {t("create.on")}</label></fieldset>}
           {jarMode === "shielded" && guardianProtection && <div className="security-fields">
-            <label>Guardian wallet<input value={guardianWallet} onChange={(event) => setGuardianWallet(event.target.value)} placeholder="0x…" /><small>Can freeze a suspicious withdrawal but can never access or receive your funds.</small></label>
-            <label>Recovery wallet<input value={recoveryWallet} onChange={(event) => setRecoveryWallet(event.target.value)} placeholder="0x…" /><small>Acts as a second security authorization factor. It cannot withdraw or receive Jar funds.</small></label>
+            <label>{t("create.guardianWallet")}<input value={guardianWallet} onChange={(event) => setGuardianWallet(event.target.value)} placeholder="0x…" /><small>{t("create.guardianHelp")}</small></label>
+            <label>{t("create.recoveryWallet")}<input value={recoveryWallet} onChange={(event) => setRecoveryWallet(event.target.value)} placeholder="0x…" /><small>{t("create.recoveryHelp")}</small></label>
           </div>}
           <label>{t("create.unlock")}<div className="date-time-24"><input aria-label={t("jar.unlockDate")} type="date" value={unlockParts.date} min={minimumUnlock.slice(0, 10)} onChange={(event) => setValues({ ...values, unlockLocal: joinLocalDateTime(event.target.value, unlockParts.hour, unlockParts.minute) })} /><select aria-label={t("create.unlock")} value={unlockParts.hour} onChange={(event) => setValues({ ...values, unlockLocal: joinLocalDateTime(unlockParts.date, event.target.value, unlockParts.minute) })}>{timeOptions(24).map((hour) => <option key={hour} value={hour}>{hour}</option>)}</select><span>:</span><select aria-label={t("create.unlock")} value={unlockParts.minute} onChange={(event) => setValues({ ...values, unlockLocal: joinLocalDateTime(unlockParts.date, unlockParts.hour, event.target.value) })}>{timeOptions(60).map((minute) => <option key={minute} value={minute}>{minute}</option>)}</select></div><small>{parsed ? t("create.selected", { date: formatLocalDateTime(parsed.unlockDate) }) : t("create.timeHelp")}</small></label>
           {formError && <p className="form-alert" role="alert">{formError}</p>}
@@ -186,10 +186,10 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
           <div className="review-hero"><span>✦</span><div><small>{t("create.name")}</small><strong>{parsed.name}</strong></div></div>
           <dl><div><dt>{t("jar.target")}</dt><dd>{formatUsdc(parsed.targetAmount)} USDC</dd></div><div><dt>{t("jar.unlocks")}</dt><dd>{formatLocalDateTime(parsed.unlockDate)}</dd></div><div><dt>{t("wallet.wallet")}</dt><dd>{connection.address ? shortAddress(connection.address) : t("actions.connect")}</dd></div><div><dt>{t("wallet.network")}</dt><dd>{onArc ? "Arc Testnet" : t("wallet.switch")}</dd></div><div><dt>{t("create.starting")}</dt><dd>0 USDC</dd></div></dl>
           <p className="review-note">{t("create.noDeposit")}</p>
-          {privacy === "private" && <p className="review-note">Private metadata will be encrypted locally after a wallet message signature. Only its commitment is sent onchain.</p>}
-          {jarMode === "shielded" && guardianProtection && <p className="review-note">Guardian protected · Guardian {shortAddress(getAddress(guardianWallet))} · Recovery {shortAddress(getAddress(recoveryWallet))}. Neither wallet can withdraw or receive Jar funds.</p>}
+          {privacy === "private" && <p className="review-note">{t("create.privateReview")}</p>}
+          {jarMode === "shielded" && guardianProtection && <p className="review-note">{t("create.protectedReview", { guardian: shortAddress(getAddress(guardianWallet)), recovery: shortAddress(getAddress(recoveryWallet)) })}</p>}
           {!connection.isConnected && <p className="form-alert">{t("create.connectBefore")}</p>}
-          {connection.isConnected && !onArc && <button className="switch-review" onClick={() => void verifiedChain.switchToArc()} disabled={["waiting", "switching", "missing"].includes(verifiedChain.switchStatus)}>{verifiedChain.switchStatus === "waiting" || verifiedChain.switchStatus === "missing" ? "Waiting for wallet…" : verifiedChain.switchStatus === "switching" ? "Switching network…" : "Switch to Arc Testnet"}</button>}
+          {connection.isConnected && !onArc && <button className="switch-review" onClick={() => void verifiedChain.switchToArc()} disabled={["waiting", "switching", "missing"].includes(verifiedChain.switchStatus)}>{verifiedChain.switchStatus === "waiting" || verifiedChain.switchStatus === "missing" ? t("create.waitingSwitch") : verifiedChain.switchStatus === "switching" ? t("create.switching") : t("create.switchArc")}</button>}
           {connection.isConnected && !onArc && verifiedChain.switchMessage && <p className="form-alert">{verifiedChain.switchMessage}</p>}
           <div className="modal-actions"><button className="cancel-action" onClick={() => setStep("form")}>{t("common.back")}</button><button className="primary-action" onClick={() => void submit()} disabled={!onArc || !contractAddress}>{t("create.confirmWallet")}</button></div>
         </div>}
@@ -241,13 +241,13 @@ function transactionErrorMessage(error: unknown, t: ReturnType<typeof usePrefere
   return t("tx.rpc");
 }
 
-function validateProtectionWallets(guardianValue: string, recoveryValue: string, owner?: `0x${string}`) {
-  if (!owner || !isAddress(guardianValue) || !isAddress(recoveryValue)) throw new Error("Enter valid Guardian and Recovery wallet addresses.");
+function validateProtectionWallets(guardianValue: string, recoveryValue: string, owner: `0x${string}` | undefined, invalidMessage: string, distinctMessage: string) {
+  if (!owner || !isAddress(guardianValue) || !isAddress(recoveryValue)) throw new Error(invalidMessage);
   const guardian = getAddress(guardianValue);
   const recovery = getAddress(recoveryValue);
   const normalizedOwner = getAddress(owner);
   if (guardian === zeroAddress || recovery === zeroAddress || guardian === normalizedOwner || recovery === normalizedOwner || guardian === recovery) {
-    throw new Error("Owner, Guardian, and Recovery wallet must be three different non-zero addresses.");
+    throw new Error(distinctMessage);
   }
   return { guardian, recovery };
 }

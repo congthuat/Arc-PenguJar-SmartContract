@@ -14,9 +14,15 @@ test("private metadata decryption remains owner-gated", () => {
 test("guardian and recovery copy never implies a transfer of Jar funds", () => {
   const panel = read("components/JarSecurityPanel.tsx");
   const create = read("components/CreateJarFlow.tsx");
-  assert.match(panel, /does NOT transfer USDC/i);
-  assert.match(panel, /does not transfer USDC/i);
-  assert.match(create, /cannot withdraw or receive Jar funds/i);
+  const english = read("i18n/en.ts");
+  const vietnamese = read("i18n/vi.ts");
+  assert.match(panel, /security\.ownerPending/);
+  assert.match(panel, /security\.executeRecoveryConfirm/);
+  assert.match(english, /does not transfer USDC/i);
+  assert.match(vietnamese, /không chuyển USDC/i);
+  assert.match(create, /create\.recoveryHelp/);
+  assert.match(english, /cannot withdraw or receive jar funds/i);
+  assert.match(vietnamese, /không thể rút hay nhận tiền từ hũ/i);
 });
 
 test("PUBLIC SAFE and SHIELDED creation remain compatible", () => {

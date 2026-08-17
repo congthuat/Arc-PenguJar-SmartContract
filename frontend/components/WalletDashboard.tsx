@@ -99,7 +99,7 @@ export function WalletDashboard() {
   }
 
   const usdcBalance =
-    balances.usdc.data === undefined ? "..." : formatUsdc(balances.usdc.data);
+    balances.usdc.data === undefined ? "—" : formatUsdc(balances.usdc.data);
 
   return (
     <main className={styles.page}>

@@ -40,9 +40,9 @@ export function JarDetail({ jarIdParam }: { jarIdParam: string }) {
   const { jar, viewerContribution, isLoading, error, refetch } = useJar(jarId, viewer);
   const activity = useJarActivity(jarId);
 
-  if (contractAddressError || !contractAddress) return <DetailState title="Contract configuration needed" copy={contractAddressError ?? "Missing contract address."} />;
-  if (!validJarId) return <DetailState title="That jar ID is not valid" copy="Jar IDs are positive whole numbers." />;
-  if (isLoading) return <DetailState title="Opening the jar…" copy="Reading the latest state from Arc Testnet." loading />;
+  if (contractAddressError || !contractAddress) return <DetailState title={t("jar.contractConfigTitle")} copy={contractAddressError ?? t("jar.contractConfigCopy")} />;
+  if (!validJarId) return <DetailState title={t("jar.invalidIdTitle")} copy={t("jar.invalidIdCopy")} />;
+  if (isLoading) return <DetailState title={t("jar.openingTitle")} copy={t("jar.openingCopy")} loading />;
   if (error || !jar) return <DetailState title={t("jar.openFailed")} copy={t("jar.openFailedCopy")} action={<button className="secondary-button" onClick={() => void refetch()}>{t("common.tryAgain")}</button>} />;
 
   const progress = progressPercent(jar.balance, jar.targetAmount);
@@ -81,7 +81,7 @@ export function JarDetail({ jarIdParam }: { jarIdParam: string }) {
         <article className="balance-card"><p>{t("jar.saved")}</p><div><strong>{formatUsdc(jar.balance)}</strong><span>USDC</span></div><div className="detail-progress-label"><span>{t("jar.percentSaved", { percent: progress.toFixed(1) })} · {t("jar.target")} {formatUsdc(jar.targetAmount)} USDC</span><span>{statusLabel}</span></div><ProgressBar value={progress} /></article>
         <article className="facts-card"><div><span>{t("jar.unlockDate")}</span><strong>{formatDate(jar.unlockTime)}</strong><small>{status === "Locked" ? t("jar.lockedUntil") : statusLabel}</small></div><div><span>{t("jar.owner")}</span><strong title={jar.owner}>{shortAddress(jar.owner)}</strong><small>{t("jar.ownerCanWithdraw")}</small></div><div><span>{t("jar.shared")}</span><strong>{formatUsdc(jar.totalContributed)} USDC</strong><small>{t("jar.sentContribution")}</small></div><div><span>{t("jar.yourShared")}</span><strong>{viewerContribution === undefined ? "—" : `${formatUsdc(viewerContribution)} USDC`}</strong><small>{viewer ? shortAddress(viewer) : t("jar.connectToView")}</small></div></article>
       </section>
-      <div className="security-badges"><span>{jar.mode === 0 ? "SAFE" : "SHIELDED"}</span>{jar.guardian !== "0x0000000000000000000000000000000000000000" && <span>GUARDIAN PROTECTED</span>}{jar.privacyMode === 1 && <span>PRIVATE METADATA</span>}</div>
+      <div className="security-badges"><span>{jar.mode === 0 ? t("create.safe") : t("create.shielded")}</span>{jar.guardian !== "0x0000000000000000000000000000000000000000" && <span>{t("jar.guardianProtected")}</span>}{jar.privacyMode === 1 && <span>{t("jar.privateMetadata")}</span>}</div>
       <p className="accounting-note">{t("jar.accounting")}</p>
       <DisabledActions depositEnabled={depositEnabled} contributeEnabled={contributeEnabled} withdrawEnabled={withdrawEnabled} depositReason={depositReason} contributeReason={contributeReason} withdrawReason={withdrawReason} ownerConnected={ownerConnected} onDeposit={() => setDepositOpen(true)} onContribute={() => setContributionOpen(true)} onWithdraw={() => setWithdrawalOpen(true)} />
       <JarSecurityPanel jar={jar} now={chainTimestamp ?? 0n} onRefresh={async () => { await Promise.all([refetch(), latestBlock.refetch(), activity.refetch()]); }} onWithdraw={() => setWithdrawalOpen(true)} />
