@@ -63,6 +63,19 @@ test("connected account panel stays focused on account context", () => {
   assert.match(globals, /html\[data-theme="dark"\] \.disconnect-button\{[^}]*color:\s*#ffb0a6[^}]*background:\s*#2a1b20/);
 });
 
+test("connected account focus and dismissal behavior remains accessible", () => {
+  assert.match(walletControl, /triggerRef\s*=\s*useRef<HTMLButtonElement>/);
+  assert.match(walletControl, /panelCloseRef\s*=\s*useRef<HTMLButtonElement>/);
+  assert.match(walletControl, /panelCloseRef\.current\?\.focus\(\{\s*preventScroll:\s*true\s*\}\)/);
+  assert.match(walletControl, /event\.key\s*!==\s*"Escape"[\s\S]*?closeAccount\(true\)/);
+  assert.match(walletControl, /!isMobileAccountSheet\s*&&\s*!controlRef\.current\?\.contains\(event\.target as Node\)/);
+  assert.match(walletControl, /account-sheet-backdrop[\s\S]*?onClick=\{\(\)\s*=>\s*closeAccount\(\)\}/);
+  assert.match(walletControl, /onClick=\{\(event\)\s*=>\s*closeAccount\(event\.detail\s*===\s*0\)\}/);
+  assert.match(walletControl, /triggerRef\.current\?\.focus\(\{\s*preventScroll:\s*true\s*\}\)/);
+  assert.doesNotMatch(globals, /\.wallet-summary:focus-visible\s*\{[^}]*box-shadow/s);
+  assert.match(globals, /:is\(a,button,input,select,textarea,\[tabindex\]\):focus-visible/);
+});
+
 test("dashboard previews five activities and derives savings summary", () => {
   assert.match(dashboard, /activities\.slice\(0,\s*5\)/);
   assert.match(dashboard, /summarizeSavingsJars\(jars\)/);

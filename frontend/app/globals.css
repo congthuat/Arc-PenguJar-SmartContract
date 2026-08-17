@@ -1232,16 +1232,7 @@ html[data-theme="dark"] .makoto-page{background:radial-gradient(circle at 10% 10
   }
 }
 
-/* Public beta micro-polish: compact mobile art, balanced CTA, and quiet accessible focus. */
-.wallet-summary:focus:not(:focus-visible) {
-  outline: none;
-}
-
-.wallet-summary:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--purple) 34%, transparent), 0 8px 24px rgba(71, 67, 136, .06);
-}
-
+/* Public beta micro-polish: compact mobile art and balanced CTA. */
 .eyebrow,
 .card-footer,
 .savings-footer span,

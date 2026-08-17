@@ -22,6 +22,8 @@ export function WalletControl() {
   const [copied, setCopied] = useState(false);
   const [isMobileAccountSheet, setIsMobileAccountSheet] = useState(false);
   const controlRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelCloseRef = useRef<HTMLButtonElement>(null);
   const onArc = verifiedChain.isArc;
   const balances = useWalletBalances(connection.address, connection.isConnected && onArc);
   const walletName = connection.connector?.name;
@@ -43,8 +45,11 @@ export function WalletControl() {
 
   useEffect(() => {
     if (!accountOpen) return;
+    const focusFrame = window.requestAnimationFrame(() => panelCloseRef.current?.focus({ preventScroll: true }));
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setAccountOpen(false);
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closeAccount(true);
     };
     const closeOnOutsidePointer = (event: PointerEvent) => {
       if (!isMobileAccountSheet && !controlRef.current?.contains(event.target as Node)) setAccountOpen(false);
@@ -52,10 +57,16 @@ export function WalletControl() {
     document.addEventListener("keydown", closeOnEscape);
     document.addEventListener("pointerdown", closeOnOutsidePointer);
     return () => {
+      window.cancelAnimationFrame(focusFrame);
       document.removeEventListener("keydown", closeOnEscape);
       document.removeEventListener("pointerdown", closeOnOutsidePointer);
     };
   }, [accountOpen, isMobileAccountSheet]);
+
+  function closeAccount(restoreTriggerFocus = false) {
+    setAccountOpen(false);
+    if (restoreTriggerFocus) window.requestAnimationFrame(() => triggerRef.current?.focus({ preventScroll: true }));
+  }
 
   async function openWalletModal() {
     const appKit = getAppKit();
@@ -90,7 +101,7 @@ export function WalletControl() {
   }
 
   const accountPanel = <div className="wallet-popover connected-popover account-menu" role="dialog" aria-modal={isMobileAccountSheet ? "true" : undefined} aria-label={t("wallet.connected")}>
-    <div className="wallet-popover-heading"><strong>{t("wallet.account")}</strong><button onClick={() => setAccountOpen(false)} aria-label={t("common.close")}>×</button></div>
+    <div className="wallet-popover-heading"><strong>{t("wallet.account")}</strong><button ref={panelCloseRef} onClick={(event) => closeAccount(event.detail === 0)} aria-label={t("common.close")}>×</button></div>
     {walletName && <span className="account-provider">{walletName}</span>}
     <p className="account-address">{shortAddress(connection.address)}</p>
     <div className="account-links"><button onClick={() => void copyAddress()}>{copied ? t("wallet.copied") : t("wallet.copy")}</button><a href={`${ARC_EXPLORER_URL}/address/${connection.address}`} target="_blank" rel="noreferrer">{t("wallet.arcscan")} ↗</a></div>
@@ -104,13 +115,13 @@ export function WalletControl() {
 
   const mobileAccountOverlay = accountOpen && isMobileAccountSheet && typeof document !== "undefined"
     ? createPortal(<>
-        <button className="account-sheet-backdrop" type="button" onClick={() => setAccountOpen(false)} aria-label={t("common.close")} />
+        <button className="account-sheet-backdrop" type="button" onClick={() => closeAccount()} aria-label={t("common.close")} />
         {accountPanel}
       </>, document.body)
     : null;
 
   return <div ref={controlRef} className="wallet-control connected">
-    <button className={`wallet-summary ${onArc ? "on-arc" : "wrong-chain"}`} onClick={() => setAccountOpen((open) => !open)} aria-expanded={accountOpen}>
+    <button ref={triggerRef} className={`wallet-summary ${onArc ? "on-arc" : "wrong-chain"}`} onClick={() => setAccountOpen((open) => !open)} aria-expanded={accountOpen}>
       <span className="wallet-status-dot" />
       <span><strong>{shortAddress(connection.address)}</strong><small>{onArc ? t("network.arc") : t("wallet.wrongNetwork")}</small></span>
     </button>
