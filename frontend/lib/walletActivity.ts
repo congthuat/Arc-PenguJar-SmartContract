@@ -1,15 +1,18 @@
 import { getAddress, isAddress, isHash, type Address, type Hash } from "viem";
-import { getAssetById, type SupportedAsset } from "./assets.ts";
-import type { WalletActivity } from "./wallet";
 
+import { getAssetById, type SupportedAsset } from "./assets.ts";
+import { activityIdentity, normalizeWalletActivities } from "./onchainActivity.ts";
+import type { WalletActivity } from "./wallet.ts";
+
+const V3_PREFIX = "makoto-wallet:activity:v3";
 const V2_PREFIX = "makoto-wallet:activity:v2";
 const V1_PREFIX = "makoto-wallet:activity:v1";
 const MAX_ACTIVITY = 50;
 type StorageLike = Pick<Storage, "getItem" | "setItem">;
-type StoredActivity = Omit<WalletActivity, "amount"> & { amount: string };
-type LegacyActivity = Pick<StoredActivity, "hash" | "direction" | "amount" | "counterparty" | "confirmedAt">;
+type StoredActivity = Omit<WalletActivity, "amount" | "blockNumber"> & { amount: string; blockNumber: string };
 
-export function walletActivityKey(address: Address, chainId: number) { return `${V2_PREFIX}:${address.toLowerCase()}:${chainId}`; }
+export function walletActivityKey(address: Address, chainId: number) { return `${V3_PREFIX}:${address.toLowerCase()}:${chainId}`; }
+export function v2WalletActivityKey(address: Address, chainId: number) { return `${V2_PREFIX}:${address.toLowerCase()}:${chainId}`; }
 export function legacyWalletActivityKey(address: Address, chainId: number) { return `${V1_PREFIX}:${address.toLowerCase()}:${chainId}`; }
 
 export function createAssetActivity(asset: SupportedAsset, record: Omit<WalletActivity, "assetId" | "assetSymbol" | "tokenAddress" | "decimals">): WalletActivity {
@@ -17,54 +20,34 @@ export function createAssetActivity(asset: SupportedAsset, record: Omit<WalletAc
 }
 
 export function serializeWalletActivity(records: WalletActivity[]) {
-  return JSON.stringify(records.map((record) => ({ ...record, amount: record.amount.toString() })) satisfies StoredActivity[]);
+  return JSON.stringify(records.map((record) => ({ ...record, amount: record.amount.toString(), blockNumber: record.blockNumber.toString() })) satisfies StoredActivity[]);
 }
 
 export function deserializeWalletActivity(payload: string): WalletActivity[] {
   try {
     const parsed: unknown = JSON.parse(payload);
     if (!Array.isArray(parsed)) return [];
-    const records: WalletActivity[] = [];
-    for (const item of parsed) {
-      if (!isStoredActivity(item)) return [];
-      const asset = getAssetById(item.assetId);
-      if (!asset || item.assetSymbol !== asset.symbol || item.tokenAddress.toLowerCase() !== asset.address.toLowerCase() || item.decimals !== asset.decimals) return [];
-      records.push({ ...item, hash: item.hash as Hash, direction: "send", amount: BigInt(item.amount), counterparty: getAddress(item.counterparty), tokenAddress: asset.address, assetId: asset.id, assetSymbol: asset.symbol, decimals: asset.decimals });
-    }
-    return normalizeActivity(records);
-  } catch { return []; }
-}
-
-function deserializeLegacyActivity(payload: string): WalletActivity[] {
-  try {
-    const parsed: unknown = JSON.parse(payload);
-    if (!Array.isArray(parsed)) return [];
-    const usdc = getAssetById("usdc")!;
-    const records: WalletActivity[] = [];
-    for (const item of parsed) {
-      if (!isLegacyActivity(item)) return [];
-      records.push(createAssetActivity(usdc, { hash: item.hash as Hash, direction: "send", amount: BigInt(item.amount), counterparty: getAddress(item.counterparty), confirmedAt: item.confirmedAt }));
-    }
-    return normalizeActivity(records);
+    const records = parsed.map(parseV3Record);
+    return records.every(Boolean) ? normalizeWalletActivities(records as WalletActivity[], MAX_ACTIVITY) : [];
   } catch { return []; }
 }
 
 export function loadWalletActivity(address: Address, chainId: number, storage = browserStorage()): WalletActivity[] {
   if (!storage) return [];
   try {
-    const v2 = storage.getItem(walletActivityKey(address, chainId));
-    if (v2 !== null) return deserializeWalletActivity(v2);
+    const v3 = storage.getItem(walletActivityKey(address, chainId));
+    if (v3 !== null) return deserializeWalletActivity(v3);
+    const v2 = storage.getItem(v2WalletActivityKey(address, chainId));
     const v1 = storage.getItem(legacyWalletActivityKey(address, chainId));
-    if (v1 === null) return [];
-    const migrated = deserializeLegacyActivity(v1);
+    const migrated = v2 !== null ? deserializeOldActivity(v2, true) : v1 !== null ? deserializeOldActivity(v1, false) : [];
     storage.setItem(walletActivityKey(address, chainId), serializeWalletActivity(migrated));
     return migrated;
   } catch { return []; }
 }
 
 export function saveWalletActivity(address: Address, chainId: number, records: WalletActivity[], storage = browserStorage()) {
-  const normalized = normalizeActivity(records);
-  try { storage?.setItem(walletActivityKey(address, chainId), serializeWalletActivity(normalized)); } catch { /* confirmed onchain data remains valid */ }
+  const normalized = normalizeWalletActivities(records, MAX_ACTIVITY);
+  try { storage?.setItem(walletActivityKey(address, chainId), serializeWalletActivity(normalized)); } catch { /* local cache is non-authoritative */ }
   return normalized;
 }
 
@@ -72,21 +55,39 @@ export function addWalletActivity(address: Address, chainId: number, record: Wal
   return saveWalletActivity(address, chainId, [record, ...loadWalletActivity(address, chainId, storage)], storage);
 }
 
-function normalizeActivity(records: WalletActivity[]) {
-  const byHash = new Map<string, WalletActivity>();
-  for (const record of [...records].sort((a, b) => b.confirmedAt - a.confirmedAt)) if (!byHash.has(record.hash.toLowerCase())) byHash.set(record.hash.toLowerCase(), record);
-  return [...byHash.values()].slice(0, MAX_ACTIVITY);
+export function mergeWalletActivity(onchain: WalletActivity[], local: WalletActivity[]) {
+  const canonical = new Set(onchain.map(canonicalTransferIdentity));
+  return normalizeWalletActivities([...onchain, ...local.filter((item) => !canonical.has(canonicalTransferIdentity(item)))], MAX_ACTIVITY);
 }
 
-function isBaseActivity(item: Record<string, unknown>) {
-  return typeof item.hash === "string" && isHash(item.hash) && item.direction === "send" && typeof item.amount === "string" && /^\d+$/.test(item.amount) && typeof item.counterparty === "string" && isAddress(item.counterparty) && typeof item.confirmedAt === "number" && Number.isFinite(item.confirmedAt) && item.confirmedAt >= 0;
+function canonicalTransferIdentity(item: WalletActivity) {
+  return `${item.hash.toLowerCase()}:${item.tokenAddress.toLowerCase()}:${item.direction}:${item.amount}:${item.counterparty.toLowerCase()}`;
 }
 
-function isLegacyActivity(value: unknown): value is LegacyActivity { return Boolean(value && typeof value === "object" && isBaseActivity(value as Record<string, unknown>)); }
-function isStoredActivity(value: unknown): value is StoredActivity {
-  if (!value || typeof value !== "object" || !isBaseActivity(value as Record<string, unknown>)) return false;
-  const item = value as Record<string, unknown>;
-  return typeof item.assetId === "string" && typeof item.assetSymbol === "string" && typeof item.tokenAddress === "string" && isAddress(item.tokenAddress) && typeof item.decimals === "number";
+function parseV3Record(value: unknown): WalletActivity | undefined {
+  if (!isRecord(value) || typeof value.hash !== "string" || !isHash(value.hash) || !isSafeInteger(value.logIndex, -1) || (value.direction !== "send" && value.direction !== "receive") || (value.kind !== "transfer" && value.kind !== "swap" && value.kind !== "bridge") || typeof value.amount !== "string" || !/^\d+$/.test(value.amount) || BigInt(value.amount) <= 0n || typeof value.counterparty !== "string" || !isAddress(value.counterparty) || !isSafeInteger(value.confirmedAt, 0) || typeof value.blockNumber !== "string" || !/^\d+$/.test(value.blockNumber) || typeof value.assetId !== "string") return undefined;
+  const asset = getAssetById(value.assetId);
+  if (!asset || value.assetSymbol !== asset.symbol || typeof value.tokenAddress !== "string" || !isAddress(value.tokenAddress) || getAddress(value.tokenAddress) !== asset.address || value.decimals !== asset.decimals) return undefined;
+  return { hash: value.hash, logIndex: value.logIndex, direction: value.direction, kind: value.kind, amount: BigInt(value.amount), counterparty: getAddress(value.counterparty), confirmedAt: value.confirmedAt, blockNumber: BigInt(value.blockNumber), assetId: asset.id, assetSymbol: asset.symbol, tokenAddress: asset.address, decimals: asset.decimals };
 }
 
+function deserializeOldActivity(payload: string, hasAsset: boolean): WalletActivity[] {
+  try {
+    const parsed: unknown = JSON.parse(payload);
+    if (!Array.isArray(parsed)) return [];
+    const records: WalletActivity[] = [];
+    for (const value of parsed) {
+      if (!isRecord(value) || typeof value.hash !== "string" || !isHash(value.hash) || value.direction !== "send" || typeof value.amount !== "string" || !/^\d+$/.test(value.amount) || BigInt(value.amount) <= 0n || typeof value.counterparty !== "string" || !isAddress(value.counterparty) || !isSafeInteger(value.confirmedAt, 0)) return [];
+      const asset = hasAsset && typeof value.assetId === "string" ? getAssetById(value.assetId) : getAssetById("usdc");
+      if (!asset) return [];
+      records.push(createAssetActivity(asset, { hash: value.hash as Hash, logIndex: -1, direction: "send", kind: "transfer", amount: BigInt(value.amount), counterparty: getAddress(value.counterparty), confirmedAt: value.confirmedAt, blockNumber: 0n }));
+    }
+    return normalizeWalletActivities(records, MAX_ACTIVITY);
+  } catch { return []; }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> { return Boolean(value && typeof value === "object" && !Array.isArray(value)); }
+function isSafeInteger(value: unknown, minimum: number): value is number { return typeof value === "number" && Number.isSafeInteger(value) && value >= minimum; }
 function browserStorage(): StorageLike | undefined { return typeof window === "undefined" ? undefined : window.localStorage; }
+
+export { activityIdentity };

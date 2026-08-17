@@ -1,0 +1,108 @@
+import { getAddress, isAddress, isHash, type Address } from "viem";
+
+import { getAssetByAddress } from "./assets.ts";
+import type { WalletActivity } from "./wallet.ts";
+
+export type WalletActivityPage = { activities: WalletActivity[]; nextCursor?: string };
+export type SerializedWalletActivity = Omit<WalletActivity, "amount" | "blockNumber"> & { amount: string; blockNumber: string };
+export type SerializedWalletActivityPage = { activities: SerializedWalletActivity[]; nextCursor?: string };
+
+type RecordValue = Record<string, unknown>;
+
+export function activityIdentity(activity: Pick<WalletActivity, "hash" | "logIndex" | "tokenAddress">) {
+  return `${activity.hash.toLowerCase()}:${activity.logIndex}:${activity.tokenAddress.toLowerCase()}`;
+}
+
+export function normalizeWalletActivities(records: WalletActivity[], limit = 50) {
+  const unique = new Map<string, WalletActivity>();
+  for (const record of [...records].sort(compareActivity)) {
+    const key = activityIdentity(record);
+    if (!unique.has(key)) unique.set(key, record);
+  }
+  return [...unique.values()].slice(0, limit);
+}
+
+export function parseArcScanActivity(payload: unknown, wallet: Address): WalletActivityPage {
+  if (!isRecord(payload) || !Array.isArray(payload.items)) throw new Error("Invalid ArcScan activity response");
+  const records: WalletActivity[] = [];
+  for (const value of payload.items) {
+    const parsed = parseTransfer(value, wallet);
+    if (parsed) records.push(parsed);
+  }
+  const nextCursor = encodeArcScanCursor(payload.next_page_params);
+  return { activities: normalizeWalletActivities(records, 50), ...(nextCursor ? { nextCursor } : {}) };
+}
+
+export function serializeWalletActivityPage(page: WalletActivityPage): SerializedWalletActivityPage {
+  return {
+    activities: page.activities.map((item) => ({ ...item, amount: item.amount.toString(), blockNumber: item.blockNumber.toString() })),
+    ...(page.nextCursor ? { nextCursor: page.nextCursor } : {}),
+  };
+}
+
+export function deserializeWalletActivityPage(payload: unknown): WalletActivityPage {
+  if (!isRecord(payload) || !Array.isArray(payload.activities)) throw new Error("Invalid wallet activity response");
+  const activities: WalletActivity[] = [];
+  for (const value of payload.activities) {
+    if (!isRecord(value)) throw new Error("Invalid wallet activity record");
+    const asset = typeof value.tokenAddress === "string" ? getAssetByAddress(value.tokenAddress) : undefined;
+    if (!asset || typeof value.hash !== "string" || !isHash(value.hash) || !isSafeNonNegativeInteger(value.logIndex) || (value.direction !== "send" && value.direction !== "receive") || value.kind !== "transfer" || typeof value.amount !== "string" || !/^\d+$/.test(value.amount) || BigInt(value.amount) <= 0n || typeof value.counterparty !== "string" || !isAddress(value.counterparty) || !isSafeNonNegativeInteger(value.confirmedAt) || typeof value.blockNumber !== "string" || !/^\d+$/.test(value.blockNumber) || value.assetId !== asset.id || value.assetSymbol !== asset.symbol || value.decimals !== asset.decimals) throw new Error("Invalid wallet activity record");
+    activities.push({ ...value, hash: value.hash, tokenAddress: asset.address, counterparty: getAddress(value.counterparty), amount: BigInt(value.amount), blockNumber: BigInt(value.blockNumber), assetId: asset.id, assetSymbol: asset.symbol, decimals: asset.decimals } as WalletActivity);
+  }
+  const nextCursor = typeof payload.nextCursor === "string" && decodeArcScanCursor(payload.nextCursor) ? payload.nextCursor : undefined;
+  return { activities: normalizeWalletActivities(activities, 50), ...(nextCursor ? { nextCursor } : {}) };
+}
+
+export function encodeArcScanCursor(value: unknown) {
+  if (!isRecord(value) || !isSafeNonNegativeInteger(value.block_number) || !isSafeNonNegativeInteger(value.index)) return undefined;
+  return `${value.block_number}.${value.index}`;
+}
+
+export function decodeArcScanCursor(cursor: string) {
+  const match = /^(\d{1,16})\.(\d{1,16})$/.exec(cursor);
+  if (!match) return undefined;
+  const block_number = Number(match[1]);
+  const index = Number(match[2]);
+  return Number.isSafeInteger(block_number) && Number.isSafeInteger(index) ? { block_number, index } : undefined;
+}
+
+function parseTransfer(value: unknown, wallet: Address): WalletActivity | undefined {
+  if (!isRecord(value) || !isRecord(value.from) || !isRecord(value.to) || !isRecord(value.token) || !isRecord(value.total)) return undefined;
+  const tokenAddress = value.token.address_hash;
+  const fromRaw = value.from.hash;
+  const toRaw = value.to.hash;
+  if (typeof tokenAddress !== "string" || typeof fromRaw !== "string" || typeof toRaw !== "string" || !isAddress(fromRaw) || !isAddress(toRaw)) return undefined;
+  const asset = getAssetByAddress(tokenAddress);
+  if (!asset || typeof value.transaction_hash !== "string" || !isHash(value.transaction_hash) || !isSafeNonNegativeInteger(value.log_index) || !isSafeNonNegativeInteger(value.block_number) || typeof value.timestamp !== "string" || typeof value.total.value !== "string" || !/^\d+$/.test(value.total.value)) return undefined;
+  const amount = BigInt(value.total.value);
+  if (amount <= 0n) return undefined;
+  const from = getAddress(fromRaw);
+  const to = getAddress(toRaw);
+  const normalizedWallet = getAddress(wallet);
+  const isFrom = from === normalizedWallet;
+  const isTo = to === normalizedWallet;
+  if (isFrom === isTo) return undefined;
+  const confirmedAt = Date.parse(value.timestamp);
+  if (!Number.isFinite(confirmedAt) || confirmedAt < 0) return undefined;
+  return {
+    hash: value.transaction_hash,
+    logIndex: value.log_index,
+    direction: isFrom ? "send" : "receive",
+    kind: "transfer",
+    amount,
+    counterparty: isFrom ? to : from,
+    confirmedAt,
+    blockNumber: BigInt(value.block_number),
+    assetId: asset.id,
+    assetSymbol: asset.symbol,
+    tokenAddress: asset.address,
+    decimals: asset.decimals,
+  };
+}
+
+function compareActivity(a: WalletActivity, b: WalletActivity) {
+  return b.blockNumber > a.blockNumber ? 1 : b.blockNumber < a.blockNumber ? -1 : b.logIndex - a.logIndex;
+}
+
+function isRecord(value: unknown): value is RecordValue { return Boolean(value && typeof value === "object" && !Array.isArray(value)); }
+function isSafeNonNegativeInteger(value: unknown): value is number { return typeof value === "number" && Number.isSafeInteger(value) && value >= 0; }

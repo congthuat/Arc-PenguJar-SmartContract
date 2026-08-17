@@ -579,6 +579,12 @@
   height: 12px;
 }
 
+.activityList .activityLoadMore {
+  display: flex;
+  justify-content: center;
+  min-height: 58px;
+}
+
 .jarList {
   margin-top: 15px;
 }

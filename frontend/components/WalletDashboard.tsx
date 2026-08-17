@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useConnection } from "wagmi";
 
 import { AppHeader } from "./AppHeader";
@@ -14,13 +14,15 @@ import { useHydrated } from "@/hooks/useHydrated";
 import { useOwnerJars } from "@/hooks/useOwnerJars";
 import { usePreferences } from "@/hooks/usePreferences";
 import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
+import { useWalletActivity } from "@/hooks/useWalletActivity";
 import { useWalletBalances } from "@/hooks/useWalletBalances";
 
 import { ARC_EXPLORER_URL } from "@/lib/config";
 import { formatAssetAmount, getAssetById, SUPPORTED_ASSETS } from "@/lib/assets";
 import { formatUsdc, jarStatus, shortAddress } from "@/lib/format";
 import { arcScanTransactionUrl, type WalletActivity } from "@/lib/wallet";
-import { addWalletActivity, loadWalletActivity } from "@/lib/walletActivity";
+import { activityIdentity } from "@/lib/onchainActivity";
+import { addWalletActivity, mergeWalletActivity } from "@/lib/walletActivity";
 import styles from "./MakotoWallet.module.css";
 
 type Action = "send" | "receive" | "swap";
@@ -70,10 +72,16 @@ export function WalletDashboard() {
           companionCopy: "Người bạn đồng hành cùng ví của bạn trên Arc.",
           companionSupport: "Đơn giản. Non-custodial. Dành cho Arc.",
           activity: "Hoạt động",
-          activityEyebrow: "GIAO DỊCH ĐƯỢC TẠO",
-          sessionOnly: "Chỉ phiên này",
-          noActivity: "Chưa có giao dịch nào trong phiên này.",
-          noActivitySub: "Giao dịch bạn tạo tại đây sẽ xuất hiện sau khi Arc xác nhận.",
+          activityEyebrow: "HOẠT ĐỘNG TRÊN ARC",
+          activityLoading: "Đang tải hoạt động on-chain…",
+          activityWrongNetwork: "Chuyển sang Arc Testnet để xem hoạt động ví.",
+          noActivity: "Chưa tìm thấy hoạt động USDC hoặc EURC.",
+          noActivitySub: "Các giao dịch đã xác nhận trên Arc sẽ xuất hiện tại đây.",
+          activityError: "Không thể tải hoạt động.",
+          retry: "Thử lại",
+          loadMore: "Tải thêm",
+          from: "Từ",
+          to: "Đến",
           viewAll: "Xem tất cả",
           savings: "Savings Jars",
           penguJar: "PENGUJAR",
@@ -109,10 +117,16 @@ export function WalletDashboard() {
           companionCopy: "Your friendly wallet companion on Arc.",
           companionSupport: "Simple. Non-custodial. Made for Arc.",
           activity: "Activity",
-          activityEyebrow: "TRANSACTIONS CREATED",
-          sessionOnly: "Session only",
-          noActivity: "No transactions in this session yet.",
-          noActivitySub: "Activity you create here appears after Arc confirms it.",
+          activityEyebrow: "ON-CHAIN ARC ACTIVITY",
+          activityLoading: "Loading on-chain activity…",
+          activityWrongNetwork: "Switch to Arc Testnet to view wallet activity.",
+          noActivity: "No USDC or EURC activity found yet.",
+          noActivitySub: "Confirmed Arc transactions will appear here.",
+          activityError: "Activity could not be loaded.",
+          retry: "Retry",
+          loadMore: "Load More",
+          from: "From",
+          to: "To",
           viewAll: "View All",
           savings: "Savings Jars",
           penguJar: "PENGUJAR",
@@ -143,16 +157,16 @@ export function WalletDashboard() {
   } = useOwnerJars(onArc ? connection.address : undefined);
 
   const [action, setAction] = useState<Action>();
-  const [activities, setActivities] = useState<WalletActivity[]>([]);
+  const activity = useWalletActivity(connection.address, onArc);
+  const [optimisticActivity, setOptimisticActivity] = useState<{ address: string; records: WalletActivity[] }>();
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    const address = connection.address;
-    const frame = window.requestAnimationFrame(() => {
-      setActivities(hydrated && onArc && address ? loadWalletActivity(address, 5042002) : []);
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [connection.address, hydrated, onArc]);
+  const activities = useMemo(() => {
+    const optimistic = optimisticActivity && connection.address && optimisticActivity.address.toLowerCase() === connection.address.toLowerCase()
+      ? optimisticActivity.records
+      : [];
+    return mergeWalletActivity(activity.data, optimistic);
+  }, [activity.data, connection.address, optimisticActivity]);
 
   const totals = useMemo(
     () => ({
@@ -179,6 +193,7 @@ export function WalletDashboard() {
       balances.usdc.refetch(),
       balances.eurc.refetch(),
       refetchJars(),
+      activity.refetch(),
     ]);
   }
 
@@ -419,7 +434,13 @@ export function WalletDashboard() {
                   </a>
                 </header>
 
-                {activities.length === 0 ? (
+                {!onArc ? (
+                  <div className={styles.emptyActivity}><strong>{c.activityWrongNetwork}</strong></div>
+                ) : activity.isLoading ? (
+                  <div className={styles.emptyActivity}><strong>{c.activityLoading}</strong></div>
+                ) : activity.isError && activities.length === 0 ? (
+                  <div className={styles.emptyActivity}><strong>{c.activityError}</strong><button type="button" className={styles.viewButton} onClick={() => void activity.refetch()}>{c.retry}</button></div>
+                ) : activities.length === 0 ? (
                   <div className={styles.emptyActivity}>
                     <Image
                       src="/makoto/logo-pro-v2.png"
@@ -433,9 +454,9 @@ export function WalletDashboard() {
                 ) : (
                   <ul className={styles.activityList}>
                     {activities.map((item) => (
-                      <li key={item.hash}>
+                      <li key={activityIdentity(item)}>
                         <Image
-                          src="/makoto/icon-send-pro-v2.png"
+                          src={item.direction === "receive" ? "/makoto/icon-receive-pro-v2.png" : "/makoto/icon-send-pro-v2.png"}
                           alt=""
                           width={54}
                           height={54}
@@ -443,9 +464,9 @@ export function WalletDashboard() {
                         />
                         <div className={styles.activityMain}>
                           <strong>
-                            {c.send} {formatAssetAmount(item.amount, getAssetById(item.assetId)!)} {item.assetSymbol}
+                            {item.direction === "receive" ? c.receive : c.send}{" "}{item.direction === "receive" ? "+" : "-"}{formatAssetAmount(item.amount, getAssetById(item.assetId)!)} {item.assetSymbol}
                           </strong>
-                          <small>{shortAddress(item.counterparty)}{" · "}{formatActivityTime(item.confirmedAt, locale)}</small>
+                          <small>{item.direction === "receive" ? c.from : c.to}{" "}{shortAddress(item.counterparty)}{" · "}{formatActivityTime(item.confirmedAt, locale)}</small>
                         </div>
                         <span className={styles.activityStatus}>
                           {c.confirmed}
@@ -460,6 +481,7 @@ export function WalletDashboard() {
                         </a>
                       </li>
                     ))}
+                    {activity.hasNextPage && <li className={styles.activityLoadMore}><button type="button" className={styles.viewButton} onClick={() => void activity.loadMore()} disabled={activity.isLoadingMore}>{c.loadMore}</button></li>}
                   </ul>
                 )}
               </article>
@@ -546,9 +568,10 @@ export function WalletDashboard() {
           balances={{ usdc: balances.usdc.data ?? 0n, eurc: balances.eurc.data ?? 0n }}
           onClose={() => setAction(undefined)}
           onConfirmed={(item) => {
-            if (connection.address) setActivities(addWalletActivity(connection.address, 5042002, item));
+            if (connection.address) setOptimisticActivity({ address: connection.address, records: addWalletActivity(connection.address, 5042002, item) });
             void balances.usdc.refetch();
             void balances.eurc.refetch();
+            void activity.refetch();
           }}
         />
       )}

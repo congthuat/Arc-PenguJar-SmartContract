@@ -28,7 +28,7 @@ Makoto Wallet currently focuses on a simple set of everyday actions:
 - Connect an injected wallet such as OKX Wallet
 - View real USDC, EURC, and separate Arc Testnet native balances
 - Send and receive supported assets (USDC and EURC)
-- Review confirmed Makoto activity with safe v1-to-v2 local migration
+- Review real Arc Testnet USDC and EURC activity, including transfers created outside Makoto
 - Open PenguJar savings jars
 - Switch between English and Vietnamese
 - Use light/dark appearance controls
@@ -89,7 +89,7 @@ Guardian and Recovery roles are designed as defensive controls. They do not rece
 | Native Arc Testnet balance | ✅ Available |
 | Send USDC / EURC | ✅ Available |
 | Receive USDC / EURC | ✅ Available |
-| Confirmed Makoto activity | ✅ Available |
+| On-chain USDC / EURC activity | ✅ Available |
 | PenguJar savings | ✅ Available |
 | Public/private jar metadata | ✅ Available |
 | Guardian & Recovery | ✅ Available |

@@ -4,10 +4,13 @@ const ARC_SCAN_URL = "https://testnet.arcscan.app";
 
 export type WalletActivity = {
   hash: Hash;
-  direction: "send";
+  logIndex: number;
+  direction: "send" | "receive";
+  kind: "transfer" | "swap" | "bridge";
   amount: bigint;
   counterparty: Address;
   confirmedAt: number;
+  blockNumber: bigint;
   assetId: SupportedAssetId;
   assetSymbol: SupportedAsset["symbol"];
   tokenAddress: Address;

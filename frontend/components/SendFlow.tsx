@@ -94,7 +94,8 @@ export function SendFlow({ balances, onClose, onConfirmed }: { balances: Record<
       const receipt = await client.waitForTransactionReceipt({ hash: submittedHash });
       if (receipt.status !== "success") throw new Error("Transaction receipt reported a revert");
       const block = await client.getBlock({ blockNumber: receipt.blockNumber });
-      onConfirmed(createAssetActivity(asset, { hash: submittedHash, direction: "send", amount: validated.amount, counterparty: validated.address, confirmedAt: Number(block.timestamp) * 1000 }));
+      const transferLog = receipt.logs.find((log) => log.address.toLowerCase() === asset.address.toLowerCase());
+      onConfirmed(createAssetActivity(asset, { hash: submittedHash, logIndex: transferLog?.logIndex ?? -1, direction: "send", kind: "transfer", amount: validated.amount, counterparty: validated.address, confirmedAt: Number(block.timestamp) * 1000, blockNumber: receipt.blockNumber }));
       setStage("confirmed");
     } catch (caught) {
       const failure = classifyWalletFailure(caught, Boolean(submittedHash));
