@@ -3,6 +3,7 @@ import test from "node:test";
 import type { Address } from "viem";
 
 import { getAssetById } from "./assets.ts";
+import { CCTP_TOKEN_MINTER_V2 } from "./cctp.ts";
 import { decodeArcScanCursor, deserializeWalletActivityPage, encodeArcScanCursor, parseArcScanActivity, serializeWalletActivityPage } from "./onchainActivity.ts";
 
 const wallet = "0x1111111111111111111111111111111111111111" as Address;
@@ -32,6 +33,16 @@ test("external USDC incoming transfer becomes Receive", () => {
 test("external EURC outgoing transfer becomes Send", () => {
   const [item] = parseArcScanActivity({ items: [transfer({ from: { hash: wallet }, to: { hash: other }, token: { address_hash: eurc.address } })] }, wallet).activities;
   assert.equal(item.direction, "send"); assert.equal(item.assetId, "eurc");
+});
+
+test("CCTP V2 burn is deterministically classified as Bridge", () => {
+  const [item] = parseArcScanActivity({ items: [transfer({ from: { hash: wallet }, to: { hash: CCTP_TOKEN_MINTER_V2 }, method: "depositForBurnWithHook" })] }, wallet).activities;
+  assert.equal(item.kind, "bridge"); assert.equal(item.direction, "send"); assert.equal(item.amount, 18_000_000n);
+});
+
+test("ordinary sends to the CCTP minter are not guessed as Bridge", () => {
+  const [item] = parseArcScanActivity({ items: [transfer({ from: { hash: wallet }, to: { hash: CCTP_TOKEN_MINTER_V2 }, method: "transfer" })] }, wallet).activities;
+  assert.equal(item.kind, "transfer");
 });
 
 test("unsupported token and zero transfer are ignored", () => {

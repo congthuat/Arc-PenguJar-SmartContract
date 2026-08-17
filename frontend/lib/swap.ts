@@ -62,6 +62,21 @@ export function isSwapQuoteFresh(quotedAt: number, now = Date.now()) {
   return Number.isFinite(quotedAt) && quotedAt <= now && now - quotedAt <= SWAP_QUOTE_MAX_AGE_MS;
 }
 
+export async function fetchLifiQuoteWithPresetFallback(
+  upstreamUrl: URL,
+  init: RequestInit,
+  fetcher: typeof fetch = fetch,
+) {
+  const presetUrl = new URL(upstreamUrl);
+  presetUrl.searchParams.set("preset", "stablecoin");
+  const first = await fetcher(presetUrl, init);
+  if (first.ok) return first;
+
+  const error = await first.clone().json().catch(() => undefined) as { code?: unknown; message?: unknown } | undefined;
+  const presetRejected = error?.code === 1011 && typeof error.message === "string" && error.message.includes("preset");
+  return presetRejected ? fetcher(upstreamUrl, init) : first;
+}
+
 export function normalizeLifiQuote(
   payload: unknown,
   expected: {
@@ -86,6 +101,7 @@ export function normalizeLifiQuote(
   if (!fromAsset || !toAsset || fromAsset.id === toAsset.id) throw new Error("Unsupported swap pair");
 
   if (action.fromChainId !== arcTestnet.id || action.toChainId !== arcTestnet.id) throw new Error("Quote is not Arc-only");
+  validateSameChainSteps(root.includedSteps);
   if (stringField(fromToken, "address").toLowerCase() !== fromAsset.address.toLowerCase()) throw new Error("Unexpected sell token");
   if (stringField(toToken, "address").toLowerCase() !== toAsset.address.toLowerCase()) throw new Error("Unexpected buy token");
   if (integerString(action.fromAmount, "quote input amount") !== expected.fromAmount) throw new Error("Quote input changed");
@@ -130,4 +146,14 @@ export function normalizeLifiQuote(
     },
     quotedAt: Date.now(),
   };
+}
+
+function validateSameChainSteps(value: unknown) {
+  if (value === undefined) return;
+  if (!Array.isArray(value)) throw new Error("Invalid quote steps");
+  for (const stepValue of value) {
+    const step = record(stepValue, "quote step");
+    const action = record(step.action, "quote step action");
+    if (action.fromChainId !== arcTestnet.id || action.toChainId !== arcTestnet.id) throw new Error("Bridge step is not allowed in swap mode");
+  }
 }

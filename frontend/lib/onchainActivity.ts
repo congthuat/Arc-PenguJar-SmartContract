@@ -1,6 +1,7 @@
 import { getAddress, isAddress, isHash, type Address } from "viem";
 
 import { getAssetByAddress } from "./assets.ts";
+import { CCTP_TOKEN_MINTER_V2 } from "./cctp.ts";
 import type { WalletActivity } from "./wallet.ts";
 
 export type WalletActivityPage = { activities: WalletActivity[]; nextCursor?: string };
@@ -46,7 +47,7 @@ export function deserializeWalletActivityPage(payload: unknown): WalletActivityP
   for (const value of payload.activities) {
     if (!isRecord(value)) throw new Error("Invalid wallet activity record");
     const asset = typeof value.tokenAddress === "string" ? getAssetByAddress(value.tokenAddress) : undefined;
-    if (!asset || typeof value.hash !== "string" || !isHash(value.hash) || !isSafeNonNegativeInteger(value.logIndex) || (value.direction !== "send" && value.direction !== "receive") || value.kind !== "transfer" || typeof value.amount !== "string" || !/^\d+$/.test(value.amount) || BigInt(value.amount) <= 0n || typeof value.counterparty !== "string" || !isAddress(value.counterparty) || !isSafeNonNegativeInteger(value.confirmedAt) || typeof value.blockNumber !== "string" || !/^\d+$/.test(value.blockNumber) || value.assetId !== asset.id || value.assetSymbol !== asset.symbol || value.decimals !== asset.decimals) throw new Error("Invalid wallet activity record");
+    if (!asset || typeof value.hash !== "string" || !isHash(value.hash) || !isSafeNonNegativeInteger(value.logIndex) || (value.direction !== "send" && value.direction !== "receive") || (value.kind !== "transfer" && value.kind !== "bridge") || typeof value.amount !== "string" || !/^\d+$/.test(value.amount) || BigInt(value.amount) <= 0n || typeof value.counterparty !== "string" || !isAddress(value.counterparty) || !isSafeNonNegativeInteger(value.confirmedAt) || typeof value.blockNumber !== "string" || !/^\d+$/.test(value.blockNumber) || value.assetId !== asset.id || value.assetSymbol !== asset.symbol || value.decimals !== asset.decimals) throw new Error("Invalid wallet activity record");
     activities.push({ ...value, hash: value.hash, tokenAddress: asset.address, counterparty: getAddress(value.counterparty), amount: BigInt(value.amount), blockNumber: BigInt(value.blockNumber), assetId: asset.id, assetSymbol: asset.symbol, decimals: asset.decimals } as WalletActivity);
   }
   const nextCursor = typeof payload.nextCursor === "string" && decodeArcScanCursor(payload.nextCursor) ? payload.nextCursor : undefined;
@@ -84,11 +85,15 @@ function parseTransfer(value: unknown, wallet: Address): WalletActivity | undefi
   if (isFrom === isTo) return undefined;
   const confirmedAt = Date.parse(value.timestamp);
   if (!Number.isFinite(confirmedAt) || confirmedAt < 0) return undefined;
+  const isCctpBridge = isFrom
+    && asset.id === "usdc"
+    && to === CCTP_TOKEN_MINTER_V2
+    && value.method === "depositForBurnWithHook";
   return {
     hash: value.transaction_hash,
     logIndex: value.log_index,
     direction: isFrom ? "send" : "receive",
-    kind: "transfer",
+    kind: isCctpBridge ? "bridge" : "transfer",
     amount,
     counterparty: isFrom ? to : from,
     confirmedAt,

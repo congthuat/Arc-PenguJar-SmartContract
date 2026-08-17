@@ -80,6 +80,8 @@ export function WalletDashboard() {
           activityError: "Không thể tải hoạt động.",
           retry: "Thử lại",
           loadMore: "Tải thêm",
+          bridge: "Bridge",
+          bridgeRoute: "Arc Testnet → Base Sepolia",
           from: "Từ",
           to: "Đến",
           viewAll: "Xem tất cả",
@@ -125,6 +127,8 @@ export function WalletDashboard() {
           activityError: "Activity could not be loaded.",
           retry: "Retry",
           loadMore: "Load More",
+          bridge: "Bridge",
+          bridgeRoute: "Arc Testnet → Base Sepolia",
           from: "From",
           to: "To",
           viewAll: "View All",
@@ -464,9 +468,9 @@ export function WalletDashboard() {
                         />
                         <div className={styles.activityMain}>
                           <strong>
-                            {item.direction === "receive" ? c.receive : c.send}{" "}{item.direction === "receive" ? "+" : "-"}{formatAssetAmount(item.amount, getAssetById(item.assetId)!)} {item.assetSymbol}
+                            {item.kind === "bridge" ? c.bridge : item.direction === "receive" ? c.receive : c.send}{" "}{item.direction === "receive" ? "+" : "-"}{formatAssetAmount(item.amount, getAssetById(item.assetId)!)} {item.assetSymbol}
                           </strong>
-                          <small>{item.direction === "receive" ? c.from : c.to}{" "}{shortAddress(item.counterparty)}{" · "}{formatActivityTime(item.confirmedAt, locale)}</small>
+                          <small>{item.kind === "bridge" ? c.bridgeRoute : <>{item.direction === "receive" ? c.from : c.to}{" "}{shortAddress(item.counterparty)}</>}{" · "}{formatActivityTime(item.confirmedAt, locale)}</small>
                         </div>
                         <span className={styles.activityStatus}>
                           {c.confirmed}

@@ -3,7 +3,7 @@ import { isAddress, type Address } from "viem";
 import { arcTestnet } from "viem/chains";
 
 import { getAssetById, type SupportedAssetId } from "@/lib/assets";
-import { isAllowedSwapSlippage, normalizeLifiQuote } from "@/lib/swap";
+import { fetchLifiQuoteWithPresetFallback, isAllowedSwapSlippage, normalizeLifiQuote } from "@/lib/swap";
 
 export const dynamic = "force-dynamic";
 
@@ -35,13 +35,12 @@ export async function GET(request: NextRequest) {
   upstreamUrl.searchParams.set("toAddress", fromAddress);
   upstreamUrl.searchParams.set("slippage", String(slippage));
   upstreamUrl.searchParams.set("allowBridges", "none");
-  upstreamUrl.searchParams.set("preset", "stablecoin");
   upstreamUrl.searchParams.set("integrator", "makoto-wallet");
 
   const apiKey = process.env.LIFI_API_KEY;
   let upstream: Response;
   try {
-    upstream = await fetch(upstreamUrl, {
+    upstream = await fetchLifiQuoteWithPresetFallback(upstreamUrl, {
       cache: "no-store",
       headers: apiKey ? { "x-lifi-api-key": apiKey } : undefined,
     });
@@ -50,9 +49,9 @@ export async function GET(request: NextRequest) {
   }
 
   if (!upstream.ok) {
-    const body = await upstream.json().catch(() => undefined) as { message?: unknown } | undefined;
-    const message = typeof body?.message === "string" ? body.message : "No executable Arc swap route is available for this amount.";
-    return errorResponse(message, upstream.status === 429 ? 429 : 502);
+    const body = await upstream.json().catch(() => undefined) as { code?: unknown } | undefined;
+    const noRoute = upstream.status === 404 || body?.code === 1002;
+    return errorResponse(noRoute ? "No executable Arc swap route is available for this amount." : "The swap quote provider could not complete this request.", upstream.status === 429 ? 429 : 502);
   }
 
   try {
