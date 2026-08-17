@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { WalletControl } from "./WalletControl";
 import { usePreferences } from "@/hooks/usePreferences";
@@ -33,6 +34,7 @@ function HeaderIcon({ name, className }: { name: HeaderIconName; className: stri
 
 export function AppHeader() {
   const { locale, setLocale, theme, setTheme, t } = usePreferences();
+  const pathname = usePathname();
 
   function toggleTheme() {
     if (theme === "light") return setTheme("dark");
@@ -73,7 +75,7 @@ export function AppHeader() {
           item.href.startsWith("#") ? (
             <a
               key={item.en}
-              className={item.active ? styles.navActive : undefined}
+              className={pathname === "/" ? styles.navActive : undefined}
               href={item.href}
             >
               <HeaderIcon name={item.icon} className={styles.headerGlyph} />
@@ -82,7 +84,7 @@ export function AppHeader() {
           ) : (
             <Link
               key={item.en}
-              className={item.active ? styles.navActive : undefined}
+              className={pathname === item.href ? styles.navActive : undefined}
               href={item.href}
             >
               <HeaderIcon name={item.icon} className={styles.headerGlyph} />
@@ -91,10 +93,10 @@ export function AppHeader() {
           ),
         )}
 
-        <span className={styles.navMuted} title={locale === "vi" ? "Sắp có" : "Coming soon"}>
+        <Link className={pathname === "/settings" ? styles.navActive : undefined} href="/settings">
           <HeaderIcon name="settings" className={styles.headerGlyph} />
           <span>{locale === "vi" ? "Cài đặt" : "Settings"}</span>
-        </span>
+        </Link>
       </nav>
 
       <div className={styles.headerActions}>
