@@ -128,7 +128,7 @@ export const vi = {
   "walletHome.loadingBalance": "Đang tải số dư",
   "walletHome.loadingSavings": "Đang tải hũ tiết kiệm",
   "walletHome.assetLogo": "Biểu tượng {symbol}",
-  "walletHome.publicBeta": "Bản thử nghiệm công khai",
+  "walletHome.publicBeta": "Bản thử nghiệm",
   "savings.statusTitle": "Đã kết nối với các hũ",
   "savings.statusCopy": "Dữ liệu tiết kiệm đã được cập nhật trên Arc Testnet.",
   "savings.createNew": "Tạo hũ mới",

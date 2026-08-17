@@ -54,9 +54,10 @@ test("mobile wallet account sheet escapes transformed header ancestors", () => {
   assert.match(globals, /\.connected-popover\.account-menu\s*\{[^}]*position:\s*fixed[^}]*bottom:\s*0[^}]*padding:[^}]*env\(safe-area-inset-bottom\)/s);
 });
 
-test("connected account panel preserves account context and preferences", () => {
+test("connected account panel stays focused on account context", () => {
   assert.match(walletControl, /connection\.connector\?\.name/);
-  assert.match(walletControl, /PreferenceFields|preference-fields|wallet\.preferences|about-menu|about\.title/);
+  assert.doesNotMatch(walletControl, /PreferenceFields|preference-fields|wallet\.preferences|setLocale|setTheme/);
+  assert.match(walletControl, /about-menu|about\.title/);
   assert.match(walletControl, /wallet\.account[\s\S]*wallet\.copy[\s\S]*wallet\.arcscan[\s\S]*wallet\.network[\s\S]*wallet\.usdcBalance[\s\S]*wallet\.disconnect/);
   assert.match(globals, /\.disconnect-button\{[^}]*border:\s*1px solid #efc8c3[^}]*color:\s*#a44338[^}]*background:\s*#fff6f4/);
   assert.match(globals, /html\[data-theme="dark"\] \.disconnect-button\{[^}]*color:\s*#ffb0a6[^}]*background:\s*#2a1b20/);
