@@ -16,7 +16,7 @@ export function WalletControl() {
   const connection = useConnection();
   const disconnect = useDisconnect();
   const verifiedChain = useVerifiedWalletChain();
-  const { locale, setLocale, theme, setTheme, t } = usePreferences();
+  const { t } = usePreferences();
   const [accountOpen, setAccountOpen] = useState(false);
   const [message, setMessage] = useState<string>();
   const [copied, setCopied] = useState(false);
@@ -79,8 +79,6 @@ export function WalletControl() {
     {onArc ? <div className="wallet-balances"><div><span>{t("wallet.usdcBalance")}</span><strong>{balances.usdc.data === undefined ? "…" : formatUsdc(balances.usdc.data)} USDC</strong></div></div> : <button className="switch-button" onClick={() => void switchToArc()} disabled={isSwitchPending(verifiedChain.switchStatus)}>{switchButtonLabel(verifiedChain.switchStatus, t)}</button>}
     {verifiedChain.switchMessage && <p className={verifiedChain.switchStatus === "connected" ? "wallet-success" : "wallet-error"} role="status">{verifiedChain.switchMessage}</p>}
     {message && <p className="wallet-error" role="alert">{message}</p>}
-    <PreferenceFields locale={locale} theme={theme} setLocale={setLocale} setTheme={setTheme} t={t} />
-    <details className="about-menu"><summary>{t("about.title")}</summary><p>{t("about.copy")}</p></details>
     <button className="disconnect-button" onClick={() => { disconnect.mutate(); setAccountOpen(false); setMessage(undefined); }}>{t("wallet.disconnect")}</button>
   </div>;
 
@@ -108,8 +106,4 @@ function switchButtonLabel(status: string, t: ReturnType<typeof usePreferences>[
   if (status === "switching") return t("wallet.switching");
   if (status === "connected") return t("wallet.arcConnected");
   return t("wallet.switch");
-}
-
-function PreferenceFields({ locale, theme, setLocale, setTheme, t }: { locale: "en" | "vi"; theme: "system" | "light" | "dark"; setLocale(locale: "en" | "vi"): void; setTheme(theme: "system" | "light" | "dark"): void; t: ReturnType<typeof usePreferences>["t"] }) {
-  return <section className="preference-fields"><strong>{t("wallet.preferences")}</strong><label><span>{t("preferences.language")}</span><select value={locale} onChange={(event) => setLocale(event.target.value as "en" | "vi")}><option value="en">English</option><option value="vi">Tiếng Việt</option></select></label><label><span>{t("preferences.appearance")}</span><select value={theme} onChange={(event) => setTheme(event.target.value as "system" | "light" | "dark")}><option value="system">{t("preferences.system")}</option><option value="light">{t("preferences.light")}</option><option value="dark">{t("preferences.dark")}</option></select></label></section>;
 }

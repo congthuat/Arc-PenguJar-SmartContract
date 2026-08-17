@@ -31,7 +31,6 @@ test("mobile controls and modals account for touch and safe areas", () => {
   assert.match(wallet, /\.settingsChoices label\s*\{[^}]*min-height:\s*48px/s);
   assert.match(globals, /\.connected-popover\.account-menu\s*\{[^}]*bottom:\s*0[^}]*width:\s*100%[^}]*max-height:\s*calc\(100dvh[^}]*overflow-y:\s*auto/s);
   assert.match(globals, /\.account-sheet-backdrop\s*\{[^}]*position:\s*fixed[^}]*inset:\s*0/s);
-  assert.match(globals, /\.connected-popover \.preference-fields select\s*\{[^}]*width:\s*100%[^}]*height:\s*44px/s);
 });
 
 test("mobile wallet account sheet escapes transformed header ancestors", () => {
@@ -41,4 +40,11 @@ test("mobile wallet account sheet escapes transformed header ancestors", () => {
   assert.match(walletControl, /previousBodyOverflow\s*=\s*document\.body\.style\.overflow[\s\S]*?document\.body\.style\.overflow\s*=\s*"hidden"[\s\S]*?document\.body\.style\.overflow\s*=\s*previousBodyOverflow/);
   assert.match(wallet, /@media\s*\(max-width:\s*760px\)[\s\S]*?\.walletControlWrap:hover,\s*\.walletControlWrap:focus-within\s*\{\s*transform:\s*none/);
   assert.match(globals, /\.connected-popover\.account-menu\s*\{[^}]*position:\s*fixed[^}]*bottom:\s*0[^}]*padding:[^}]*env\(safe-area-inset-bottom\)/s);
+});
+
+test("connected account panel stays focused on wallet information", () => {
+  assert.doesNotMatch(walletControl, /PreferenceFields|preference-fields|wallet\.preferences|about-menu|about\.title/);
+  assert.match(walletControl, /wallet\.account[\s\S]*wallet\.copy[\s\S]*wallet\.arcscan[\s\S]*wallet\.network[\s\S]*wallet\.usdcBalance[\s\S]*wallet\.disconnect/);
+  assert.match(globals, /\.disconnect-button\{[^}]*border:\s*1px solid #efc8c3[^}]*color:\s*#a44338[^}]*background:\s*#fff6f4/);
+  assert.match(globals, /html\[data-theme="dark"\] \.disconnect-button\{[^}]*color:\s*#ffb0a6[^}]*background:\s*#2a1b20/);
 });
