@@ -52,7 +52,7 @@ test("connected account panel preserves account context and preferences", () => 
 
 test("dashboard previews five activities and derives savings summary", () => {
   assert.match(dashboard, /activities\.slice\(0,\s*5\)/);
-  assert.match(dashboard, /jars\.filter\(\(jar\)\s*=>\s*jar\.closed\)\.length/);
+  assert.match(dashboard, /summarizeSavingsJars\(jars\)/);
   assert.match(dashboard, /savingsSummary/);
   assert.doesNotMatch(dashboard, /activity\.loadMore\(\)/);
   assert.match(wallet, /\.savingsSummary\s*\{[^}]*grid-template-columns:\s*repeat\(3/s);

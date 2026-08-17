@@ -19,7 +19,8 @@ import { useWalletBalances } from "@/hooks/useWalletBalances";
 
 import { ARC_EXPLORER_URL } from "@/lib/config";
 import { formatAssetAmount, getAssetById, SUPPORTED_ASSETS } from "@/lib/assets";
-import { formatUsdc, jarStatus, shortAddress } from "@/lib/format";
+import { formatUsdc, shortAddress } from "@/lib/format";
+import { summarizeSavingsJars } from "@/lib/savingsSummary";
 import { arcScanTransactionUrl, type WalletActivity } from "@/lib/wallet";
 import { activityIdentity } from "@/lib/onchainActivity";
 import { addWalletActivity, mergeWalletActivity } from "@/lib/walletActivity";
@@ -180,16 +181,7 @@ export function WalletDashboard() {
     return mergeWalletActivity(activity.data, optimistic);
   }, [activity.data, connection.address, optimisticActivity]);
 
-  const totals = useMemo(
-    () => ({
-      locked: jars.reduce((sum, jar) => sum + jar.balance, 0n),
-      active: jars.filter(
-        (jar) => jarStatus(jar.unlockTime, jar.closed) === "Locked",
-      ).length,
-      completed: jars.filter((jar) => jar.closed).length,
-    }),
-    [jars],
-  );
+  const totals = useMemo(() => summarizeSavingsJars(jars), [jars]);
 
   const visibleJars = jars.slice(0, 3);
   const visibleActivities = activities.slice(0, 5);
@@ -520,7 +512,7 @@ export function WalletDashboard() {
                   </div>
                 ) : (
                   <><dl className={styles.savingsSummary}>
-                    <div><dt>{c.totalSaved}</dt><dd>{formatUsdc(totals.locked)} USDC</dd></div>
+                    <div><dt>{c.totalSaved}</dt><dd>{formatUsdc(totals.totalSaved)} USDC</dd></div>
                     <div><dt>{c.activeJars}</dt><dd>{totals.active}</dd></div>
                     <div><dt>{c.completedJars}</dt><dd>{totals.completed}</dd></div>
                   </dl><div className={styles.jarList}>
@@ -566,7 +558,7 @@ export function WalletDashboard() {
 
                 <footer className={styles.savingsFooter}>
                   <span>
-                    {formatUsdc(totals.locked)} USDC {c.saved}
+                    {formatUsdc(totals.totalSaved)} USDC {c.saved}
                   </span>
                   <Link href="/savings">{c.createJar}</Link>
                 </footer>
