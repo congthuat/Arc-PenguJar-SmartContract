@@ -59,7 +59,9 @@ export function WalletControl() {
       <span className="wallet-status-dot" />
       <span><strong>{shortAddress(connection.address)}</strong><small>{onArc ? t("network.arc") : t("wallet.wrongNetwork")}</small></span>
     </button>
-    {accountOpen && <div className="wallet-popover connected-popover account-menu" role="dialog" aria-label={t("wallet.connected")}>
+    {accountOpen && <>
+      <button className="account-sheet-backdrop" type="button" onClick={() => setAccountOpen(false)} aria-label={t("common.close")} />
+      <div className="wallet-popover connected-popover account-menu" role="dialog" aria-label={t("wallet.connected")}>
       <div className="wallet-popover-heading"><strong>{t("wallet.account")}</strong><button onClick={() => setAccountOpen(false)} aria-label={t("common.close")}>×</button></div>
       <p className="account-address">{shortAddress(connection.address)}</p>
       <div className="account-links"><button onClick={() => void copyAddress()}>{copied ? t("wallet.copied") : t("wallet.copy")}</button><a href={`${ARC_EXPLORER_URL}/address/${connection.address}`} target="_blank" rel="noreferrer">{t("wallet.arcscan")} ↗</a></div>
@@ -70,7 +72,8 @@ export function WalletControl() {
       <PreferenceFields locale={locale} theme={theme} setLocale={setLocale} setTheme={setTheme} t={t} />
       <details className="about-menu"><summary>{t("about.title")}</summary><p>{t("about.copy")}</p></details>
       <button className="disconnect-button" onClick={() => { disconnect.mutate(); setAccountOpen(false); setMessage(undefined); }}>{t("wallet.disconnect")}</button>
-    </div>}
+      </div>
+    </>}
   </div>;
 }
 

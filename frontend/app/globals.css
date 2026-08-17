@@ -97,6 +97,7 @@ button:disabled { opacity: .58; }
 .wallet-summary > span:last-child { display: flex; flex-direction: column; }.wallet-summary strong{font-size:11px}.wallet-summary small{color:var(--muted);font-size:8px;margin-top:2px}
 .wallet-status-dot { width: 9px; height: 9px; border-radius: 50%; background: #32b97b; box-shadow: 0 0 0 4px rgba(50,185,123,.12); }.wallet-summary.wrong-chain .wallet-status-dot{background:#ed725f;box-shadow:0 0 0 4px rgba(237,114,95,.12)}
 .connected-popover { width: 330px; }
+.account-sheet-backdrop { display: none; }
 .account-address{margin:10px 0 8px!important;color:var(--ink)!important;font:750 17px var(--font-display)!important}.account-links{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}.account-links button,.account-links a{min-height:38px;border:1px solid var(--line);border-radius:11px;display:grid;place-items:center;color:var(--purple);background:var(--white);font-size:9px;font-weight:850;cursor:pointer}.wallet-network-row strong{display:flex;align-items:center;gap:7px}.healthy-dot,.warning-dot{width:8px;height:8px;border-radius:50%;background:#32b97b}.warning-dot{background:#ed725f}.preference-fields{margin-top:12px;padding-top:13px;border-top:1px solid var(--line);display:grid;gap:9px}.preference-fields>strong{font:700 11px var(--font-display)}.preference-fields label{display:flex;justify-content:space-between;align-items:center;gap:10px;color:var(--muted);font-size:10px}.preference-fields select{min-width:125px;height:35px;border:1px solid var(--line);border-radius:10px;padding:0 9px;color:var(--ink);background:var(--white);font-weight:750}.preference-fields.compact{margin-top:14px}.about-menu{margin-top:12px;padding:11px 12px;border-radius:12px;background:#f7f6fa}.about-menu summary{cursor:pointer;font-size:10px;font-weight:850}.about-menu p{margin:8px 0 0!important;color:var(--muted)!important;font-size:9px!important;line-height:1.55!important}
 .full-address { padding: 9px; border-radius: 10px; overflow: hidden; text-overflow: ellipsis; background: #f7f6fa; font-family: monospace; white-space: nowrap; }
 .wallet-network-row { display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--line);font-size:11px}.wallet-network-row span{color:var(--muted)}
@@ -255,6 +256,62 @@ html[data-theme="dark"] .address-panel,html[data-theme="dark"] .detail-hero,html
     padding-top: 14px;
     background: var(--white);
   }
+  .account-sheet-backdrop {
+    position: fixed;
+    z-index: 1090;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    padding: 0;
+    background: rgba(16, 22, 40, .46);
+    backdrop-filter: blur(3px);
+    cursor: default;
+  }
+  .connected-popover.account-menu {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-width: none;
+    max-height: calc(100dvh - max(16px, env(safe-area-inset-top)));
+    margin: 0;
+    padding: 20px 18px calc(18px + env(safe-area-inset-bottom));
+    border-width: 1px 0 0;
+    border-radius: 26px 26px 0 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-shadow: 0 -20px 60px rgba(16, 22, 40, .24);
+  }
+  .connected-popover .wallet-popover-heading {
+    top: -20px;
+    margin: -20px -18px 0;
+    padding: 20px 18px 10px;
+  }
+  .connected-popover .wallet-popover-heading button,
+  .connected-popover .account-links button,
+  .connected-popover .account-links a,
+  .connected-popover .switch-button,
+  .connected-popover .disconnect-button { min-height: 44px; }
+  .connected-popover .wallet-popover-heading button { width: 44px; height: 44px; }
+  .connected-popover .account-address { overflow-wrap: anywhere; }
+  .connected-popover .account-links { gap: 10px; }
+  .connected-popover .account-links button,
+  .connected-popover .account-links a { padding: 8px; font-size: 11px; text-align: center; }
+  .connected-popover .wallet-network-row { gap: 14px; padding-block: 14px; }
+  .connected-popover .wallet-network-row strong { min-width: 0; text-align: right; }
+  .connected-popover .wallet-balances { grid-template-columns: minmax(0, 1fr); }
+  .connected-popover .wallet-balances div { padding: 14px; }
+  .connected-popover .wallet-balances span { font-size: 10px; }
+  .connected-popover .wallet-balances strong { font-size: 13px; overflow-wrap: anywhere; }
+  .connected-popover .preference-fields { gap: 12px; }
+  .connected-popover .preference-fields label { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; font-size: 11px; }
+  .connected-popover .preference-fields select { width: 100%; min-width: 0; height: 44px; }
+  .connected-popover .about-menu { padding: 14px; }
+  .connected-popover .about-menu summary { min-height: 24px; font-size: 11px; }
   .hero:not(.hero-connected) { min-height: 310px; }
   .summary-section { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .summary-stat span { min-width: 0; font-size: 12px; line-height: 1.25; overflow-wrap: anywhere; }

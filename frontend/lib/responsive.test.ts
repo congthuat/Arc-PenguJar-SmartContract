@@ -29,4 +29,7 @@ test("mobile controls and modals account for touch and safe areas", () => {
   assert.match(globals, /env\(safe-area-inset-bottom\)/);
   assert.match(wallet, /\.languagePill\s*\{[^}]*min-height:\s*44px[^}]*display:\s*inline-flex/s);
   assert.match(wallet, /\.settingsChoices label\s*\{[^}]*min-height:\s*48px/s);
+  assert.match(globals, /\.connected-popover\.account-menu\s*\{[^}]*bottom:\s*0[^}]*width:\s*100%[^}]*max-height:\s*calc\(100dvh[^}]*overflow-y:\s*auto/s);
+  assert.match(globals, /\.account-sheet-backdrop\s*\{[^}]*position:\s*fixed[^}]*inset:\s*0/s);
+  assert.match(globals, /\.connected-popover \.preference-fields select\s*\{[^}]*width:\s*100%[^}]*height:\s*44px/s);
 });
