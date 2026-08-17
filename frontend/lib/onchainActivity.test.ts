@@ -4,6 +4,7 @@ import type { Address } from "viem";
 
 import { getAssetById } from "./assets.ts";
 import { CCTP_TOKEN_MINTER_V2 } from "./cctp.ts";
+import { XYLO_POOL, XYLO_ROUTER } from "./swap.ts";
 import { decodeArcScanCursor, deserializeWalletActivityPage, encodeArcScanCursor, parseArcScanActivity, serializeWalletActivityPage } from "./onchainActivity.ts";
 
 const wallet = "0x1111111111111111111111111111111111111111" as Address;
@@ -63,6 +64,22 @@ test("duplicate transfer uses hash plus log index plus token identity", () => {
 test("same transaction retains multiple supported-token Transfer logs", () => {
   const second = transfer({ log_index: 4, token: { address_hash: eurc.address }, total: { value: "10" } });
   assert.equal(parseArcScanActivity({ items: [transfer(), second] }, wallet).activities.length, 2);
+});
+
+test("verified XyloNet legs group into one Swap with exact output", () => {
+  const hash = `0x${"c".repeat(64)}`;
+  const sold = transfer({ transaction_hash: hash, from: { hash: wallet }, to: { hash: XYLO_ROUTER }, log_index: 2 });
+  const bought = transfer({ transaction_hash: hash, from: { hash: XYLO_POOL }, to: { hash: wallet }, token: { address_hash: eurc.address }, total: { value: "15500000" }, log_index: 5 });
+  const page = parseArcScanActivity({ items: [sold, bought] }, wallet);
+  assert.equal(page.activities.length, 1); assert.equal(page.activities[0].kind, "swap"); assert.equal(page.activities[0].swapReceive?.amount, 15_500_000n); assert.equal(page.activities[0].swapReceive?.assetId, "eurc");
+  const restored = deserializeWalletActivityPage(serializeWalletActivityPage(page));
+  assert.equal(restored.activities[0].swapReceive?.amount, 15_500_000n);
+});
+
+test("unverified counterparties never group as XyloNet swap", () => {
+  const hash = `0x${"d".repeat(64)}`;
+  const records = [transfer({ transaction_hash: hash, from: { hash: wallet }, to: { hash: other } }), transfer({ transaction_hash: hash, from: { hash: other }, token: { address_hash: eurc.address }, log_index: 4 })];
+  assert.equal(parseArcScanActivity({ items: records }, wallet).activities.every((item) => item.kind === "transfer"), true);
 });
 
 test("activity sorts newest block and log first", () => {

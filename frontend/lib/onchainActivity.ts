@@ -2,10 +2,11 @@ import { getAddress, isAddress, isHash, type Address } from "viem";
 
 import { getAssetByAddress } from "./assets.ts";
 import { CCTP_TOKEN_MINTER_V2 } from "./cctp.ts";
+import { XYLO_POOL, XYLO_ROUTER } from "./swap.ts";
 import type { WalletActivity } from "./wallet.ts";
 
 export type WalletActivityPage = { activities: WalletActivity[]; nextCursor?: string };
-export type SerializedWalletActivity = Omit<WalletActivity, "amount" | "blockNumber"> & { amount: string; blockNumber: string };
+export type SerializedWalletActivity = Omit<WalletActivity, "amount" | "blockNumber" | "swapReceive"> & { amount: string; blockNumber: string; swapReceive?: Omit<NonNullable<WalletActivity["swapReceive"]>, "amount"> & { amount: string } };
 export type SerializedWalletActivityPage = { activities: SerializedWalletActivity[]; nextCursor?: string };
 
 type RecordValue = Record<string, unknown>;
@@ -31,12 +32,12 @@ export function parseArcScanActivity(payload: unknown, wallet: Address): WalletA
     if (parsed) records.push(parsed);
   }
   const nextCursor = encodeArcScanCursor(payload.next_page_params);
-  return { activities: normalizeWalletActivities(records, 50), ...(nextCursor ? { nextCursor } : {}) };
+  return { activities: normalizeWalletActivities(groupXyloSwaps(records), 50), ...(nextCursor ? { nextCursor } : {}) };
 }
 
 export function serializeWalletActivityPage(page: WalletActivityPage): SerializedWalletActivityPage {
   return {
-    activities: page.activities.map((item) => ({ ...item, amount: item.amount.toString(), blockNumber: item.blockNumber.toString() })),
+    activities: page.activities.map((item) => { const { swapReceive, ...rest } = item; return { ...rest, amount: item.amount.toString(), blockNumber: item.blockNumber.toString(), ...(swapReceive ? { swapReceive: { ...swapReceive, amount: swapReceive.amount.toString() } } : {}) }; }),
     ...(page.nextCursor ? { nextCursor: page.nextCursor } : {}),
   };
 }
@@ -47,8 +48,10 @@ export function deserializeWalletActivityPage(payload: unknown): WalletActivityP
   for (const value of payload.activities) {
     if (!isRecord(value)) throw new Error("Invalid wallet activity record");
     const asset = typeof value.tokenAddress === "string" ? getAssetByAddress(value.tokenAddress) : undefined;
-    if (!asset || typeof value.hash !== "string" || !isHash(value.hash) || !isSafeNonNegativeInteger(value.logIndex) || (value.direction !== "send" && value.direction !== "receive") || (value.kind !== "transfer" && value.kind !== "bridge") || typeof value.amount !== "string" || !/^\d+$/.test(value.amount) || BigInt(value.amount) <= 0n || typeof value.counterparty !== "string" || !isAddress(value.counterparty) || !isSafeNonNegativeInteger(value.confirmedAt) || typeof value.blockNumber !== "string" || !/^\d+$/.test(value.blockNumber) || value.assetId !== asset.id || value.assetSymbol !== asset.symbol || value.decimals !== asset.decimals) throw new Error("Invalid wallet activity record");
-    activities.push({ ...value, hash: value.hash, tokenAddress: asset.address, counterparty: getAddress(value.counterparty), amount: BigInt(value.amount), blockNumber: BigInt(value.blockNumber), assetId: asset.id, assetSymbol: asset.symbol, decimals: asset.decimals } as WalletActivity);
+    if (!asset || typeof value.hash !== "string" || !isHash(value.hash) || !isSafeNonNegativeInteger(value.logIndex) || (value.direction !== "send" && value.direction !== "receive") || (value.kind !== "transfer" && value.kind !== "bridge" && value.kind !== "swap") || typeof value.amount !== "string" || !/^\d+$/.test(value.amount) || BigInt(value.amount) <= 0n || typeof value.counterparty !== "string" || !isAddress(value.counterparty) || !isSafeNonNegativeInteger(value.confirmedAt) || typeof value.blockNumber !== "string" || !/^\d+$/.test(value.blockNumber) || value.assetId !== asset.id || value.assetSymbol !== asset.symbol || value.decimals !== asset.decimals) throw new Error("Invalid wallet activity record");
+    const swapReceive = parseSwapReceive(value.swapReceive);
+    if ((value.kind === "swap") !== Boolean(swapReceive)) throw new Error("Invalid wallet activity record");
+    activities.push({ ...value, hash: value.hash, tokenAddress: asset.address, counterparty: getAddress(value.counterparty), amount: BigInt(value.amount), blockNumber: BigInt(value.blockNumber), assetId: asset.id, assetSymbol: asset.symbol, decimals: asset.decimals, ...(swapReceive ? { swapReceive } : {}) } as WalletActivity);
   }
   const nextCursor = typeof payload.nextCursor === "string" && decodeArcScanCursor(payload.nextCursor) ? payload.nextCursor : undefined;
   return { activities: normalizeWalletActivities(activities, 50), ...(nextCursor ? { nextCursor } : {}) };
@@ -103,6 +106,26 @@ function parseTransfer(value: unknown, wallet: Address): WalletActivity | undefi
     tokenAddress: asset.address,
     decimals: asset.decimals,
   };
+}
+
+function groupXyloSwaps(records: WalletActivity[]) {
+  const consumed = new Set<string>();
+  return records.flatMap((sent) => {
+    const key = activityIdentity(sent);
+    if (consumed.has(key)) return [];
+    if (sent.direction !== "send" || sent.counterparty !== XYLO_ROUTER) return [sent];
+    const received = records.find((item) => item.hash === sent.hash && item.direction === "receive" && item.counterparty === XYLO_POOL && item.assetId !== sent.assetId);
+    if (!received) return [sent];
+    consumed.add(activityIdentity(received));
+    return [{ ...sent, kind: "swap" as const, swapReceive: { amount: received.amount, assetId: received.assetId, assetSymbol: received.assetSymbol, tokenAddress: received.tokenAddress, decimals: received.decimals, logIndex: received.logIndex } }];
+  });
+}
+
+function parseSwapReceive(value: unknown): WalletActivity["swapReceive"] {
+  if (!isRecord(value) || typeof value.tokenAddress !== "string") return undefined;
+  const asset = getAssetByAddress(value.tokenAddress);
+  if (!asset || typeof value.amount !== "string" || !/^\d+$/.test(value.amount) || BigInt(value.amount) <= 0n || value.assetId !== asset.id || value.assetSymbol !== asset.symbol || value.decimals !== asset.decimals || !isSafeNonNegativeInteger(value.logIndex)) return undefined;
+  return { amount: BigInt(value.amount), assetId: asset.id, assetSymbol: asset.symbol, tokenAddress: asset.address, decimals: asset.decimals, logIndex: value.logIndex };
 }
 
 function compareActivity(a: WalletActivity, b: WalletActivity) {

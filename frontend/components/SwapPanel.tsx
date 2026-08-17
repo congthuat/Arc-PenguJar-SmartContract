@@ -8,7 +8,7 @@ import { CctpBridgeFlow } from "./CctpBridgeFlow";
 
 type Mode = "swap" | "bridge";
 
-export function SwapPanel({ onClose }: { onClose(): void }) {
+export function SwapPanel({ onClose, onConfirmed }: { onClose(): void; onConfirmed?(): void }) {
   const { locale } = usePreferences();
   const vi = locale === "vi";
   const [mode, setMode] = useState<Mode>("swap");
@@ -24,7 +24,7 @@ export function SwapPanel({ onClose }: { onClose(): void }) {
           Bridge USDC
         </button>
       </div>
-      {mode === "swap" ? <RealSwapFlow locale={locale} onBusyChange={setBusy} /> : <CctpBridgeFlow locale={locale} onBusyChange={setBusy} />}
+      {mode === "swap" ? <RealSwapFlow locale={locale} onBusyChange={setBusy} onConfirmed={onConfirmed} /> : <CctpBridgeFlow locale={locale} onBusyChange={setBusy} />}
     </WalletPanel>
   );
 }

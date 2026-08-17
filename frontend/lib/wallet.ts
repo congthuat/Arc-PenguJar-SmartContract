@@ -15,6 +15,14 @@ export type WalletActivity = {
   assetSymbol: SupportedAsset["symbol"];
   tokenAddress: Address;
   decimals: number;
+  swapReceive?: {
+    amount: bigint;
+    assetId: SupportedAssetId;
+    assetSymbol: SupportedAsset["symbol"];
+    tokenAddress: Address;
+    decimals: number;
+    logIndex: number;
+  };
 };
 
 export function normalizeRecipient(value: string): Address | undefined {

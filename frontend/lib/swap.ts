@@ -1,159 +1,28 @@
-import { getAddress, isAddress, isHex, type Address, type Hex } from "viem";
+import { getAddress, type Address } from "viem";
 import { arcTestnet } from "viem/chains";
-
 import { getAssetById, type SupportedAssetId } from "./assets.ts";
 
+export const XYLO_ROUTER = getAddress("0x73742278c31a76dBb0D2587d03ef92E6E2141023");
+export const XYLO_POOL = getAddress("0x3DF3966F5138143dce7a9cFDdC2c0310ce083BB1");
 export const SWAP_SLIPPAGE_OPTIONS = [0.005, 0.01, 0.03] as const;
 export const SWAP_QUOTE_MAX_AGE_MS = 45_000;
-
-export type SwapQuote = {
-  id: string;
-  tool: string;
-  toolName: string;
-  fromAssetId: SupportedAssetId;
-  toAssetId: SupportedAssetId;
-  fromAmount: string;
-  toAmount: string;
-  toAmountMin: string;
-  approvalAddress: Address;
-  executionDuration: number;
-  transactionRequest: {
-    to: Address;
-    data: Hex;
-    value: string;
-    from: Address;
-    chainId: typeof arcTestnet.id;
-  };
-  quotedAt: number;
-};
-
-type UnknownRecord = Record<string, unknown>;
-
-function record(value: unknown, label: string): UnknownRecord {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`Invalid ${label}`);
-  return value as UnknownRecord;
+export const SWAP_DEADLINE_SECONDS = 300;
+export const xyloRouterAbi = [
+  { type: "function", name: "getAmountOut", stateMutability: "view", inputs: [{ name: "tokenIn", type: "address" }, { name: "tokenOut", type: "address" }, { name: "amountIn", type: "uint256" }], outputs: [{ name: "", type: "uint256" }] },
+  { type: "function", name: "swap", stateMutability: "nonpayable", inputs: [{ name: "params", type: "tuple", components: [{ name: "tokenIn", type: "address" }, { name: "tokenOut", type: "address" }, { name: "amountIn", type: "uint256" }, { name: "minAmountOut", type: "uint256" }, { name: "to", type: "address" }, { name: "deadline", type: "uint256" }] }], outputs: [{ name: "amountOut", type: "uint256" }] },
+] as const;
+export type SwapQuote = { fromAssetId: SupportedAssetId; toAssetId: SupportedAssetId; amountIn: bigint; amountOut: bigint; chainId: typeof arcTestnet.id; router: Address; pool: Address; quotedAt: number };
+export function oppositeAssetId(assetId: SupportedAssetId): SupportedAssetId { return assetId === "usdc" ? "eurc" : "usdc"; }
+export function isSwapQuoteFresh(quotedAt: number, now = Date.now()) { return Number.isFinite(quotedAt) && quotedAt <= now && now - quotedAt <= SWAP_QUOTE_MAX_AGE_MS; }
+export function exactApprovalRequired(allowance: bigint, amountIn: bigint) { return allowance < amountIn ? amountIn : undefined; }
+export function minimumSwapOutput(amountOut: bigint, slippage: (typeof SWAP_SLIPPAGE_OPTIONS)[number]) { const bps = slippage === 0.005 ? 50n : slippage === 0.01 ? 100n : 300n; return amountOut * (10_000n - bps) / 10_000n; }
+export function createXyloQuote(fromAssetId: SupportedAssetId, toAssetId: SupportedAssetId, amountIn: bigint, amountOut: bigint, quotedAt = Date.now()): SwapQuote {
+  if (toAssetId !== oppositeAssetId(fromAssetId) || amountIn <= 0n || amountOut <= 0n) throw new Error("Invalid XyloNet quote");
+  return { fromAssetId, toAssetId, amountIn, amountOut, chainId: arcTestnet.id, router: XYLO_ROUTER, pool: XYLO_POOL, quotedAt };
 }
-
-function stringField(source: UnknownRecord, key: string, label = key) {
-  const value = source[key];
-  if (typeof value !== "string" || value.length === 0) throw new Error(`Invalid ${label}`);
-  return value;
-}
-
-function integerString(value: unknown, label: string) {
-  if (typeof value !== "string" || !/^\d+$/.test(value) || BigInt(value) <= 0n) throw new Error(`Invalid ${label}`);
-  return value;
-}
-
-function numericField(source: UnknownRecord, key: string, fallback = 0) {
-  const value = source[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-export function isAllowedSwapSlippage(value: number): value is (typeof SWAP_SLIPPAGE_OPTIONS)[number] {
-  return SWAP_SLIPPAGE_OPTIONS.includes(value as (typeof SWAP_SLIPPAGE_OPTIONS)[number]);
-}
-
-export function oppositeAssetId(assetId: SupportedAssetId): SupportedAssetId {
-  return assetId === "usdc" ? "eurc" : "usdc";
-}
-
-export function isSwapQuoteFresh(quotedAt: number, now = Date.now()) {
-  return Number.isFinite(quotedAt) && quotedAt <= now && now - quotedAt <= SWAP_QUOTE_MAX_AGE_MS;
-}
-
-export async function fetchLifiQuoteWithPresetFallback(
-  upstreamUrl: URL,
-  init: RequestInit,
-  fetcher: typeof fetch = fetch,
-) {
-  const presetUrl = new URL(upstreamUrl);
-  presetUrl.searchParams.set("preset", "stablecoin");
-  const first = await fetcher(presetUrl, init);
-  if (first.ok) return first;
-
-  const error = await first.clone().json().catch(() => undefined) as { code?: unknown; message?: unknown } | undefined;
-  const presetRejected = error?.code === 1011 && typeof error.message === "string" && error.message.includes("preset");
-  return presetRejected ? fetcher(upstreamUrl, init) : first;
-}
-
-export function normalizeLifiQuote(
-  payload: unknown,
-  expected: {
-    fromAssetId: SupportedAssetId;
-    toAssetId: SupportedAssetId;
-    fromAmount: string;
-    fromAddress: Address;
-  },
-): SwapQuote {
-  const root = record(payload, "quote");
-  const action = record(root.action, "quote action");
-  const estimate = record(root.estimate, "quote estimate");
-  const transactionRequest = record(root.transactionRequest, "transaction request");
-  const fromToken = record(action.fromToken, "from token");
-  const toToken = record(action.toToken, "to token");
-  const toolDetails = root.toolDetails && typeof root.toolDetails === "object" && !Array.isArray(root.toolDetails)
-    ? (root.toolDetails as UnknownRecord)
-    : undefined;
-
-  const fromAsset = getAssetById(expected.fromAssetId);
-  const toAsset = getAssetById(expected.toAssetId);
-  if (!fromAsset || !toAsset || fromAsset.id === toAsset.id) throw new Error("Unsupported swap pair");
-
-  if (action.fromChainId !== arcTestnet.id || action.toChainId !== arcTestnet.id) throw new Error("Quote is not Arc-only");
-  validateSameChainSteps(root.includedSteps);
-  if (stringField(fromToken, "address").toLowerCase() !== fromAsset.address.toLowerCase()) throw new Error("Unexpected sell token");
-  if (stringField(toToken, "address").toLowerCase() !== toAsset.address.toLowerCase()) throw new Error("Unexpected buy token");
-  if (integerString(action.fromAmount, "quote input amount") !== expected.fromAmount) throw new Error("Quote input changed");
-
-  const approvalAddressRaw = stringField(estimate, "approvalAddress");
-  if (!isAddress(approvalAddressRaw)) throw new Error("Invalid approval address");
-  const approvalAddress = getAddress(approvalAddressRaw);
-
-  const txToRaw = stringField(transactionRequest, "to", "transaction target");
-  const txFromRaw = stringField(transactionRequest, "from", "transaction sender");
-  const txDataRaw = stringField(transactionRequest, "data", "transaction data");
-  const txValue = typeof transactionRequest.value === "string" ? transactionRequest.value : "0x0";
-  if (!isAddress(txToRaw) || !isAddress(txFromRaw) || !isHex(txDataRaw) || !isHex(txValue)) throw new Error("Invalid transaction request");
-  if (getAddress(txFromRaw) !== getAddress(expected.fromAddress)) throw new Error("Quote sender mismatch");
-  if (transactionRequest.chainId !== arcTestnet.id) throw new Error("Transaction is not for Arc Testnet");
-  if (BigInt(txValue) !== 0n) throw new Error("Unexpected native value in token swap");
-
-  const estimateFromAmount = integerString(estimate.fromAmount ?? action.fromAmount, "estimate input amount");
-  if (estimateFromAmount !== expected.fromAmount) throw new Error("Estimate input changed");
-
-  const id = stringField(root, "id");
-  const tool = stringField(root, "tool");
-  const toolName = toolDetails && typeof toolDetails.name === "string" && toolDetails.name.length > 0 ? toolDetails.name : tool;
-
-  return {
-    id,
-    tool,
-    toolName,
-    fromAssetId: fromAsset.id,
-    toAssetId: toAsset.id,
-    fromAmount: estimateFromAmount,
-    toAmount: integerString(estimate.toAmount, "estimated output"),
-    toAmountMin: integerString(estimate.toAmountMin, "minimum output"),
-    approvalAddress,
-    executionDuration: numericField(estimate, "executionDuration"),
-    transactionRequest: {
-      to: getAddress(txToRaw),
-      data: txDataRaw as Hex,
-      value: txValue,
-      from: getAddress(txFromRaw),
-      chainId: arcTestnet.id,
-    },
-    quotedAt: Date.now(),
-  };
-}
-
-function validateSameChainSteps(value: unknown) {
-  if (value === undefined) return;
-  if (!Array.isArray(value)) throw new Error("Invalid quote steps");
-  for (const stepValue of value) {
-    const step = record(stepValue, "quote step");
-    const action = record(step.action, "quote step action");
-    if (action.fromChainId !== arcTestnet.id || action.toChainId !== arcTestnet.id) throw new Error("Bridge step is not allowed in swap mode");
-  }
+export function buildXyloSwapRequest(quote: SwapQuote, freshAmountOut: bigint, slippage: (typeof SWAP_SLIPPAGE_OPTIONS)[number], recipient: Address, nowMs = Date.now()) {
+  const from = getAssetById(quote.fromAssetId); const to = getAssetById(quote.toAssetId);
+  if (!isSwapQuoteFresh(quote.quotedAt, nowMs)) throw new Error("Quote expired");
+  if (!from || !to || to.id !== oppositeAssetId(from.id) || quote.chainId !== arcTestnet.id || quote.router !== XYLO_ROUTER || quote.pool !== XYLO_POOL || quote.amountIn <= 0n || freshAmountOut <= 0n) throw new Error("Quote mismatch");
+  return { address: XYLO_ROUTER, abi: xyloRouterAbi, functionName: "swap" as const, args: [{ tokenIn: from.address, tokenOut: to.address, amountIn: quote.amountIn, minAmountOut: minimumSwapOutput(freshAmountOut, slippage), to: getAddress(recipient), deadline: BigInt(Math.floor(nowMs / 1000) + SWAP_DEADLINE_SECONDS) }] as const, account: getAddress(recipient), chainId: arcTestnet.id };
 }

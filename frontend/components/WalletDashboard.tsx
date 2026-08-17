@@ -460,7 +460,7 @@ export function WalletDashboard() {
                     {activities.map((item) => (
                       <li key={activityIdentity(item)}>
                         <Image
-                          src={item.direction === "receive" ? "/makoto/icon-receive-pro-v2.png" : "/makoto/icon-send-pro-v2.png"}
+                          src={item.kind === "swap" ? "/makoto/icon-swap-pro-v2.png" : item.direction === "receive" ? "/makoto/icon-receive-pro-v2.png" : "/makoto/icon-send-pro-v2.png"}
                           alt=""
                           width={54}
                           height={54}
@@ -468,9 +468,9 @@ export function WalletDashboard() {
                         />
                         <div className={styles.activityMain}>
                           <strong>
-                            {item.kind === "bridge" ? c.bridge : item.direction === "receive" ? c.receive : c.send}{" "}{item.direction === "receive" ? "+" : "-"}{formatAssetAmount(item.amount, getAssetById(item.assetId)!)} {item.assetSymbol}
+                            {item.kind === "swap" && item.swapReceive ? <>Swap -{formatAssetAmount(item.amount, getAssetById(item.assetId)!)} {item.assetSymbol} → +{formatAssetAmount(item.swapReceive.amount, getAssetById(item.swapReceive.assetId)!)} {item.swapReceive.assetSymbol}</> : <>{item.kind === "bridge" ? c.bridge : item.direction === "receive" ? c.receive : c.send}{" "}{item.direction === "receive" ? "+" : "-"}{formatAssetAmount(item.amount, getAssetById(item.assetId)!)} {item.assetSymbol}</>}
                           </strong>
-                          <small>{item.kind === "bridge" ? c.bridgeRoute : <>{item.direction === "receive" ? c.from : c.to}{" "}{shortAddress(item.counterparty)}</>}{" · "}{formatActivityTime(item.confirmedAt, locale)}</small>
+                          <small>{item.kind === "swap" ? "XyloNet StableSwap" : item.kind === "bridge" ? c.bridgeRoute : <>{item.direction === "receive" ? c.from : c.to}{" "}{shortAddress(item.counterparty)}</>}{" · "}{formatActivityTime(item.confirmedAt, locale)}</small>
                         </div>
                         <span className={styles.activityStatus}>
                           {c.confirmed}
@@ -588,7 +588,7 @@ export function WalletDashboard() {
       )}
 
       {action === "swap" && (
-        <SwapPanel onClose={() => setAction(undefined)} />
+        <SwapPanel onClose={() => setAction(undefined)} onConfirmed={() => void activity.refetch()} />
       )}
     </main>
   );
