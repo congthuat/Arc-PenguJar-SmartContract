@@ -193,7 +193,6 @@ export function WalletDashboard() {
 
   async function refresh() {
     await Promise.all([
-      balances.native.refetch(),
       balances.usdc.refetch(),
       balances.eurc.refetch(),
       refetchJars(),
@@ -275,7 +274,7 @@ export function WalletDashboard() {
                       type="button"
                       onClick={() => void refresh()}
                       disabled={
-                        balances.usdc.isFetching || balances.eurc.isFetching || balances.native.isFetching
+                        balances.usdc.isFetching || balances.eurc.isFetching
                       }
                     >
                       {c.refresh}
@@ -297,7 +296,7 @@ export function WalletDashboard() {
                       {c.switchNetwork}
                     </button>
                   )}
-                  {onArc && (balances.usdc.isError || balances.native.isError) && <p className={styles.balanceError} role="alert">{c.balanceError}</p>}
+                  {onArc && (balances.usdc.isError || balances.eurc.isError) && <p className={styles.balanceError} role="alert">{c.balanceError}</p>}
                 </div>
               </article>
 

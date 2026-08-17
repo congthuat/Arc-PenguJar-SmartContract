@@ -1178,6 +1178,95 @@
 .settingsHero{max-width:760px;padding:34px 0 28px}.settingsHero p{margin:0;color:var(--mw-accent);font-size:10px;font-weight:900;letter-spacing:1.5px}.settingsHero h1{margin:8px 0 10px;font:850 clamp(38px,5vw,58px)/1 var(--font-display),sans-serif;letter-spacing:-2px}.settingsHero span{color:var(--mw-text-muted);font-size:14px;line-height:1.6}.settingsGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.settingsCard,.settingsReset{border:1px solid var(--mw-border);border-radius:24px;background:var(--mw-surface);box-shadow:0 16px 42px rgba(57,65,154,.08)}.settingsCard{padding:24px}.settingsCard h2{margin:0 0 18px;font:800 20px var(--font-display),sans-serif}.settingsWide{grid-column:1/-1}.settingsChoices{margin:0;padding:0;border:0}.settingsChoices legend{margin-bottom:10px;color:var(--mw-text-muted);font-size:11px}.settingsChoices label{min-height:46px;margin-top:8px;padding:0 14px;border:1px solid var(--mw-border);border-radius:13px;display:flex;align-items:center;gap:10px;cursor:pointer}.settingsChoices label:has(input:checked){border-color:var(--mw-accent);background:var(--mw-nav-active-bg)}.settingsChoices input{accent-color:var(--mw-accent)}.settingsChoices span{font-size:12px;font-weight:750}.settingsInfo,.settingsAsset{min-height:43px;border-bottom:1px solid var(--mw-divider);display:flex;align-items:center;justify-content:space-between;gap:12px}.settingsInfo span,.settingsAsset small,.settingsMuted{color:var(--mw-text-muted);font-size:11px}.settingsInfo strong{font-size:12px}.settingsLink,.settingsAsset a{display:inline-flex;margin-top:14px;color:var(--mw-accent);font-size:11px;font-weight:850}.settingsAsset>span{display:grid;gap:2px}.settingsAsset a{margin:0}.settingsActions{margin-top:16px;display:flex;flex-wrap:wrap;gap:9px}.settingsActions button,.settingsActions a,.settingsReset button{min-height:40px;padding:0 14px;border:1px solid var(--mw-border);border-radius:11px;display:inline-flex;align-items:center;background:var(--mw-surface-solid);color:var(--mw-text);font-size:10px;font-weight:850;cursor:pointer}.settingsDisclosure{margin:0;padding-left:20px;color:var(--mw-text-muted);font-size:12px;line-height:1.75}.settingsReset{margin:18px 0 45px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px}.settingsReset p{margin:5px 0 0;color:var(--mw-text-muted);font-size:11px}.settingsReset button{color:#fff;background:var(--mw-accent)}
 @media(max-width:760px){.settingsHero{padding-top:24px}.settingsGrid{grid-template-columns:1fr}.settingsWide{grid-column:auto}.settingsReset{align-items:flex-start;flex-direction:column}.settingsReset button{width:100%;justify-content:center}}
 
+/* Public Beta responsive audit: content-first phone and tablet layouts. */
+@media (max-width: 760px) {
+  .header {
+    padding-top: env(safe-area-inset-top);
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .brand { min-width: 0; }
+  .headerActions { min-width: 0; gap: 5px; }
+  .languagePill { min-height: 44px; padding-inline: 8px; display: inline-flex; }
+  .themeButton { width: 44px; min-height: 44px; }
+  .walletControlWrap { max-width: 150px; min-height: 44px; }
+  .nav {
+    width: 100%;
+    margin-bottom: 14px;
+    padding: 4px;
+    overflow: visible;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .nav a {
+    min-width: 0;
+    min-height: 58px;
+    padding: 5px 2px;
+    flex-direction: column;
+    gap: 3px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.15;
+  }
+  .headerGlyph { width: 19px; height: 19px; flex-basis: 19px; }
+  .balanceValue { min-width: 0; max-width: 100%; display: flex; align-items: baseline; flex-wrap: nowrap; font-size: clamp(26px, 9.5vw, 52px); letter-spacing: -2px; white-space: nowrap; }
+  .balanceValue small { flex: 0 0 auto; margin-left: 8px; }
+  .heroAddress { max-width: 70%; overflow-wrap: anywhere; }
+  .heroButtons { flex-wrap: wrap; }
+  .assetRow { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .assetContract { grid-column: 2 / -1; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .assetContract span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .activityList li { grid-template-columns: 44px minmax(0, 1fr); gap: 7px 10px; padding-block: 12px; }
+  .activityIcon { grid-row: 1 / span 3; align-self: start; width: 42px; height: 42px; }
+  .activityMain { min-width: 0; }
+  .activityMain strong, .activityMain small { white-space: normal; overflow-wrap: anywhere; }
+  .activityStatus { grid-column: 2; justify-self: start; display: inline-flex; }
+  .activityLink { grid-column: 2; min-height: 44px; align-items: center; overflow-wrap: anywhere; }
+  .jarRow { grid-template-columns: 58px minmax(0, 1fr) 24px; gap: 9px; }
+  .jarImage { width: 54px; height: 54px; }
+  .jarTitleRow { min-width: 0; flex-wrap: wrap; }
+  .savingsFooter { align-items: flex-start; flex-direction: column; }
+  .savingsFooter a { min-height: 44px; }
+  .settingsCard { min-width: 0; padding: 20px; }
+  .settingsChoices label { min-height: 48px; }
+  .settingsInfo, .settingsAsset { min-width: 0; flex-wrap: wrap; padding-block: 6px; }
+  .settingsInfo strong, .settingsAsset small { min-width: 0; overflow-wrap: anywhere; }
+  .settingsActions > * { min-height: 44px; }
+  .settingsReset button { min-height: 44px; }
+}
+
+@media (max-width: 430px) {
+  .brandWords { display: none; }
+  .walletControlWrap { max-width: 126px; }
+  .topGrid { grid-template-rows: 300px auto auto; }
+  .heroContent { padding: 24px 19px; }
+  .heroArt { width: 72%; opacity: .42; }
+  .heroShade { background: linear-gradient(90deg, rgba(111,79,255,1) 0%, rgba(91,81,255,.98) 62%, rgba(44,123,247,.38) 82%, transparent 100%); }
+  .actionsGrid { grid-template-columns: 1fr; }
+  .actionCard { min-height: 96px; grid-template-columns: 66px minmax(0, 1fr) 22px; }
+  .actionIcon { width: 64px; height: 64px; }
+  .companionCard { grid-template-rows: 220px auto; }
+  .companionImage { min-height: 220px; }
+  .assetRow { padding: 14px; gap: 8px 11px; grid-template-columns: auto minmax(0, 1fr); }
+  .assetBalance { grid-column: 2; max-width: 100%; justify-self: start; white-space: nowrap; font-size: 14px; }
+  .assetContract { width: 100%; grid-column: 1 / -1; padding-top: 9px; border-top: 1px solid var(--mw-border); }
+  .sectionHeader { align-items: flex-start; flex-direction: column; }
+  .activityCard .sectionHeader { align-items: center; flex-direction: row; }
+  .activityCard .sectionHeader > div { min-width: 0; }
+  .activityCard .viewButton { flex: 0 0 auto; }
+  .activityList { margin-top: 9px; }
+  .activityList li { gap: 5px 10px; }
+  .viewButton { min-height: 44px; }
+}
+
+@media (max-width: 340px) {
+  .headerActions { gap: 3px; }
+  .languagePill { padding-inline: 6px; }
+  .languagePill .pillGlyph { display: none; }
+  .walletControlWrap { max-width: 112px; }
+  .nav a { font-size: 10px; }
+  .settingsHero h1 { font-size: 36px; }
+}
+
 /* MAKOTO 3D TOKEN LOGOS START */
 .assetLogo3d {
   width: 54px;

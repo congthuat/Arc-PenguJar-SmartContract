@@ -1,17 +1,19 @@
 "use client";
 
 import type { Address } from "viem";
-import { useBalance, useReadContract } from "wagmi";
+import { useReadContract } from "wagmi";
 import { arcTestnet } from "viem/chains";
 import { erc20BalanceAbi } from "@/lib/abi/erc20";
 import { getAssetById } from "@/lib/assets";
 
 export function useWalletBalances(address?: Address, enabled = false) {
-  const native = useBalance({
-    address,
-    chainId: arcTestnet.id,
-    query: { enabled: Boolean(address && enabled) },
-  });
+  const query = {
+    enabled: Boolean(address && enabled),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
+    retry: 1,
+  } as const;
   const usdcAsset = getAssetById("usdc")!;
   const eurcAsset = getAssetById("eurc")!;
   const usdc = useReadContract({
@@ -20,7 +22,7 @@ export function useWalletBalances(address?: Address, enabled = false) {
     functionName: "balanceOf",
     args: address ? [address] : undefined,
     chainId: arcTestnet.id,
-    query: { enabled: Boolean(address && enabled) },
+    query,
   });
   const eurc = useReadContract({
     address: eurcAsset.address,
@@ -28,8 +30,8 @@ export function useWalletBalances(address?: Address, enabled = false) {
     functionName: "balanceOf",
     args: address ? [address] : undefined,
     chainId: arcTestnet.id,
-    query: { enabled: Boolean(address && enabled) },
+    query,
   });
 
-  return { native, usdc, eurc, assets: { usdc, eurc } };
+  return { usdc, eurc, assets: { usdc, eurc } };
 }

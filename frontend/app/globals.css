@@ -58,7 +58,7 @@ html[data-theme="dark"] {
 }
 
 * { box-sizing: border-box; }
-html,body{max-width:100%;overflow-x:hidden}:is(a,button,input,select,textarea,[tabindex]):focus-visible{outline:3px solid #8a6cff;outline-offset:3px}.create-modal:focus-visible{outline:none}.release-state{min-height:100dvh;padding:32px;display:grid;place-content:center;justify-items:center;gap:12px;text-align:center;background:radial-gradient(circle at top,#eee8ff,transparent 45%),#f8f9ff;color:var(--ink)}.release-state img{object-fit:contain}.release-state p{margin:0;color:var(--purple);font-size:10px;font-weight:900;letter-spacing:1.4px}.release-state h1{margin:0;font:800 clamp(28px,6vw,46px) var(--font-display)}.release-state>span{max-width:520px;color:var(--muted);line-height:1.6}.release-state>div{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}.release-state a,.release-state button{min-height:44px;padding:0 18px;border:0;border-radius:13px;display:inline-flex;align-items:center;color:white;background:var(--purple);font-weight:800;text-decoration:none;cursor:pointer}.release-loader{width:160px!important;height:7px;border-radius:99px;background:linear-gradient(90deg,#7857ff,#4dc9f6,#7857ff);background-size:200% 100%;animation:release-loading 1.2s linear infinite}@keyframes release-loading{to{background-position:-200% 0}}
+html,body{max-width:100%}:is(a,button,input,select,textarea,[tabindex]):focus-visible{outline:3px solid #8a6cff;outline-offset:3px}.create-modal:focus-visible{outline:none}.release-state{min-height:100dvh;padding:32px;display:grid;place-content:center;justify-items:center;gap:12px;text-align:center;background:radial-gradient(circle at top,#eee8ff,transparent 45%),#f8f9ff;color:var(--ink)}.release-state img{object-fit:contain}.release-state p{margin:0;color:var(--purple);font-size:10px;font-weight:900;letter-spacing:1.4px}.release-state h1{margin:0;font:800 clamp(28px,6vw,46px) var(--font-display)}.release-state>span{max-width:520px;color:var(--muted);line-height:1.6}.release-state>div{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}.release-state a,.release-state button{min-height:44px;padding:0 18px;border:0;border-radius:13px;display:inline-flex;align-items:center;color:white;background:var(--purple);font-weight:800;text-decoration:none;cursor:pointer}.release-loader{width:160px!important;height:7px;border-radius:99px;background:linear-gradient(90deg,#7857ff,#4dc9f6,#7857ff);background-size:200% 100%;animation:release-loading 1.2s linear infinite}@keyframes release-loading{to{background-position:-200% 0}}
 html { background: var(--cream); }
 body { margin: 0; color: var(--ink); background: radial-gradient(circle at 85% 0%, #f0edff 0, transparent 26rem), var(--cream); font-family: var(--font-body), sans-serif; }
 button, input { font: inherit; }
@@ -229,7 +229,6 @@ html[data-theme="dark"] .address-panel,html[data-theme="dark"] .detail-hero,html
 .create-form textarea{width:100%;min-height:92px;resize:vertical;border:1px solid #dcdae5;border-radius:13px;padding:12px 14px;color:var(--ink);background:#fbfbfc;font:inherit}.create-choice{margin:0;padding:12px 14px;border:1px solid var(--line);border-radius:13px;display:flex;gap:18px}.create-choice legend{padding:0 5px;color:var(--muted);font-size:10px;font-weight:850}.create-choice label{display:flex;grid-auto-flow:column;align-items:center;gap:7px}.create-choice input{width:auto;height:auto}.private-metadata-state{display:flex;flex-wrap:wrap;align-items:center;gap:8px;color:var(--muted);font-size:10px}.private-metadata-state button{border:0;border-radius:9px;padding:7px 10px;color:white;background:var(--purple);font-weight:800;cursor:pointer}.private-metadata-state small{width:100%;color:#95392d}.private-note{margin:4px 0 0;color:var(--muted);font-size:11px}.private-metadata-panel{margin:22px 0;padding:22px;border:1px solid #ddd7ff;border-radius:22px;background:var(--lavender)}.private-metadata-panel>div:first-child{display:flex;gap:12px;align-items:flex-start}.private-metadata-panel>div:first-child>span{font-size:20px}.private-metadata-panel strong,.private-metadata-panel small{display:block}.private-metadata-panel small{margin-top:4px;color:var(--muted)}.private-metadata-panel dl{display:grid;grid-template-columns:1fr 1fr 2fr;gap:10px;margin:18px 0 0}.private-metadata-panel dl div{padding:12px;border-radius:12px;background:white}.private-metadata-panel dt{color:var(--muted);font-size:9px}.private-metadata-panel dd{margin:5px 0 0;font-weight:750;overflow-wrap:anywhere}
 
 /* Phase 5B.2: compact, touch-safe layouts for narrow phones. */
-html, body { overflow-x: clip; }
 .refresh-button { min-height: 44px; }
 .refresh-button:disabled { cursor: wait; opacity: .65; }
 .transaction-state a, .transaction-links a { overflow-wrap: anywhere; }
@@ -267,8 +266,8 @@ html, body { overflow-x: clip; }
   .amount-row span { font-size: 12px; }
   .disabled-actions { grid-template-columns: 1fr; }
   .disabled-actions > div, .disabled-actions > div:last-child { grid-column: auto; width: 100%; }
-  .modal-backdrop { overscroll-behavior: contain; }
-  .create-modal { padding-bottom: calc(22px + env(safe-area-inset-bottom)); }
+  .modal-backdrop { padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); align-items: center; overscroll-behavior: contain; }
+  .create-modal { width: min(100%, 590px); max-height: calc(100dvh - max(24px, calc(env(safe-area-inset-top) + env(safe-area-inset-bottom)))); border-radius: 24px; padding-bottom: calc(22px + env(safe-area-inset-bottom)); }
   .modal-header {
     position: sticky;
     z-index: 3;
@@ -284,6 +283,9 @@ html, body { overflow-x: clip; }
   .modal-actions { grid-template-columns: 1fr; }
   .modal-actions button { min-height: 48px; }
   .transaction-state > a, .transaction-links a { min-height: 44px; display: inline-flex; align-items: center; }
+  .wallet-flow, .create-form, .review-panel, .transaction-state { min-width: 0; }
+  .wallet-flow input, .wallet-flow select, .create-form input, .create-form select, .create-form textarea { min-width: 0; max-width: 100%; }
+  .receive-flow code, .review-panel dd, .transaction-state p, .form-alert { max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
   .state-card { min-height: 220px; }
   .skeleton-card { height: 330px; }
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { formatUnits } from "viem";
 import {
   useConnect,
   useConnection,
@@ -141,7 +140,6 @@ export function WalletControl() {
           {onArc ? (
             <div className="wallet-balances">
               <div><span>{t("wallet.usdcBalance")}</span><strong>{balances.usdc.data === undefined ? "…" : formatUsdc(balances.usdc.data)} USDC</strong></div>
-              <div><span>{t("wallet.gasBalance")}</span><strong>{balances.native.data ? `${Number(formatUnits(balances.native.data.value, balances.native.data.decimals)).toFixed(4)} ${balances.native.data.symbol}` : "…"}</strong></div>
             </div>
           ) : (
             <button className="switch-button" onClick={() => void switchToArc()} disabled={isSwitchPending(verifiedChain.switchStatus)}>{switchButtonLabel(verifiedChain.switchStatus, t)}</button>
