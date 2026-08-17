@@ -62,6 +62,8 @@ export function WalletDashboard() {
           copied: "Đã sao chép",
           refresh: "Làm mới",
           refreshing: "Đang làm mới",
+          quickActions: "Thao tác nhanh",
+          quickActionsCopy: "Những việc thường dùng trên Arc",
           send: "Gửi",
           receive: "Nhận",
           swap: "Hoán đổi",
@@ -113,6 +115,8 @@ export function WalletDashboard() {
           copied: "Copied",
           refresh: "Refresh",
           refreshing: "Refreshing",
+          quickActions: "Quick actions",
+          quickActionsCopy: "Everyday actions on Arc",
           send: "Send",
           receive: "Receive",
           swap: "Swap",
@@ -320,7 +324,12 @@ export function WalletDashboard() {
                 </div>
               </article>
 
-              <div className={styles.actionsGrid}>
+              <section className={styles.actionsArea} aria-labelledby="quick-actions-title">
+                <header className={styles.actionsHeader}>
+                  <h2 id="quick-actions-title">{c.quickActions}</h2>
+                  <p>{c.quickActionsCopy}</p>
+                </header>
+                <div className={styles.actionsGrid}>
                 <button
                   type="button"
                   className={`${styles.actionCard} ${styles.actionSend}`}
@@ -398,7 +407,8 @@ export function WalletDashboard() {
                   </span>
                   <span className={styles.chevron}><ChevronRightIcon /></span>
                 </Link>
-              </div>
+                </div>
+              </section>
             </section>
 
             <section className={styles.assetsSection} aria-labelledby="assets-title">

@@ -12,8 +12,9 @@ import { useHydrated } from "@/hooks/useHydrated";
 import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
 import { penguJarV3Abi } from "@/lib/abi/penguJarV3";
 import { contractAddress, contractAddressError, EXPECTED_USDC_ADDRESS } from "@/lib/config";
-import { formatUsdc, jarStatus } from "@/lib/format";
+import { formatUsdc } from "@/lib/format";
 import { usePreferences } from "@/hooks/usePreferences";
+import { summarizeSavingsJars } from "@/lib/savingsSummary";
 
 export function Dashboard({ initialOwner }: { initialOwner?: string }) {
   const { t } = usePreferences();
@@ -39,10 +40,7 @@ export function Dashboard({ initialOwner }: { initialOwner?: string }) {
     query: { enabled: Boolean(contractAddress) },
   });
 
-  const totals = useMemo(() => ({
-    balance: jars.reduce((sum, jar) => sum + jar.balance, 0n),
-    active: jars.filter((jar) => jarStatus(jar.unlockTime, jar.closed) === "Locked").length,
-  }), [jars]);
+  const totals = useMemo(() => summarizeSavingsJars(jars), [jars]);
 
   function submitAddress(event: FormEvent) {
     event.preventDefault();
@@ -62,7 +60,7 @@ export function Dashboard({ initialOwner }: { initialOwner?: string }) {
     <main>
       <div className="shell">
         <AppHeader />
-        <section className={`hero ${walletConnected ? "hero-connected" : ""}`}>
+        <section className={`hero savings-page-hero ${walletConnected ? "hero-connected" : ""}`}>
           <div className="hero-copy">
             <span className="kicker">{walletConnected ? t("dashboard.connectedKicker") : t("dashboard.kicker")}</span>
             <h1>{walletConnected ? t("dashboard.connectedHero") : t("dashboard.hero")}</h1>
@@ -94,10 +92,11 @@ export function Dashboard({ initialOwner }: { initialOwner?: string }) {
           </section>
         )}
 
-        {owner && <section className="summary-section" aria-label="Savings summary">
-          <div className="summary-primary"><p>{t("dashboard.yourSavings")}</p><strong>{owner ? formatUsdc(totals.balance) : "—"}</strong><span>{t("dashboard.acrossJars")}</span></div>
+        {owner && <section className="summary-section savings-page-summary" aria-label={t("dashboard.summaryLabel")}>
+          <div className="summary-primary"><p>{t("dashboard.totalSaved")}</p><strong>{owner ? formatUsdc(totals.totalSaved) : "—"}</strong><span>{t("dashboard.acrossJars")}</span></div>
           <div className="summary-stat"><span className="summary-icon lavender">◒</span><div><strong>{owner ? jars.length : "—"}</strong><span>{t("dashboard.totalJars")}</span></div></div>
-          <div className="summary-stat"><span className="summary-icon mint">⌁</span><div><strong>{owner ? totals.active : "—"}</strong><span>{t("dashboard.activeLocked")}</span></div></div>
+          <div className="summary-stat"><span className="summary-icon mint">⌁</span><div><strong>{owner ? totals.active : "—"}</strong><span>{t("dashboard.activeJars")}</span></div></div>
+          <div className="summary-stat"><span className="summary-icon completed">✓</span><div><strong>{owner ? totals.completed : "—"}</strong><span>{t("dashboard.completedJars")}</span></div></div>
           <button className="create-button enabled" onClick={() => setCreateOpen(true)} disabled={!walletConnected || isWrongNetwork || !contractAddress}><span>＋</span> {t("dashboard.create")}<small>{!walletConnected ? t("dashboard.connectToCreate") : isWrongNetwork ? t("wallet.switch") : t("dashboard.startGoal")}</small></button>
         </section>}
 

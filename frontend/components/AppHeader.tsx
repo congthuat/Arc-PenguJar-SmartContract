@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { WalletControl } from "./WalletControl";
+import { LanguageMenu } from "./LanguageMenu";
 import { usePreferences } from "@/hooks/usePreferences";
 import styles from "./MakotoWallet.module.css";
 
@@ -33,7 +34,7 @@ function HeaderIcon({ name, className }: { name: HeaderIconName; className: stri
 }
 
 export function AppHeader() {
-  const { locale, setLocale, theme, setTheme, t } = usePreferences();
+  const { locale, theme, setTheme, t } = usePreferences();
   const pathname = usePathname();
 
   function toggleTheme() {
@@ -105,17 +106,7 @@ export function AppHeader() {
           <span>Public Beta · Arc Testnet</span>
         </span>
 
-        <label className={styles.languagePill}>
-          <HeaderIcon name="language" className={`${styles.pillGlyph} ${styles.languageGlyph}`} />
-          <select
-            aria-label={t("preferences.language")}
-            value={locale}
-            onChange={(event) => setLocale(event.target.value as "en" | "vi")}
-          >
-            <option value="en">EN</option>
-            <option value="vi">VI</option>
-          </select>
-        </label>
+        <LanguageMenu icon={<HeaderIcon name="language" className={`${styles.pillGlyph} ${styles.languageGlyph}`} />} />
 
         <button
           className={styles.themeButton}
