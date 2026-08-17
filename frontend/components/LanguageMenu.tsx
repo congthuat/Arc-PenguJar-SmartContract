@@ -18,12 +18,28 @@ export function LanguageMenu({ icon }: { icon?: ReactNode }) {
     return () => { document.removeEventListener("pointerdown", closeOutside); document.removeEventListener("keydown", closeEscape); };
   }, [open]);
 
-  return <div className={styles.languageMenu} ref={root}>
-    <button type="button" className={styles.languageTrigger} aria-label={t("preferences.language")} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
-      {icon}<span>{locale.toUpperCase()}</span><i aria-hidden="true">⌄</i>
-    </button>
-    {open && <div className={styles.languageDropdown} role="menu" aria-label={t("preferences.language")}>
-      {(["en", "vi"] as const).map((option) => <button key={option} type="button" role="menuitemradio" aria-checked={locale === option} className={locale === option ? styles.languageActive : undefined} onClick={() => { setLocale(option); setOpen(false); }}><span>{option === "en" ? t("preferences.english") : t("preferences.vietnamese")}</span><strong>{option.toUpperCase()}</strong></button>)}
-    </div>}
-  </div>;
+  return (
+    <div className={styles.languageMenu} ref={root}>
+      <button type="button" className={styles.languageTrigger} aria-label={t("preferences.language")} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+        {icon}
+        <strong>{locale.toUpperCase()}</strong>
+        <svg className={styles.languageChevron} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m3 4.5 3 3 3-3" /></svg>
+      </button>
+      {open && (
+        <div className={styles.languageDropdown} role="menu" aria-label={t("preferences.language")}>
+          <p>{t("preferences.language")}</p>
+          {(["en", "vi"] as const).map((option) => {
+            const selected = locale === option;
+            return (
+              <button key={option} type="button" role="menuitemradio" aria-checked={selected} className={selected ? styles.languageActive : undefined} onClick={() => { setLocale(option); setOpen(false); }}>
+                <span>{option === "en" ? t("preferences.english") : t("preferences.vietnamese")}</span>
+                <span className={styles.languageCode}>{option.toUpperCase()}</span>
+                <span className={styles.languageCheck} aria-hidden="true">{selected ? "✓" : ""}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }

@@ -41,6 +41,8 @@ test("language switcher is a keyboard-accessible custom menu", () => {
   assert.match(languageMenu, /role="menu"/);
   assert.match(languageMenu, /role="menuitemradio"/);
   assert.match(languageMenu, /event\.key === "Escape"/);
+  assert.match(languageMenu, /languageCheck/);
+  assert.match(languageMenu, /selected \? "✓"/);
 });
 
 test("mobile wallet account sheet escapes transformed header ancestors", () => {

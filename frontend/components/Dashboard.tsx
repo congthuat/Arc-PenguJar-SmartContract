@@ -60,22 +60,22 @@ export function Dashboard({ initialOwner }: { initialOwner?: string }) {
     <main>
       <div className="shell">
         <AppHeader />
-        <section className={`hero savings-page-hero ${walletConnected ? "hero-connected" : ""}`}>
-          <div className="hero-copy">
+        <section className="savings-hero">
+          <div className="savings-hero-copy">
             <span className="kicker">{walletConnected ? t("dashboard.connectedKicker") : t("dashboard.kicker")}</span>
             <h1>{walletConnected ? t("dashboard.connectedHero") : t("dashboard.hero")}</h1>
             <p>{walletConnected ? t("dashboard.syncedCopy") : t("dashboard.heroCopy")}</p>
           </div>
-          <div className="penguin-scene" aria-hidden="true">
-            <span className="sun-dot" />
-            <div className="hero-jar"><span>•ᴗ•</span><i /></div>
-            <span className="spark spark-one">✦</span><span className="spark spark-two">✦</span>
+          <div className="savings-hero-art" aria-hidden="true">
+            <span className="savings-orbit" />
+            <div className="savings-jar-art"><span>•ᴗ•</span><i /></div>
+            <span className="savings-spark">✦</span>
           </div>
         </section>
 
         {walletConnected ? (
-          <section className={`address-panel connected-address-panel ${isWrongNetwork ? "network-warning" : ""}`} aria-labelledby="address-title">
-            <div><p className="eyebrow">{isWrongNetwork ? t("dashboard.networkCheck") : t("dashboard.allSynced")}</p><h2 id="address-title">{isWrongNetwork ? t("dashboard.switchTitle") : t("dashboard.yourSavings")}</h2><p>{isWrongNetwork ? t("dashboard.switchCopy") : t("dashboard.upToDate")}</p></div>
+          <section className={`savings-status-card ${isWrongNetwork ? "network-warning" : ""}`} aria-labelledby="address-title">
+            <div><p className="eyebrow">{isWrongNetwork ? t("dashboard.networkCheck") : t("dashboard.allSynced")}</p><h2 id="address-title">{isWrongNetwork ? t("dashboard.switchTitle") : t("savings.statusTitle")}</h2><p>{isWrongNetwork ? t("dashboard.switchCopy") : t("savings.statusCopy")}</p></div>
             <div className="connection-assurance"><span>{isWrongNetwork ? "!" : "✓"}</span><div><strong>{isWrongNetwork ? t("wallet.wrongNetwork") : t("dashboard.synced")}</strong>{isWrongNetwork && <button className="switch-button" onClick={() => void verifiedChain.switchToArc()} disabled={["waiting", "switching", "missing"].includes(verifiedChain.switchStatus)}>{verifiedChain.switchStatus === "waiting" || verifiedChain.switchStatus === "missing" ? t("wallet.waiting") : verifiedChain.switchStatus === "switching" ? t("wallet.switching") : t("wallet.switch")}</button>}{verifiedChain.switchMessage && <small>{verifiedChain.switchMessage}</small>}</div></div>
           </section>
         ) : (
@@ -92,12 +92,14 @@ export function Dashboard({ initialOwner }: { initialOwner?: string }) {
           </section>
         )}
 
-        {owner && <section className="summary-section savings-page-summary" aria-label={t("dashboard.summaryLabel")}>
-          <div className="summary-primary"><p>{t("dashboard.totalSaved")}</p><strong>{owner ? formatUsdc(totals.totalSaved) : "—"}</strong><span>{t("dashboard.acrossJars")}</span></div>
-          <div className="summary-stat"><span className="summary-icon lavender">◒</span><div><strong>{owner ? jars.length : "—"}</strong><span>{t("dashboard.totalJars")}</span></div></div>
-          <div className="summary-stat"><span className="summary-icon mint">⌁</span><div><strong>{owner ? totals.active : "—"}</strong><span>{t("dashboard.activeJars")}</span></div></div>
-          <div className="summary-stat"><span className="summary-icon completed">✓</span><div><strong>{owner ? totals.completed : "—"}</strong><span>{t("dashboard.completedJars")}</span></div></div>
-          <button className="create-button enabled" onClick={() => setCreateOpen(true)} disabled={!walletConnected || isWrongNetwork || !contractAddress}><span>＋</span> {t("dashboard.create")}<small>{!walletConnected ? t("dashboard.connectToCreate") : isWrongNetwork ? t("wallet.switch") : t("dashboard.startGoal")}</small></button>
+        {owner && <section className="savings-overview" aria-label={t("dashboard.summaryLabel")}>
+          <div className="savings-summary-grid">
+            <article className="savings-metric primary"><span className="summary-icon lavender">◒</span><p>{t("dashboard.totalSaved")}</p><strong>{formatUsdc(totals.totalSaved)} <small>USDC</small></strong></article>
+            <article className="savings-metric"><span className="summary-icon lavender">◇</span><p>{t("dashboard.totalJars")}</p><strong>{jars.length}</strong></article>
+            <article className="savings-metric"><span className="summary-icon mint">⌁</span><p>{t("dashboard.activeJars")}</p><strong>{totals.active}</strong></article>
+            <article className="savings-metric"><span className="summary-icon completed">✓</span><p>{t("dashboard.completedJars")}</p><strong>{totals.completed}</strong></article>
+          </div>
+          <button className="savings-create-cta" onClick={() => setCreateOpen(true)} disabled={!walletConnected || isWrongNetwork || !contractAddress}><span>＋</span><strong>{t("savings.createNew")}</strong><small>{!walletConnected ? t("dashboard.connectToCreate") : isWrongNetwork ? t("wallet.switch") : t("dashboard.startGoal")}</small></button>
         </section>}
 
         <section className="jars-section">
@@ -113,7 +115,7 @@ export function Dashboard({ initialOwner }: { initialOwner?: string }) {
           ) : !owner ? (
             <StatePanel icon="⌕" title={t("dashboard.enterAddress")}><p>{t("dashboard.lookupCopy")}</p></StatePanel>
           ) : isLoading ? (
-            <div className="card-grid" aria-label="Loading jars"><div className="skeleton-card" /><div className="skeleton-card" /></div>
+            <div className="card-grid" aria-label={t("savings.loadingJars")}><div className="skeleton-card" /><div className="skeleton-card" /></div>
           ) : error ? (
             <StatePanel icon="↻" title={t("dashboard.loadFailed")}><p>{t("dashboard.loadFailedCopy")}</p><button className="secondary-button" onClick={() => void refetch()}>{t("common.tryAgain")}</button></StatePanel>
           ) : jars.length === 0 ? (
@@ -122,7 +124,7 @@ export function Dashboard({ initialOwner }: { initialOwner?: string }) {
             <div className="card-grid">{jars.map((jar) => <JarCard key={jar.id.toString()} jar={jar} />)}</div>
           )}
         </section>
-        <footer><span>Makoto Wallet · PenguJar Savings · Arc Testnet</span><span>{t("footer.rule")}</span></footer>
+        <footer><span>Makoto Wallet · {t("savings.footerName")} · Arc Testnet</span><span>{t("footer.rule")}</span></footer>
         <CreateJarFlow open={createOpen} onClose={() => setCreateOpen(false)} onConfirmed={refetchAfterCreate} />
       </div>
     </main>
