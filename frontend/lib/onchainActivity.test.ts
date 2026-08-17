@@ -66,14 +66,40 @@ test("same transaction retains multiple supported-token Transfer logs", () => {
   assert.equal(parseArcScanActivity({ items: [transfer(), second] }, wallet).activities.length, 2);
 });
 
-test("verified XyloNet legs group into one Swap with exact output", () => {
+function xyloLegs(hash = `0x${"c".repeat(64)}`) {
+  return {
+    sold: transfer({ transaction_hash: hash, from: { hash: wallet }, to: { hash: XYLO_ROUTER }, token: { address_hash: usdc.address }, total: { value: "100000" }, log_index: 2 }),
+    bought: transfer({ transaction_hash: hash, from: { hash: XYLO_POOL }, to: { hash: wallet }, token: { address_hash: eurc.address }, total: { value: "86297" }, log_index: 5 }),
+  };
+}
+
+test("verified XyloNet legs group in sold then bought explorer order", () => {
   const hash = `0x${"c".repeat(64)}`;
-  const sold = transfer({ transaction_hash: hash, from: { hash: wallet }, to: { hash: XYLO_ROUTER }, log_index: 2 });
-  const bought = transfer({ transaction_hash: hash, from: { hash: XYLO_POOL }, to: { hash: wallet }, token: { address_hash: eurc.address }, total: { value: "15500000" }, log_index: 5 });
+  const { sold, bought } = xyloLegs(hash);
   const page = parseArcScanActivity({ items: [sold, bought] }, wallet);
-  assert.equal(page.activities.length, 1); assert.equal(page.activities[0].kind, "swap"); assert.equal(page.activities[0].swapReceive?.amount, 15_500_000n); assert.equal(page.activities[0].swapReceive?.assetId, "eurc");
+  assert.equal(page.activities.length, 1); assert.equal(page.activities[0].kind, "swap"); assert.equal(page.activities[0].amount, 100_000n); assert.equal(page.activities[0].swapReceive?.amount, 86_297n); assert.equal(page.activities[0].swapReceive?.assetId, "eurc");
   const restored = deserializeWalletActivityPage(serializeWalletActivityPage(page));
-  assert.equal(restored.activities[0].swapReceive?.amount, 15_500_000n);
+  assert.equal(restored.activities[0].swapReceive?.amount, 86_297n);
+});
+
+test("verified XyloNet legs group in bought then sold explorer order", () => {
+  const { sold, bought } = xyloLegs();
+  const page = parseArcScanActivity({ items: [bought, sold] }, wallet);
+  assert.equal(page.activities.length, 1); assert.equal(page.activities[0].kind, "swap");
+});
+
+test("unrelated receive before a swap is preserved", () => {
+  const { sold, bought } = xyloLegs();
+  const unrelated = transfer({ transaction_hash: sold.transaction_hash, from: { hash: other }, to: { hash: wallet }, token: { address_hash: usdc.address }, total: { value: "7000" }, log_index: 1 });
+  const page = parseArcScanActivity({ items: [unrelated, bought, sold] }, wallet);
+  assert.equal(page.activities.length, 2); assert.equal(page.activities.filter((item) => item.kind === "swap").length, 1); assert.equal(page.activities.some((item) => item.kind === "transfer" && item.amount === 7_000n), true);
+});
+
+test("unrelated transfer sharing a block but not transaction hash is preserved", () => {
+  const { sold, bought } = xyloLegs();
+  const unrelated = transfer({ transaction_hash: `0x${"e".repeat(64)}`, block_number: sold.block_number, total: { value: "9000" } });
+  const page = parseArcScanActivity({ items: [bought, unrelated, sold] }, wallet);
+  assert.equal(page.activities.length, 2); assert.equal(page.activities.some((item) => item.kind === "transfer" && item.amount === 9_000n), true);
 });
 
 test("unverified counterparties never group as XyloNet swap", () => {

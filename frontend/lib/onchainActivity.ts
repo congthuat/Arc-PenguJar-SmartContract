@@ -109,15 +109,34 @@ function parseTransfer(value: unknown, wallet: Address): WalletActivity | undefi
 }
 
 function groupXyloSwaps(records: WalletActivity[]) {
+  const byTransaction = new Map<string, WalletActivity[]>();
+  for (const record of records) {
+    const key = record.hash.toLowerCase();
+    const transaction = byTransaction.get(key) ?? [];
+    transaction.push(record);
+    byTransaction.set(key, transaction);
+  }
+
+  const grouped = new Map<string, WalletActivity>();
   const consumed = new Set<string>();
-  return records.flatMap((sent) => {
-    const key = activityIdentity(sent);
-    if (consumed.has(key)) return [];
-    if (sent.direction !== "send" || sent.counterparty !== XYLO_ROUTER) return [sent];
-    const received = records.find((item) => item.hash === sent.hash && item.direction === "receive" && item.counterparty === XYLO_POOL && item.assetId !== sent.assetId);
-    if (!received) return [sent];
-    consumed.add(activityIdentity(received));
-    return [{ ...sent, kind: "swap" as const, swapReceive: { amount: received.amount, assetId: received.assetId, assetSymbol: received.assetSymbol, tokenAddress: received.tokenAddress, decimals: received.decimals, logIndex: received.logIndex } }];
+  for (const transaction of byTransaction.values()) {
+    const receives = transaction.filter((item) => item.direction === "receive" && item.counterparty === XYLO_POOL);
+    for (const sent of transaction.filter((item) => item.direction === "send" && item.counterparty === XYLO_ROUTER)) {
+      if (consumed.has(activityIdentity(sent))) continue;
+      const received = receives.find((item) => !consumed.has(activityIdentity(item)) && item.assetId !== sent.assetId);
+      if (!received) continue;
+      const sentKey = activityIdentity(sent);
+      consumed.add(sentKey);
+      consumed.add(activityIdentity(received));
+      grouped.set(sentKey, { ...sent, kind: "swap", swapReceive: { amount: received.amount, assetId: received.assetId, assetSymbol: received.assetSymbol, tokenAddress: received.tokenAddress, decimals: received.decimals, logIndex: received.logIndex } });
+    }
+  }
+
+  return records.flatMap((record) => {
+    const key = activityIdentity(record);
+    const swap = grouped.get(key);
+    if (swap) return [swap];
+    return consumed.has(key) ? [] : [record];
   });
 }
 
