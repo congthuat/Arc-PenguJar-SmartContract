@@ -249,7 +249,7 @@ npm run lint
 npm run build
 ```
 
-At checkpoint `5b42aafe...`, **181 frontend tests** and **19 contract tests** passed. This statement records that checkpoint only; subsequent commits must run validation again.
+At checkpoint `b62af77325ea06344117d82bb4876c6631fc05e0`, **197/197 frontend tests** and **19/19 contract tests** passed. These counts describe that checkpoint only; subsequent commits must run validation again.
 
 ## Local Development
 
@@ -340,14 +340,20 @@ Potential ideas—not promised releases—include:
 
 ## Public Beta Checkpoint
 
-Current feature-complete checkpoint before final functional QA:
+Current Arc Testnet Public Beta release candidate:
 
-- **Commit:** `5b42aafe5f25973d6facfe35149b94625b1b64f5`
+- **Commit:** `b62af77325ea06344117d82bb4876c6631fc05e0`
 - **Branch:** `makoto-wallet`
 - **Deployment:** https://makoto-wallet.vercel.app
-- **Purpose:** Feature-complete Arc Testnet Public Beta candidate before manual functional QA
+- **Status:** Arc Testnet Public Beta release candidate
 
-Manual functional QA is not claimed as complete at this checkpoint.
+Manual on-chain QA has specifically verified:
+
+- direct USDC Send receipt → Verified on Arc
+- Arc Memo Send receipt → Verified on Arc
+- matching on-chain note → Verified
+
+Broader Public Beta QA can continue after release. This checkpoint does not claim a full professional audit, mainnet readiness, or manual testing of every possible wallet and transaction path.
 
 ## PenguJar Project History
 
@@ -355,10 +361,12 @@ PenguJar was the original project in this repository and remains the contract-ba
 
 ## Release Preparation
 
-No Git tag or GitHub Release is created by this housekeeping task. The recommended future checkpoint is:
+This is the intended first Arc Testnet Public Beta release:
 
 - **Tag:** `v0.1.0-beta.1`
 - **Release title:** `Makoto Wallet Public Beta 0.1`
+
+The tag and GitHub Release have not been created yet.
 
 ## License
 
