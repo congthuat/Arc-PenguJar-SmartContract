@@ -10,7 +10,7 @@ export const transferEventAbi = [{ type: "event", name: "Transfer", inputs: [{ n
 export type ReceiptLog = { address: Address | string; data: Hex; topics: readonly Hex[]; logIndex?: number | null; transactionHash?: Hash | null };
 export type MinimalTransactionReceipt = { status: "success" | "reverted"; transactionHash: Hash; blockNumber: bigint; logs: readonly ReceiptLog[] };
 export type VerifiedMemo = { text?: string; data: Hex; memoId: Hex; memoIndex: bigint };
-export type ReceiptVerification = { verified: boolean; from: Address; to: Address; blockNumber: bigint; memo?: VerifiedMemo; reason?: "status" | "hash" | "block" | "transfer" | "swap" };
+export type ReceiptVerification = { verified: boolean; from: Address; to: Address; blockNumber: bigint; memo?: VerifiedMemo; reason?: "status" | "hash" | "block" | "transfer-missing" | "transfer-ambiguous" | "swap-sent" | "swap-receive" };
 
 export function verifyTransactionReceipt(activity: WalletActivity, walletAddress: Address, receipt: MinimalTransactionReceipt): ReceiptVerification {
   const wallet = getAddress(walletAddress);
@@ -21,10 +21,10 @@ export function verifyTransactionReceipt(activity: WalletActivity, walletAddress
   if (receipt.transactionHash.toLowerCase() !== activity.hash.toLowerCase()) return { verified: false, from, to, blockNumber, reason: "hash" };
   if (activity.blockNumber > 0n && receipt.blockNumber !== activity.blockNumber) return { verified: false, from, to, blockNumber, reason: "block" };
   const sent = findTransfer(receipt.logs, { token: activity.tokenAddress, from, to, value: activity.amount, logIndex: activity.logIndex, transactionHash: receipt.transactionHash });
-  if (!sent) return { verified: false, from, to, blockNumber, reason: activity.kind === "swap" ? "swap" : "transfer" };
+  if (sent !== "matched") return { verified: false, from, to, blockNumber, reason: activity.kind === "swap" ? "swap-sent" : sent === "ambiguous" ? "transfer-ambiguous" : "transfer-missing" };
   if (activity.kind === "swap") {
     const receive = activity.swapReceive;
-    if (!receive || !findTransfer(receipt.logs, { token: receive.tokenAddress, to: wallet, value: receive.amount, logIndex: receive.logIndex, transactionHash: receipt.transactionHash })) return { verified: false, from, to, blockNumber, reason: "swap" };
+    if (!receive || findTransfer(receipt.logs, { token: receive.tokenAddress, to: wallet, value: receive.amount, logIndex: receive.logIndex, transactionHash: receipt.transactionHash }) !== "matched") return { verified: false, from, to, blockNumber, reason: "swap-receive" };
   }
   const memo = activity.kind === "transfer" ? findMatchingMemo(receipt.logs, { sender: from, token: activity.tokenAddress, recipient: to, amount: activity.amount }) : undefined;
   return { verified: true, from, to, blockNumber, ...(memo ? { memo } : {}) };
@@ -65,17 +65,20 @@ export function buildCanonicalReceiptText(activity: WalletActivity, verification
   return lines.join("\n");
 }
 
-function findTransfer(logs: readonly ReceiptLog[], expected: { token: Address; from?: Address; to: Address; value: bigint; logIndex: number; transactionHash: Hash }) {
+function findTransfer(logs: readonly ReceiptLog[], expected: { token: Address; from?: Address; to: Address; value: bigint; logIndex: number; transactionHash: Hash }): "matched" | "missing" | "ambiguous" {
+  const candidates: ReceiptLog[] = [];
   for (const log of logs) {
     if (!isAddress(log.address) || getAddress(log.address) !== getAddress(expected.token)) continue;
     if (log.transactionHash && log.transactionHash.toLowerCase() !== expected.transactionHash.toLowerCase()) continue;
-    if (expected.logIndex >= 0 && log.logIndex !== expected.logIndex) continue;
     try {
       const decoded = decodeEventLog({ abi: transferEventAbi, eventName: "Transfer", data: log.data, topics: log.topics as [Hex, ...Hex[]] });
-      if ((!expected.from || getAddress(decoded.args.from) === getAddress(expected.from)) && getAddress(decoded.args.to) === getAddress(expected.to) && decoded.args.value === expected.value) return log;
+      if ((!expected.from || getAddress(decoded.args.from) === getAddress(expected.from)) && getAddress(decoded.args.to) === getAddress(expected.to) && decoded.args.value === expected.value) {
+        if (expected.logIndex < 0 || log.logIndex === expected.logIndex) return "matched";
+        candidates.push(log);
+      }
     } catch { /* Ignore non-Transfer logs. */ }
   }
-  return undefined;
+  return candidates.length === 1 ? "matched" : candidates.length > 1 ? "ambiguous" : "missing";
 }
 
 export function encodeTransferLog(input: { token: Address; from: Address; to: Address; value: bigint; logIndex: number; transactionHash?: Hash }): ReceiptLog {

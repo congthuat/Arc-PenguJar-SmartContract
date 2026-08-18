@@ -9,6 +9,7 @@ import { buildCanonicalReceiptText, decodeDisplayableUtf8, encodeTransferLog, fi
 import type { WalletActivity } from "./wallet.ts";
 
 const wallet = getAddress("0x1111111111111111111111111111111111111111"), other = getAddress("0x2222222222222222222222222222222222222222"), wrong = getAddress("0x3333333333333333333333333333333333333333");
+const arcGasToken = getAddress("0xfffffffffffffffffffffffffffffffffffffffe");
 const usdc = SUPPORTED_ASSETS[0], eurc = SUPPORTED_ASSETS[1];
 const hash = `0x${"ab".repeat(32)}` as Hash, otherHash = `0x${"cd".repeat(32)}` as Hash;
 
@@ -30,7 +31,17 @@ test("6 wrong to fails verification", () => assert.equal(verifyTransactionReceip
 test("7 wrong block number fails verification", () => assert.equal(verifyTransactionReceipt(activity(), wallet, receipt([transfer()], { blockNumber: 124n })).verified, false));
 test("8 reverted receipt is not verified", () => assert.equal(verifyTransactionReceipt(activity(), wallet, receipt([transfer()], { status: "reverted" })).verified, false));
 test("9 missing transfer log is not verified", () => assert.equal(verifyTransactionReceipt(activity(), wallet, receipt([])).verified, false));
-test("10 wrong logIndex does not falsely verify", () => assert.equal(verifyTransactionReceipt(activity(), wallet, receipt([transfer({ logIndex: 3 })])).verified, false));
+test("10 wrong logIndex uses a unique exact Transfer fallback", () => assert.equal(verifyTransactionReceipt(activity(), wallet, receipt([transfer({ logIndex: 3 })])).verified, true));
+test("Arc gas Transfer at the Activity index does not hide the unique USDC Transfer", () => assert.equal(verifyTransactionReceipt(activity(), wallet, receipt([transfer({ token: arcGasToken, value: 5_000_000_000_000_000_000n }), transfer({ logIndex: 5 })])).verified, true));
+test("wrong logIndex with no full Transfer match fails", () => assert.equal(verifyTransactionReceipt(activity(), wallet, receipt([transfer({ value: 1n, logIndex: 3 })])).verified, false));
+test("wrong logIndex with duplicate full Transfer matches fails ambiguity", () => { const result = verifyTransactionReceipt(activity(), wallet, receipt([transfer({ logIndex: 2 }), transfer({ logIndex: 3 })])); assert.equal(result.verified, false); assert.equal(result.reason, "transfer-ambiguous"); });
+test("fallback never accepts the wrong token", () => assert.equal(verifyTransactionReceipt(activity(), wallet, receipt([transfer({ token: eurc.address, logIndex: 3 })])).verified, false));
+test("fallback never accepts the wrong amount", () => assert.equal(verifyTransactionReceipt(activity(), wallet, receipt([transfer({ value: 4_999_999n, logIndex: 3 })])).verified, false));
+test("fallback never accepts the wrong sender", () => assert.equal(verifyTransactionReceipt(activity(), wallet, receipt([transfer({ from: wrong, logIndex: 3 })])).verified, false));
+test("fallback never accepts the wrong recipient", () => assert.equal(verifyTransactionReceipt(activity(), wallet, receipt([transfer({ to: wrong, logIndex: 3 })])).verified, false));
+test("block mismatch fails before a valid fallback", () => assert.equal(verifyTransactionReceipt(activity(), wallet, receipt([transfer({ logIndex: 3 })], { blockNumber: 124n })).reason, "block"));
+test("reverted receipt fails before a valid fallback", () => assert.equal(verifyTransactionReceipt(activity(), wallet, receipt([transfer({ logIndex: 3 })], { status: "reverted" })).reason, "status"));
+test("transaction hash mismatch fails before a valid fallback", () => assert.equal(verifyTransactionReceipt(activity(), wallet, receipt([transfer({ logIndex: 3, transactionHash: otherHash })], { transactionHash: otherHash })).reason, "hash"));
 
 function swapActivity(): WalletActivity { return activity({ kind: "swap", counterparty: other, swapReceive: { amount: 4_990_000n, assetId: eurc.id, assetSymbol: eurc.symbol, tokenAddress: eurc.address, decimals: eurc.decimals, logIndex: 8 } }); }
 const swapReceive = () => transfer({ token: eurc.address, from: wrong, to: wallet, value: 4_990_000n, logIndex: 8 });
@@ -40,6 +51,10 @@ test("13 missing received leg fails", () => assert.equal(verifyTransactionReceip
 test("14 wrong received asset fails", () => assert.equal(verifyTransactionReceipt(swapActivity(), wallet, receipt([transfer(), swapReceive().address === eurc.address ? transfer({ token: usdc.address, from: wrong, to: wallet, value: 4_990_000n, logIndex: 8 }) : swapReceive()])).verified, false));
 test("15 wrong received amount fails", () => assert.equal(verifyTransactionReceipt(swapActivity(), wallet, receipt([transfer(), transfer({ token: eurc.address, from: wrong, to: wallet, value: 4_980_000n, logIndex: 8 })])).verified, false));
 test("16 legs from different transaction cannot be combined", () => assert.equal(verifyTransactionReceipt(swapActivity(), wallet, receipt([transfer(), transfer({ token: eurc.address, from: wrong, to: wallet, value: 4_990_000n, logIndex: 8, transactionHash: otherHash })])).verified, false));
+test("swap sent leg verifies through a unique fallback", () => assert.equal(verifyTransactionReceipt(swapActivity(), wallet, receipt([transfer({ logIndex: 3 }), swapReceive()])).verified, true));
+test("swap received leg verifies through a unique fallback", () => assert.equal(verifyTransactionReceipt(swapActivity(), wallet, receipt([transfer(), transfer({ token: eurc.address, from: wrong, to: wallet, value: 4_990_000n, logIndex: 7 })])).verified, true));
+test("ambiguous swap sent fallback remains unverified", () => { const result = verifyTransactionReceipt(swapActivity(), wallet, receipt([transfer({ logIndex: 2 }), transfer({ logIndex: 3 }), swapReceive()])); assert.equal(result.verified, false); assert.equal(result.reason, "swap-sent"); });
+test("ambiguous swap received fallback remains unverified", () => { const result = verifyTransactionReceipt(swapActivity(), wallet, receipt([transfer(), transfer({ token: eurc.address, from: wrong, to: wallet, value: 4_990_000n, logIndex: 6 }), transfer({ token: eurc.address, from: wrong, to: wallet, value: 4_990_000n, logIndex: 7 })])); assert.equal(result.verified, false); assert.equal(result.reason, "swap-receive"); });
 
 test("17 Arc-side bridge transfer verifies", () => assert.equal(verifyTransactionReceipt(activity({ kind: "bridge" }), wallet, receipt([transfer()])).verified, true));
 test("18 bridge verification exposes no destination completion claim", () => assert.equal("destinationCompleted" in verifyTransactionReceipt(activity({ kind: "bridge" }), wallet, receipt([transfer()])), false));
@@ -54,6 +69,8 @@ test("25 wrong callDataHash ignored", () => assert.equal(findMatchingMemo([memoL
 test("26 unrelated Memo event ignored", () => assert.equal(findMatchingMemo([memoLog("Dinner", { sender: wrong, target: eurc.address })], { sender: wallet, token: usdc.address, recipient: other, amount: 5_000_000n }), undefined));
 test("27 malformed memo log fails safely", () => assert.equal(findMatchingMemo([{ address: ARC_MEMO_ADDRESS, data: "0x12", topics: ["0x12"] }], { sender: wallet, token: usdc.address, recipient: other, amount: 5_000_000n }), undefined));
 test("28 missing Memo event means no memo, not receipt failure", () => { const result = verifyTransactionReceipt(activity(), wallet, receipt([transfer()])); assert.equal(result.verified, true); assert.equal(result.memo, undefined); });
+test("normal direct Send without Memo verifies through the unique fallback", () => { const result = verifyTransactionReceipt(activity(), wallet, receipt([transfer({ logIndex: 5 })])); assert.equal(result.verified, true); assert.equal(result.memo, undefined); });
+test("unrelated Memo remains ignored when Transfer uses fallback", () => { const result = verifyTransactionReceipt(activity(), wallet, receipt([transfer({ logIndex: 5 }), memoLog("Dinner", { sender: wrong })])); assert.equal(result.verified, true); assert.equal(result.memo, undefined); });
 test("binary memo is not presented as readable UTF-8", () => assert.equal(decodeDisplayableUtf8("0xff00"), undefined));
 
 test("29 canonical receipt text contains real addresses", () => { const text = buildCanonicalReceiptText(activity(), verifyTransactionReceipt(activity(), wallet, receipt([transfer()])), "en"); assert.match(text, new RegExp(wallet)); assert.match(text, new RegExp(other)); });
