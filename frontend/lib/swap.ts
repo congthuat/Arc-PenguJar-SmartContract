@@ -7,12 +7,14 @@ export const XYLO_POOL = getAddress("0x3DF3966F5138143dce7a9cFDdC2c0310ce083BB1"
 export const SWAP_SLIPPAGE_OPTIONS = [0.005, 0.01, 0.03] as const;
 export const SWAP_QUOTE_MAX_AGE_MS = 45_000;
 export const SWAP_DEADLINE_SECONDS = 300;
+export type SwapQuickPercent = 25 | 50 | 75 | 100;
 export const xyloRouterAbi = [
   { type: "function", name: "getAmountOut", stateMutability: "view", inputs: [{ name: "tokenIn", type: "address" }, { name: "tokenOut", type: "address" }, { name: "amountIn", type: "uint256" }], outputs: [{ name: "", type: "uint256" }] },
   { type: "function", name: "swap", stateMutability: "nonpayable", inputs: [{ name: "params", type: "tuple", components: [{ name: "tokenIn", type: "address" }, { name: "tokenOut", type: "address" }, { name: "amountIn", type: "uint256" }, { name: "minAmountOut", type: "uint256" }, { name: "to", type: "address" }, { name: "deadline", type: "uint256" }] }], outputs: [{ name: "amountOut", type: "uint256" }] },
 ] as const;
 export type SwapQuote = { fromAssetId: SupportedAssetId; toAssetId: SupportedAssetId; amountIn: bigint; amountOut: bigint; chainId: typeof arcTestnet.id; router: Address; pool: Address; quotedAt: number };
 export function oppositeAssetId(assetId: SupportedAssetId): SupportedAssetId { return assetId === "usdc" ? "eurc" : "usdc"; }
+export function swapAmountForPercent(balance: bigint, percent: SwapQuickPercent) { const safeBalance = balance > 0n ? balance : 0n; return percent === 100 ? safeBalance : safeBalance * BigInt(percent) / 100n; }
 export function isSwapQuoteFresh(quotedAt: number, now = Date.now()) { return Number.isFinite(quotedAt) && quotedAt <= now && now - quotedAt <= SWAP_QUOTE_MAX_AGE_MS; }
 export function exactApprovalRequired(allowance: bigint, amountIn: bigint) { return allowance < amountIn ? amountIn : undefined; }
 export function minimumSwapOutput(amountOut: bigint, slippage: (typeof SWAP_SLIPPAGE_OPTIONS)[number]) { const bps = slippage === 0.005 ? 50n : slippage === 0.01 ? 100n : 300n; return amountOut * (10_000n - bps) / 10_000n; }

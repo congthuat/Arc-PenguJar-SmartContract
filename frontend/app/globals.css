@@ -553,6 +553,9 @@ html[data-theme="dark"] .activity-icon.withdrawal { background: #35202d; color: 
   font-weight: 900;
 }
 
+.swap-quick-amounts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:-7px}.swap-quick-amounts button{min-width:0;min-height:40px;padding:0 5px;border:1px solid var(--line);border-radius:11px;background:var(--white);color:var(--purple);font-size:10px;font-weight:850;cursor:pointer}.swap-quick-amounts button.active,.swap-quick-amounts button[aria-pressed="true"]{border-color:var(--purple);background:var(--lavender)}.swap-quick-amounts button:disabled{cursor:not-allowed;opacity:.45}.swap-quick-amounts button:focus-visible{outline:3px solid color-mix(in srgb,var(--purple) 35%,transparent);outline-offset:2px}.swap-quick-feedback{margin:-6px 0 0;color:var(--muted);font-size:10px;line-height:1.4}
+.wallet-field-with-action.amount:not(:has(>button))>span{right:15px}
+
 .transaction-progress {
   margin: 0;
   padding: 12px 14px;
