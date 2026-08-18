@@ -1,8 +1,8 @@
 {
-  "name": "pengujar-arc",
+  "name": "makoto-wallet-contracts",
   "version": "0.2.0-planning",
   "private": true,
-  "description": "PenguJar — programmable USDC savings jars on Arc. Codex-first planning baseline.",
+  "description": "Makoto Wallet smart-contract workspace for Arc, including PenguJar V3 savings.",
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test test/PenguJar.js test/PenguJarV2.js",

@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <strong>A colorful, non-custodial mini wallet for Arc.</strong><br/>
-  Send and receive USDC or EURC, track confirmed Makoto activity, and save USDC with PenguJar.
+  <strong>A non-custodial Arc Testnet wallet experience.</strong><br />
+  USDC/EURC payments, swaps, bridging, savings, transaction memos, and verifiable transaction history.
 </p>
 
 <p align="center">
@@ -19,85 +19,87 @@
 
 ## Overview
 
-Makoto Wallet is a client-side mini wallet experience built for **Arc Testnet**.
+Makoto Wallet is a client-side, non-custodial wallet experience built for **Arc Testnet**. It supports everyday USDC and EURC payments, real XyloNet swaps, Circle CCTP V2 bridging, PenguJar savings, public Arc transaction memos, and receipts verified against on-chain transaction logs.
 
-The project started as **PenguJar**, an onchain USDC savings dApp. PenguJar is now one module inside a broader wallet experience rather than the entire product.
+The project started as **PenguJar**, an on-chain USDC savings dApp. PenguJar V3 is now the savings module inside the broader Makoto Wallet product.
 
-Makoto Wallet currently focuses on a simple set of everyday actions:
-
-- Connect an injected wallet such as OKX Wallet
-- View real USDC and EURC balances; Arc Testnet uses USDC for gas
-- Send and receive supported assets (USDC and EURC)
-- Review real Arc Testnet USDC and EURC activity, including transfers created outside Makoto
-- Open PenguJar savings jars
-- Switch between English and Vietnamese
-- Use light/dark appearance controls
-- Work across responsive desktop and mobile layouts
-
-**Real USDC ↔ EURC swaps and Arc Testnet → Base Sepolia USDC bridging are available in the Public Beta. Both flows are non-custodial and signed by the connected wallet.**
+> Makoto Wallet is a testnet product for development, testing, and demonstration. Testnet assets have no intended real-world monetary value. The project is not independently security audited or represented as mainnet-ready financial software.
 
 ## Live App
 
-**Production:** https://makoto-wallet.vercel.app
+- **Deployment:** https://makoto-wallet.vercel.app
+- **Network:** Arc Testnet
+- **Production branch:** `makoto-wallet`
 
-The public app is deployed on Vercel and connected to Arc Testnet.
-
-> Makoto Wallet is currently a testnet product for development, testing, and demonstration. Testnet assets have no intended real-world monetary value.
-
-## Product Structure
+## Current Features
 
 ### Wallet
 
-The main Makoto Wallet dashboard provides the connected-wallet experience:
-
-- Real onchain balance reads
+- Reown AppKit multi-wallet connection
+- Injected wallets, WalletConnect, and mobile wallet deep links
 - Arc Testnet detection
-- Wallet connection controls
-- Multi-asset USDC/EURC Send and Receive flows
-- Real on-chain activity from ArcScan/Blockscout, with Send, Receive, grouped Swap, and Bridge classification
-- Colorful 3D Makoto interface and responsive navigation
+- Real USDC and EURC balances
+- Send USDC and EURC
+- Browser-local Contacts and Recent recipients
+- Address QR and ERC-681 token payment-request QR
+- Optional receive amount and display-only receive note
+- Optional Arc on-chain transaction Memo for Send
+- Verified transaction receipts
+- Real ArcScan/Blockscout on-chain Activity for Send, Receive, Swap, and Bridge
 
-Makoto Wallet is **non-custodial**: the frontend does not store or control the user's private key. Transactions are prepared by the app and signed by the connected wallet.
+### Swap
+
+- Real XyloNet StableSwap USDC ↔ EURC swaps
+- Exact token approval when required
+- Deadline and slippage protection
+- 25%, 50%, 75%, and MAX quick amount controls using exact bigint arithmetic
+
+### Bridge
+
+- Circle CCTP V2 Forwarding Service
+- Arc Testnet → Base Sepolia USDC route
+- The connected wallet remains the destination wallet
+- Activity and receipts confirm the Arc-side transaction; they do not claim destination mint or finalization unless proven by available data
 
 ### Savings — PenguJar V3
 
-PenguJar remains available as Makoto Wallet's savings module.
-
-The V3 design includes:
-
 - Goal-based USDC savings jars
-- SAFE and SHIELDED jar modes
+- SAFE and SHIELDED modes
 - PUBLIC and PRIVATE metadata modes
-- Time-locked withdrawal flow
-- Optional Guardian protection for SHIELDED jars
+- Time-locked withdrawals
+- Guardian protection
 - Recovery Wallet support
 - Guardian-assisted owner recovery
-- Delayed guardian replacement
+- Delayed guardian replacement and recovery protections
 - Defensive withdrawal freeze flow
-- Encrypted client-side private metadata support
+- Client-side encrypted private metadata
 
-Guardian and Recovery roles are designed as defensive controls. They do not receive an unrestricted path to withdraw or redirect a jar's USDC.
+### User Experience
+
+- English and Vietnamese
+- Light and Dark themes
+- Responsive desktop and mobile layouts
 
 ## Current Feature Status
 
 | Feature | Status |
 | --- | --- |
-| Wallet connection | ✅ Available |
+| Reown/AppKit wallet connection | ✅ Available |
 | Arc Testnet detection | ✅ Available |
-| Real USDC balance | ✅ Available |
-| Real EURC balance | ✅ Available |
-| Arc gas paid in USDC | ✅ Available |
-| Send USDC / EURC | ✅ Available |
-| Receive USDC / EURC | ✅ Available |
-| On-chain USDC / EURC activity | ✅ Available |
-| PenguJar savings | ✅ Available |
-| Public/private jar metadata | ✅ Available |
-| Guardian & Recovery | ✅ Available |
-| EN / VI | ✅ Available |
-| Light / Dark UI | ✅ Available |
-| Swap USDC ↔ EURC | ✅ Available |
-| Arc → Base Sepolia CCTP bridge | ✅ Available |
-| Settings (theme, language, network/assets/wallet info) | ✅ Available |
+| Real USDC and EURC balances | ✅ Available |
+| Send and Receive USDC / EURC | ✅ Available |
+| Contacts & Recent recipients | ✅ Available |
+| Receive QR payment requests | ✅ Available |
+| Arc transaction Memo | ✅ Available |
+| Verified transaction receipts | ✅ Available |
+| ArcScan/Blockscout on-chain Activity | ✅ Available |
+| XyloNet USDC ↔ EURC Swap | ✅ Available |
+| Swap quick amount controls | ✅ Available |
+| Arc → Base Sepolia CCTP V2 Bridge | ✅ Available |
+| PenguJar V3 savings | ✅ Available |
+| PUBLIC / PRIVATE jar metadata | ✅ Available |
+| Guardian & Recovery Wallet | ✅ Available |
+| EN / VI and Light / Dark | ✅ Available |
 | Mainnet release | ⏳ Not released |
 
 ## Arc Testnet Configuration
@@ -113,78 +115,87 @@ Guardian and Recovery roles are designed as defensive controls. They do not rece
 | Arc Testnet EURC | `0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a` |
 | PenguJar V3 | `0x2d2C30ACe5d1f057C6eC2e2E8219A43355Dd226a` |
 | V3 deployment block | `56927475` |
-| USDC decimals | `6` |
+| USDC / EURC decimals | `6` |
 
-PenguJar V3 is verified on ArcScan:
-
-https://testnet.arcscan.app/address/0x2d2C30ACe5d1f057C6eC2e2E8219A43355Dd226a#code
+PenguJar V3 is verified on [ArcScan](https://testnet.arcscan.app/address/0x2d2C30ACe5d1f057C6eC2e2E8219A43355Dd226a#code).
 
 ## Architecture
 
-Makoto Wallet is a client-side dApp. It does not require a custodial application backend to hold user funds or signing credentials.
+Makoto Wallet is a client-side dApp. It does not require a custodial backend to hold user funds or signing credentials. Public reads use Arc Testnet data sources; the connected wallet signs every write operation.
 
 ### Frontend
 
-- **Next.js 16.3**
-- **React 19**
-- **TypeScript**
-- **wagmi 3**
-- **viem 2**
-- **TanStack Query 5**
+- Next.js 16.3 and React 19
+- TypeScript
+- wagmi 3 and viem 2
+- Reown AppKit
+- TanStack Query 5
 - Responsive Makoto Wallet UI
 
 ### Smart Contracts
 
-- Solidity
-- Hardhat
+- Solidity and Hardhat
 - OpenZeppelin contracts
 - PenguJar V3 on Arc Testnet
 
-Public reads go to Arc Testnet RPC endpoints. Write operations are signed by the connected wallet.
+### Contacts
 
-### Real Swap — Phase 3
+Contacts are browser-local, scoped by connected wallet and chain, and have no cloud synchronization. Contact names are display metadata and are excluded from canonical shared receipt text.
 
-Makoto executes real USDC ↔ EURC swaps on Arc Testnet through **XyloNet StableSwap**. The connected wallet signs both the exact-amount token approval when required and the swap transaction. Quotes include deadline and slippage protection; Makoto never takes custody of funds or signing credentials.
+### Receive Payment Requests
 
-### CCTP Bridge — Phase 6
+Receive QR codes are generated client-side. Makoto supports a plain address QR and an ERC-681 token payment request with an optional amount. The optional note is display metadata and is not injected as arbitrary non-standard ERC-681 data.
 
-Makoto bridges USDC from **Arc Testnet to Base Sepolia** through the **Circle CCTP V2 Forwarding Service**. The destination is the same connected wallet address. The wallet signs execution and Makoto remains non-custodial.
+### Arc Transaction Memo
 
-### Activity
+An optional Send note uses the Arc Memo contract and is public on-chain. A Send without a note remains a direct ERC-20 transfer. Memo-wrapped sends currently require an EOA-compatible wallet on Arc; removing the note preserves the normal direct-transfer path.
 
-Activity is sourced from real on-chain ArcScan/Blockscout data rather than a browser session log. It presents Send, Receive, grouped Swap activity, and Bridge classification with explorer links.
+### Real Swap
+
+Makoto executes USDC ↔ EURC swaps through XyloNet StableSwap. Quotes are short-lived and include deadline and slippage protection. When required, the connected wallet signs an exact-amount token approval before separately signing the swap.
+
+### CCTP Bridge
+
+Makoto bridges USDC from Arc Testnet to Base Sepolia through Circle CCTP V2 Forwarding Service. The destination is the same connected wallet. The application does not overstate destination mint or finalization tracking.
+
+### Activity and Verified Receipts
+
+Activity is derived from ArcScan/Blockscout on-chain transfer data. The receipt viewer independently reads the real transaction receipt and verifies the transaction hash, successful status, block, token contract, amount, direction, addresses, and relevant log indices. Swap verification requires both legs; Bridge receipts confirm the Arc-side transaction; matching Arc Memo events are bound through their sender, target, and inner transfer calldata hash.
 
 ## Security Model
 
-Makoto Wallet is designed around non-custodial interaction:
-
-- The frontend does not require custody of wallet private keys
-- Wallet secrets must never be placed in frontend environment variables
-- Users approve and sign write transactions in their wallet
-- Contract state is read directly from Arc Testnet
-- PenguJar V3 uses `SafeERC20` and `ReentrancyGuard`
-- There is no intended administrator fund-withdrawal backdoor
+- Makoto does not store wallet private keys
+- The connected wallet reviews and signs transactions
+- Wallet signing secrets must never be placed in frontend environment variables
+- Contacts are browser-local and are not cloud-synchronized
+- Receive QR codes are generated client-side
+- Arc Memo notes are public and permanent on-chain data
+- Verified receipts read real transaction receipt and log data rather than trusting local display data alone
+- PenguJar V3 uses `SafeERC20`, reentrancy protection, time locks, and owner authorization
 - Guardian controls are defensive and do not directly grant withdrawal rights
 - Owner recovery is delayed and approval-gated
-- Private jar metadata is encrypted client-side before local storage
+- PRIVATE jar metadata is encrypted client-side before local storage
 
-PenguJar V3 has undergone extensive project-level automated testing and adversarial-path testing, but **has not undergone an independent professional security audit**. Do not treat this repository as audited production financial software.
+PenguJar V3 has extensive project-level automated and adversarial-path tests, but **has not undergone an independent professional security audit**. Do not treat this repository as audited production financial software.
 
 ## Validation
 
-The current Makoto Wallet frontend checkpoint has been validated with:
+Run the complete validation sequence from the repository root:
 
 ```bash
+npm ci
+npm run compile
+npm test
+
 cd frontend
+npm ci
 npm test
 npm run typecheck
 npm run lint
 npm run build
 ```
 
-Run the commands above for the current verified frontend test count.
-
-PenguJar V3 development also includes dedicated privacy, guardian, recovery, and adversarial security tests in the repository's Hardhat test suite.
+At checkpoint `5b42aafe...`, **181 frontend tests** and **19 contract tests** passed. This statement records that checkpoint only; subsequent commits must run validation again.
 
 ## Local Development
 
@@ -193,33 +204,18 @@ Requirements:
 - Node.js 20 or later
 - npm
 
-Clone the repository:
-
 ```bash
 git clone https://github.com/congthuat/Makoto-Wallet.git
 cd Makoto-Wallet
-```
-
-Install smart-contract dependencies:
-
-```bash
 npm ci
-```
 
-Install and start the frontend:
-
-```bash
 cd frontend
 npm ci
 cp .env.example .env.local
 npm run dev
 ```
 
-Open:
-
-```text
-http://localhost:3000
-```
+Open `http://localhost:3000`.
 
 On Windows PowerShell:
 
@@ -229,7 +225,7 @@ Copy-Item .env.example .env.local
 
 ## Frontend Environment Variables
 
-The checked-in defaults already point to the current Arc Testnet deployment. Public overrides can be supplied when needed:
+The checked-in defaults point to the current Arc Testnet deployment. Public overrides can be supplied when needed:
 
 ```dotenv
 NEXT_PUBLIC_PENGUJAR_ADDRESS=0x2d2C30ACe5d1f057C6eC2e2E8219A43355Dd226a
@@ -237,11 +233,9 @@ NEXT_PUBLIC_ARC_RPC_URL=https://rpc.testnet.arc.network
 NEXT_PUBLIC_REOWN_PROJECT_ID=your_reown_project_id
 ```
 
-`NEXT_PUBLIC_REOWN_PROJECT_ID` enables the Reown AppKit wallet chooser, including WalletConnect QR codes and mobile wallet deep links. Add the same public project ID to the Vercel project environment before deploying.
+`NEXT_PUBLIC_REOWN_PROJECT_ID` enables Reown AppKit wallet selection, WalletConnect QR codes, and mobile wallet deep links. Only public browser configuration belongs in `NEXT_PUBLIC_*` variables.
 
-Only `NEXT_PUBLIC_*` configuration intended for the browser belongs in the frontend environment.
-
-**Never put `PRIVATE_KEY` or other wallet signing secrets in the frontend, GitHub, or Vercel public environment variables.**
+**Never put `PRIVATE_KEY` or other wallet signing secrets in frontend, GitHub, or Vercel public environment variables.**
 
 ## Contract Development
 
@@ -250,80 +244,67 @@ From the repository root:
 ```bash
 npm ci
 npm run compile
-npx hardhat test
+npm test
 ```
 
-V3 deployment and verification tooling is available through:
+V3 deployment and verification tooling remains available through the existing root scripts. Deployment commands require deliberate local configuration and a dedicated Arc Testnet wallet.
 
-```bash
-npm run deploy:v3:arc
-npm run validate:v3:arc
-npm run verify:v3:arc
-npm run smoke:v3:arc
-```
+## Deployment and Repository
 
-Deployment commands require deliberate local configuration and a dedicated Arc Testnet wallet.
-
-## Deployment
-
-### Frontend
-
-- **Hosting:** Vercel
-- **Production URL:** https://makoto-wallet.vercel.app
-- **Vercel Root Directory:** `frontend`
-- **Production branch:** `makoto-wallet`
-
-### Repository
-
+- **Vercel URL:** https://makoto-wallet.vercel.app
+- **Vercel root directory:** `frontend`
 - **Repository:** `congthuat/Makoto-Wallet`
 - **Active production branch:** `makoto-wallet`
 
-The `main` branch contains earlier PenguJar project history and is retained as part of the project's evolution. The current Makoto Wallet production frontend is developed and deployed from `makoto-wallet`.
+The `main` branch retains earlier PenguJar project history. Makoto Wallet is developed and deployed from `makoto-wallet`; this housekeeping checkpoint does not rename the repository or merge branches.
 
 ## Roadmap
 
-Makoto Wallet is being developed in phases.
+Phases 1–8 are complete for the Arc Testnet Public Beta feature set.
 
-### Phase 1 — Wallet Foundation ✅
+- Phase 1 — Wallet Foundation ✅
+- Phase 2 — Mini Wallet Core ✅
+- Phase 3 — Real XyloNet Swap ✅
+- Phase 4 — Wallet Safety ✅
+- Phase 5 — Multi-Asset Wallet ✅
+- Phase 6 — Arc-native CCTP integration ✅
+- Phase 7 — Public Beta polish and release readiness ✅
+- Phase 8 — Everyday wallet UX & verification ✅
+  - Contacts and Recent recipients
+  - Receive payment QR
+  - Arc transaction Memo
+  - Verified transaction receipts
+  - Swap quick amount controls
 
-- Makoto Wallet rebrand
-- Real Arc Testnet balances
-- Send / Receive
-- Real on-chain activity
-- PenguJar retained as Savings
-- Responsive colorful wallet dashboard
-- Production Vercel deployment
+### Future / Deferred
 
-### Completed
+Potential ideas—not promised releases—include:
 
-- Phase 1 — Wallet Foundation
-- Phase 2 — Mini Wallet Core
-- Phase 3 — Real Swap
-- Phase 4 — Wallet Safety
-- Phase 5 — Multi-Asset Wallet (USDC and EURC)
-- Phase 6 — Arc-native integrations
-- Phase 7 — Public Beta polish and release readiness
+- Optional Security Lock or local app access protection
+- Deeper smart-account and recovery research
+- Further Public Beta improvements based on manual QA
 
-### Current checkpoint
+## Public Beta Checkpoint
 
-Phases 1–7 are implemented for the current Arc Testnet Public Beta, including real XyloNet swaps, Circle CCTP V2 forwarding to Base Sepolia, real on-chain activity, and Settings. Any further work is future expansion beyond the current public-beta scope.
+Current feature-complete checkpoint before final functional QA:
 
-Roadmap items are plans, not promises of release or availability.
+- **Commit:** `5b42aafe5f25973d6facfe35149b94625b1b64f5`
+- **Branch:** `makoto-wallet`
+- **Deployment:** https://makoto-wallet.vercel.app
+- **Purpose:** Feature-complete Arc Testnet Public Beta candidate before manual functional QA
+
+Manual functional QA is not claimed as complete at this checkpoint.
 
 ## PenguJar Project History
 
-PenguJar was the original project in this repository. It evolved through multiple iterations before becoming the savings module inside Makoto Wallet.
+PenguJar was the original project in this repository and remains the contract-backed savings module within Makoto Wallet. Its history includes time-locked savings, privacy modes, Guardian controls, recovery flows, security tests, and Arc Testnet deployment tooling.
 
-That history remains useful because it contains the contract work behind:
+## Release Preparation
 
-- Time-locked savings
-- Privacy modes
-- Guardian controls
-- Recovery flows
-- Security tests
-- Arc Testnet deployment tooling
+No Git tag or GitHub Release is created by this housekeeping task. The recommended future checkpoint is:
 
-The Makoto Wallet rebrand does not remove PenguJar; it changes its role from the whole application to a focused savings feature.
+- **Tag:** `v0.1.0-beta.1`
+- **Release title:** `Makoto Wallet Public Beta 0.1`
 
 ## License
 
@@ -331,6 +312,4 @@ This project is available under the [MIT License](LICENSE).
 
 ## Disclaimer
 
-Makoto Wallet is currently deployed on **Arc Testnet** for testing and demonstration.
-
-It is not a bank, investment product, exchange, audited custody service, or promise of returns. Testnet assets are not intended to represent real-world monetary value. Users are responsible for reviewing wallet prompts and transaction details before signing.
+Makoto Wallet is deployed on **Arc Testnet** for testing and demonstration. It is not a bank, investment product, exchange, audited custody service, or promise of returns. Testnet assets are not intended to represent real-world monetary value. Users are responsible for reviewing wallet prompts and transaction details before signing.
