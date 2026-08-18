@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useConnection, usePublicClient, useWriteContract } from "wagmi";
 import { arcTestnet } from "viem/chains";
 import { erc20BalanceAbi } from "@/lib/abi/erc20";
@@ -9,6 +9,7 @@ import { shortAddress } from "@/lib/format";
 import { arcScanAddressUrl, arcScanTransactionUrl, normalizeRecipient, validateAssetSend, type WalletActivity } from "@/lib/wallet";
 import { createAssetActivity } from "@/lib/walletActivity";
 import { classifyWalletFailure, isLargeSend } from "@/lib/walletSafety";
+import { ContactError, deleteContact, loadContacts, loadRecentRecipients, recordRecentRecipient, saveContact, type WalletContact } from "@/lib/contacts";
 import { usePreferences } from "@/hooks/usePreferences";
 import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
 import { WalletPanel } from "./WalletPanel";
@@ -28,6 +29,10 @@ export function SendFlow({ balances, onClose, onConfirmed }: { balances: Record<
   const [stage, setStage] = useState<TransactionStage>("idle");
   const [largeAcknowledged, setLargeAcknowledged] = useState(false);
   const [recipientKind, setRecipientKind] = useState<RecipientKind>("unknown");
+  const [contactsRevision, setContactsRevision] = useState(0);
+  const [contactFormOpen, setContactFormOpen] = useState(false);
+  const [contactName, setContactName] = useState("");
+  const [contactFeedback, setContactFeedback] = useState<string>();
   const submittingRef = useRef(false);
   const connection = useConnection();
   const chain = useVerifiedWalletChain();
@@ -38,6 +43,11 @@ export function SendFlow({ balances, onClose, onConfirmed }: { balances: Record<
   const validated = validateAssetSend(recipient, amount, balance, asset, connection.address);
   const pending = stage === "awaiting" || stage === "confirming";
   const large = !("error" in validated) && isLargeSend(validated.amount, balance);
+  const contacts = useMemo(() => { void contactsRevision; return connection.address ? loadContacts(connection.address, arcTestnet.id) : []; }, [connection.address, contactsRevision]);
+  const recents = useMemo(() => { void contactsRevision; return connection.address ? loadRecentRecipients(connection.address, arcTestnet.id) : []; }, [connection.address, contactsRevision]);
+  const normalizedRecipient = normalizeRecipient(recipient);
+  const matchedContact = normalizedRecipient ? contacts.find((item) => item.address.toLowerCase() === normalizedRecipient.toLowerCase()) : undefined;
+  const canSaveContact = Boolean(connection.address && normalizedRecipient && normalizedRecipient.toLowerCase() !== connection.address.toLowerCase() && !matchedContact);
 
   function validationMessage(result = validated) {
     if (!("error" in result)) return undefined;
@@ -60,6 +70,19 @@ export function SendFlow({ balances, onClose, onConfirmed }: { balances: Record<
   }
 
   function resetSafety() { setLargeAcknowledged(false); setRecipientKind("unknown"); setError(undefined); }
+
+  function selectRecipient(address: `0x${string}`) { setRecipient(address); setReviewing(false); setContactFormOpen(false); setContactFeedback(undefined); resetSafety(); }
+
+  function submitContact() {
+    if (!connection.address || !normalizedRecipient) return;
+    try { saveContact(connection.address, arcTestnet.id, contactName, normalizedRecipient); setContactsRevision((value) => value + 1); setContactName(""); setContactFormOpen(false); setContactFeedback(copy.contactSaved); }
+    catch (caught) { setContactFeedback(caught instanceof ContactError ? copy.contactErrors[caught.code] : copy.contactSaveFailed); }
+  }
+
+  function removeSavedContact(contact: WalletContact) {
+    if (!connection.address || !window.confirm(copy.removeConfirm.replace("{name}", contact.name))) return;
+    deleteContact(connection.address, arcTestnet.id, contact.address); setContactsRevision((value) => value + 1); setContactFeedback(copy.contactRemoved);
+  }
 
   async function pasteRecipient() {
     try {
@@ -96,6 +119,7 @@ export function SendFlow({ balances, onClose, onConfirmed }: { balances: Record<
       const block = await client.getBlock({ blockNumber: receipt.blockNumber });
       const transferLog = receipt.logs.find((log) => log.address.toLowerCase() === asset.address.toLowerCase());
       onConfirmed(createAssetActivity(asset, { hash: submittedHash, logIndex: transferLog?.logIndex ?? -1, direction: "send", kind: "transfer", amount: validated.amount, counterparty: validated.address, confirmedAt: Number(block.timestamp) * 1000, blockNumber: receipt.blockNumber }));
+      recordRecentRecipient(connection.address, arcTestnet.id, validated.address);
       setStage("confirmed");
     } catch (caught) {
       const failure = classifyWalletFailure(caught, Boolean(submittedHash));
@@ -104,7 +128,7 @@ export function SendFlow({ balances, onClose, onConfirmed }: { balances: Record<
     }
   }
 
-  if (stage === "confirmed" && hash && !("error" in validated)) return <WalletPanel title={copy.title} onClose={onClose}><div className="transaction-state"><span>✓</span><h3>{copy.success}</h3><p>{formatAssetAmount(validated.amount, asset)} {asset.symbol} → {shortAddress(validated.address)}</p><a href={arcScanTransactionUrl(hash)} target="_blank" rel="noreferrer">{copy.view} ↗</a></div></WalletPanel>;
+  if (stage === "confirmed" && hash && !("error" in validated)) return <WalletPanel title={copy.title} onClose={onClose}><div className="transaction-state"><span>✓</span><h3>{copy.success}</h3><p>{formatAssetAmount(validated.amount, asset)} {asset.symbol} → {matchedContact?.name ?? shortAddress(validated.address)}<br /><span className="full-address">{validated.address}</span></p><a href={arcScanTransactionUrl(hash)} target="_blank" rel="noreferrer">{copy.view} ↗</a></div></WalletPanel>;
 
   if (stage === "unknown" && hash) return <WalletPanel title={copy.title} onClose={onClose}><div className="transaction-state transaction-unknown"><span>!</span><h3>{copy.unknownTitle}</h3><p>{error}</p><code>{hash}</code><a href={arcScanTransactionUrl(hash)} target="_blank" rel="noreferrer">{copy.view} ↗</a><p className="wallet-notice">{copy.checkBeforeRetry}</p></div></WalletPanel>;
 
@@ -113,7 +137,7 @@ export function SendFlow({ balances, onClose, onConfirmed }: { balances: Record<
     <dl className="wallet-review">
       <div><dt>{copy.token}</dt><dd>{asset.symbol} · {asset.name} · <a href={arcScanAddressUrl(asset.address)} target="_blank" rel="noreferrer">{shortAddress(asset.address)} ↗</a></dd></div>
       <div><dt>{copy.amount}</dt><dd>{formatAssetAmount(validated.amount, asset)} {asset.symbol}</dd></div>
-      <div><dt>{copy.destination}</dt><dd className="full-address">{validated.address}</dd></div>
+      <div><dt>{copy.destination}</dt><dd>{matchedContact && <strong className="recipient-contact-name">{matchedContact.name}</strong>}<span className="full-address">{validated.address}</span></dd></div>
       <div><dt>{copy.network}</dt><dd>Arc Testnet · 5042002</dd></div>
       <div><dt>{copy.currentBalance}</dt><dd>{formatAssetAmount(balance, asset)} {asset.symbol}</dd></div>
       <div><dt>{copy.remainingBalance}</dt><dd>{formatAssetAmount(validated.remaining, asset)} {asset.symbol}</dd></div>
@@ -130,7 +154,16 @@ export function SendFlow({ balances, onClose, onConfirmed }: { balances: Record<
     <div className="modal-actions"><button type="button" className="secondary-action" onClick={() => { setReviewing(false); setStage("idle"); }} disabled={pending}>{copy.back}</button><button type="button" className="primary-action" onClick={() => void submit()} disabled={pending || !chain.isArc || (large && !largeAcknowledged)}>{stage === "awaiting" ? copy.awaitingShort : stage === "confirming" ? copy.confirmingShort : copy.confirm}</button></div>
   </div> : <form className="create-form wallet-flow" onSubmit={(event) => { event.preventDefault(); void review(); }}>
     <label>{copy.asset}<select className="asset-selector" value={assetId} onChange={(event) => selectAsset(event.target.value as SupportedAssetId)}>{SUPPORTED_ASSETS.map((item) => <option key={item.id} value={item.id}>{item.symbol} · {item.name}</option>)}</select></label>
-    <label>{copy.recipient}<div className="wallet-field-with-action"><input value={recipient} onChange={(event) => { setRecipient(event.target.value); resetSafety(); }} placeholder="0x…" spellCheck={false} /><button type="button" onClick={() => void pasteRecipient()}>{copy.paste}</button></div></label>
+    <label>{copy.recipient}<div className="wallet-field-with-action"><input value={recipient} onChange={(event) => { setRecipient(event.target.value); setContactFormOpen(false); setContactFeedback(undefined); resetSafety(); }} placeholder="0x…" spellCheck={false} /><button type="button" onClick={() => void pasteRecipient()}>{copy.paste}</button></div></label>
+    {(contacts.length > 0 || recents.length > 0 || canSaveContact || matchedContact) && <div className="recipient-helper">
+      {contacts.length > 0 && <section aria-labelledby="saved-contacts-title"><div className="recipient-helper-heading"><strong id="saved-contacts-title">{copy.contacts}</strong><small>{copy.localOnly}</small></div><div className="recipient-list">{contacts.map((contact) => <div className="recipient-row" key={contact.address}><button type="button" className="recipient-choice" onClick={() => selectRecipient(contact.address)}><strong>{contact.name}</strong><span>{shortAddress(contact.address)}</span></button><button type="button" className="recipient-remove" aria-label={`${copy.remove} ${contact.name}`} onClick={() => removeSavedContact(contact)}>×</button></div>)}</div></section>}
+      {contacts.length === 0 && canSaveContact && <small className="recipient-empty">{copy.noContacts}</small>}
+      {recents.length > 0 && <section aria-labelledby="recent-recipients-title"><strong id="recent-recipients-title">{copy.recent}</strong><div className="recipient-chips">{recents.map((item) => <button type="button" key={item.address} onClick={() => selectRecipient(item.address)}>{shortAddress(item.address)}</button>)}</div></section>}
+      {matchedContact && <p className="contact-match">{copy.savedAs} <strong>{matchedContact.name}</strong></p>}
+      {canSaveContact && !contactFormOpen && <button type="button" className="save-contact-trigger" onClick={() => { setContactFormOpen(true); setContactFeedback(undefined); }}>+ {copy.saveContact}</button>}
+      {canSaveContact && contactFormOpen && <div className="contact-inline-form"><label>{copy.contactName}<input value={contactName} maxLength={40} autoFocus onChange={(event) => { setContactName(event.target.value); setContactFeedback(undefined); }} /></label><div><button type="button" onClick={() => { setContactFormOpen(false); setContactName(""); }}>{copy.cancel}</button><button type="button" className="primary-action" onClick={submitContact}>{copy.save}</button></div></div>}
+      {contactFeedback && <p className="contact-feedback" role="status">{contactFeedback}</p>}
+    </div>}
     <label>{copy.amount}<div className="wallet-field-with-action amount"><input inputMode="decimal" value={amount} onChange={(event) => { setAmount(event.target.value); resetSafety(); }} placeholder="0.00" /><span>{asset.symbol}</span><button type="button" onClick={useMax}>{copy.max}</button></div><small>{copy.available}: {formatAssetAmount(balance, asset)} {asset.symbol}</small></label>
     {error && <p className="field-error" role="alert">{error}</p>}
     <div className="modal-actions"><button type="button" className="secondary-action" onClick={onClose}>{copy.back}</button><button type="submit" className="primary-action">{copy.next}</button></div>
@@ -141,6 +174,10 @@ function sendCopy(locale: "en" | "vi") {
   const vi = locale === "vi";
   return {
     title: vi ? "Gửi tài sản" : "Send asset", asset: vi ? "Tài sản" : "Asset", recipient: vi ? "Địa chỉ nhận" : "Recipient address", amount: vi ? "Số tiền" : "Amount", next: vi ? "Kiểm tra" : "Review", back: vi ? "Quay lại" : "Back", confirm: vi ? "Xác nhận trong ví" : "Confirm in wallet", review: vi ? "Kiểm tra giao dịch" : "Review transaction", token: vi ? "Tài sản / hợp đồng token" : "Asset / token contract", network: vi ? "Mạng" : "Network", destination: vi ? "Người nhận" : "Recipient", currentBalance: vi ? "Số dư hiện tại" : "Current balance", remainingBalance: vi ? "Số dư ước tính còn lại" : "Estimated remaining balance", note: vi ? "Ví sẽ yêu cầu xác nhận rõ ràng. Makoto không giữ khóa riêng." : "Your wallet will ask for explicit confirmation. Makoto never holds your private keys.", invalidAddress: vi ? "Nhập địa chỉ ví hợp lệ." : "Enter a valid wallet address.", selfSend: vi ? "Không thể gửi tài sản đến chính ví đang kết nối." : "You cannot send assets to the currently connected wallet.", invalidAmount: vi ? "Nhập số tiền lớn hơn 0, tối đa 6 chữ số thập phân." : "Enter an amount greater than 0 with at most 6 decimals.", insufficient: vi ? "Số dư tài sản đã chọn không đủ." : "Your selected asset balance is too low.", freshInsufficient: vi ? "Số dư vừa thay đổi và không còn đủ. Không có giao dịch nào được gửi." : "Your balance changed and is no longer sufficient. No transaction was submitted.", awaiting: vi ? "Đang chờ bạn xác nhận trong ví." : "Awaiting confirmation in your wallet.", awaitingShort: vi ? "Đang chờ ví…" : "Awaiting wallet…", confirming: vi ? "Đã gửi. Đang chờ Arc xác nhận giao dịch." : "Submitted. Confirming the transaction on Arc.", confirmingShort: vi ? "Đang xác nhận…" : "Confirming…", success: vi ? "Đã gửi tài sản" : "Asset sent", view: vi ? "Xem trên ArcScan" : "View on ArcScan", paste: vi ? "Dán" : "Paste", pasteFailed: vi ? "Không thể đọc bộ nhớ tạm." : "Clipboard access was unavailable.", max: vi ? "TỐI ĐA" : "MAX", available: vi ? "Khả dụng" : "Available", arcRequired: vi ? "Cần kết nối Arc Testnet." : "Arc Testnet is required.", copyAddress: vi ? "Sao chép địa chỉ" : "Copy address", checkingRecipient: vi ? "Đang kiểm tra địa chỉ người nhận…" : "Checking recipient address…", contractWarning: vi ? "Địa chỉ người nhận là hợp đồng. Hãy chắc chắn hợp đồng này có thể nhận tài sản đã chọn." : "The recipient is a contract. Make sure it can receive the selected asset.", largeTitle: vi ? "Giao dịch lớn" : "Large send", largeCopy: vi ? "Bạn đang gửi ít nhất 50% số dư tài sản đã chọn." : "You are sending at least 50% of your selected asset balance.", largeConfirm: vi ? "Tôi đã kiểm tra người nhận và số tiền." : "I checked the recipient and amount.", unknownTitle: vi ? "Đã gửi — trạng thái xác nhận chưa rõ" : "Submitted — confirmation status unknown", checkBeforeRetry: vi ? "Kiểm tra giao dịch trên ArcScan trước khi thử lại để tránh gửi hai lần." : "Check ArcScan before retrying to avoid sending twice.",
+    contacts: vi ? "Danh bạ" : "Contacts", recent: vi ? "Gần đây" : "Recent", saveContact: vi ? "Lưu liên hệ" : "Save contact", contactName: vi ? "Tên liên hệ" : "Contact name", save: vi ? "Lưu" : "Save", cancel: vi ? "Hủy" : "Cancel", remove: vi ? "Xóa" : "Remove", noContacts: vi ? "Chưa có liên hệ đã lưu" : "No saved contacts yet", localOnly: vi ? "Danh bạ chỉ được lưu trên trình duyệt này." : "Contacts are stored only in this browser.", savedAs: vi ? "Đã lưu dưới tên" : "Saved as", contactSaved: vi ? "Đã lưu liên hệ." : "Contact saved.", contactRemoved: vi ? "Đã xóa liên hệ." : "Contact removed.", contactSaveFailed: vi ? "Không thể lưu liên hệ trên trình duyệt này." : "This browser could not save the contact.", removeConfirm: vi ? "Xóa {name} khỏi danh bạ?" : "Remove {name} from contacts?",
+    contactErrors: {
+      "invalid-address": vi ? "Nhập địa chỉ ví hợp lệ." : "Enter a valid wallet address.", self: vi ? "Không thể lưu chính ví đang kết nối." : "You cannot save the connected wallet as a contact.", "empty-name": vi ? "Tên liên hệ là bắt buộc." : "Contact name is required.", "name-too-long": vi ? "Tên liên hệ không được quá 40 ký tự." : "Contact name must be 40 characters or fewer.", limit: vi ? "Danh bạ đã đạt giới hạn 50 liên hệ." : "Contacts are limited to 50.",
+    },
     failures: {
       rejected: vi ? "Bạn đã từ chối yêu cầu trong ví. Không có giao dịch nào được gửi." : "You rejected the wallet request. No transaction was submitted.",
       "wrong-network": vi ? "Ví không còn ở Arc Testnet. Không có giao dịch nào được gửi." : "Your wallet is no longer on Arc Testnet. No transaction was submitted.",
