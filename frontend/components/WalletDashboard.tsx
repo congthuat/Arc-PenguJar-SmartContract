@@ -9,6 +9,7 @@ import { AppHeader } from "./AppHeader";
 import { SendFlow } from "./SendFlow";
 import { ReceivePanel } from "./ReceivePanel";
 import { SwapPanel } from "./SwapPanel";
+import { TransactionReceiptPanel } from "./TransactionReceiptPanel";
 
 import { useHydrated } from "@/hooks/useHydrated";
 import { useOwnerJars } from "@/hooks/useOwnerJars";
@@ -68,6 +69,7 @@ export function WalletDashboard() {
   const activity = useWalletActivity(connection.address, onArc);
   const [optimisticActivity, setOptimisticActivity] = useState<{ address: string; records: WalletActivity[] }>();
   const [copied, setCopied] = useState(false);
+  const [receiptActivity, setReceiptActivity] = useState<WalletActivity>();
 
   const activities = useMemo(() => {
     const optimistic = optimisticActivity && connection.address && optimisticActivity.address.toLowerCase() === connection.address.toLowerCase()
@@ -379,14 +381,14 @@ export function WalletDashboard() {
                         <span className={styles.activityStatus}>
                           {t("walletHome.confirmed")}
                         </span>
-                        <a
-                          href={arcScanTransactionUrl(item.hash)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={styles.activityLink}
-                        >
-                          ArcScan <ExternalLinkIcon />
-                        </a>
+                        <div className={styles.activityActions}><button type="button" onClick={() => setReceiptActivity(item)}>{locale === "vi" ? "Biên nhận" : "Receipt"}</button><a
+                            href={arcScanTransactionUrl(item.hash)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={styles.activityLink}
+                          >
+                            ArcScan <ExternalLinkIcon />
+                          </a></div>
                       </li>
                     ))}
                   </ul>
@@ -484,6 +486,7 @@ export function WalletDashboard() {
             void balances.eurc.refetch();
             void activity.refetch();
           }}
+          onViewReceipt={(item) => { setAction(undefined); setReceiptActivity(item); }}
         />
       )}
 
@@ -497,6 +500,8 @@ export function WalletDashboard() {
       {action === "swap" && (
         <SwapPanel onClose={() => setAction(undefined)} onConfirmed={() => void activity.refetch()} />
       )}
+
+      {receiptActivity && connection.address && <TransactionReceiptPanel activity={receiptActivity} walletAddress={connection.address} onClose={() => setReceiptActivity(undefined)} />}
     </main>
   );
 }

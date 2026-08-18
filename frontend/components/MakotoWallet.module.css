@@ -606,6 +606,9 @@
   height: 12px;
 }
 
+.activityActions { display: flex; align-items: center; gap: 8px; }
+.activityActions button { min-height: 36px; padding: 0 10px; border: 1px solid var(--mw-divider); border-radius: 10px; background: var(--mw-surface); color: #5d45e8; font-size: 10px; font-weight: 850; cursor: pointer; }
+
 .activitySkeleton,.jarSkeleton{margin-top:18px;display:grid;gap:10px}.activitySkeleton span,.jarSkeleton span{height:66px;border-radius:16px;background:linear-gradient(90deg,var(--mw-surface-muted),var(--mw-divider),var(--mw-surface-muted));background-size:200% 100%;animation:skeleton-shift 1.5s ease-in-out infinite}@keyframes skeleton-shift{to{background-position:-200% 0}}
 
 .savingsSummary{margin:16px 0 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.savingsSummary div{min-width:0;padding:10px;border-radius:13px;background:var(--mw-surface-muted)}.savingsSummary dt{color:var(--mw-text-muted);font-size:10px;line-height:1.25}.savingsSummary dd{margin:5px 0 0;overflow-wrap:anywhere;font:800 13px var(--font-display),sans-serif}
@@ -1297,7 +1300,8 @@
   .activityMain { min-width: 0; }
   .activityMain strong, .activityMain small { white-space: normal; overflow-wrap: anywhere; }
   .activityStatus { grid-column: 2; justify-self: start; display: inline-flex; }
-  .activityLink { grid-column: 2; min-height: 44px; align-items: center; overflow-wrap: anywhere; }
+  .activityActions { grid-column: 2; min-height: 44px; flex-wrap: wrap; }
+  .activityLink { min-height: 44px; align-items: center; overflow-wrap: anywhere; }
   .jarRow { grid-template-columns: 58px minmax(0, 1fr) 24px; gap: 9px; }
   .savingsSummary { grid-template-columns: 1fr 1fr; }
   .savingsSummary div:first-child { grid-column: 1 / -1; }
