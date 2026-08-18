@@ -46,6 +46,11 @@ test("ordinary sends to the CCTP minter are not guessed as Bridge", () => {
   assert.equal(item.kind, "transfer");
 });
 
+test("Arc Memo outer method remains an ordinary transfer to the real recipient", () => {
+  const [item] = parseArcScanActivity({ items: [transfer({ from: { hash: wallet }, to: { hash: other }, method: "memo" })] }, wallet).activities;
+  assert.equal(item.kind, "transfer"); assert.equal(item.direction, "send"); assert.equal(item.counterparty, other);
+});
+
 test("unsupported token and zero transfer are ignored", () => {
   const unsupported = transfer({ token: { address_hash: "0x3333333333333333333333333333333333333333" } });
   const zero = transfer({ total: { value: "0" } });
