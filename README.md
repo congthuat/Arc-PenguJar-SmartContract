@@ -70,6 +70,14 @@ The project started as **PenguJar**, an on-chain USDC savings dApp. PenguJar V3 
 </table>
 
 <p align="center">
+  <img src="docs/screenshots/07-verified-receipt.webp" alt="Makoto Wallet verified Arc transaction receipt with on-chain memo" />
+</p>
+
+<p align="center">
+  <strong>Verified transaction receipts</strong> — transaction details are checked against Arc receipt logs, with matching on-chain Memo verification when present.
+</p>
+
+<p align="center">
   <img src="docs/screenshots/06-savings.webp" alt="Makoto Wallet PenguJar savings dashboard" width="100%" />
 </p>
 
