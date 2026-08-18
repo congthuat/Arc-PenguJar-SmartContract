@@ -31,6 +31,52 @@ The project started as **PenguJar**, an on-chain USDC savings dApp. PenguJar V3 
 - **Network:** Arc Testnet
 - **Production branch:** `makoto-wallet`
 
+## Product Preview
+
+<p align="center">
+  <img src="docs/screenshots/01-dashboard.webp" alt="Makoto Wallet dashboard on Arc Testnet" width="100%" />
+</p>
+
+<p align="center">
+  <strong>Dashboard</strong> — USDC/EURC balances, quick actions, Arc Testnet status, and the Makoto wallet experience.
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/02-activity.webp" alt="Makoto Wallet assets, on-chain activity, and savings overview" width="100%" />
+</p>
+
+<p align="center">
+  <strong>Assets & on-chain activity</strong> — real Arc activity with Send, Swap, Bridge, receipts, and PenguJar savings status.
+</p>
+
+<table>
+  <tr>
+    <td width="33%" align="center">
+      <img src="docs/screenshots/03-send.webp" alt="Makoto Wallet Send with Contacts, Recent recipients, and optional Arc Memo" />
+      <br /><strong>Send</strong><br />
+      Contacts, Recent recipients, and optional on-chain Memo.
+    </td>
+    <td width="33%" align="center">
+      <img src="docs/screenshots/04-receive.webp" alt="Makoto Wallet Receive QR payment request" />
+      <br /><strong>Receive</strong><br />
+      Client-side QR payment requests for supported assets.
+    </td>
+    <td width="33%" align="center">
+      <img src="docs/screenshots/05-swap.webp" alt="Makoto Wallet XyloNet Swap with 25 50 75 and MAX controls" />
+      <br /><strong>Swap</strong><br />
+      XyloNet USDC ↔ EURC with 25%, 50%, 75%, and MAX controls.
+    </td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="docs/screenshots/06-savings.webp" alt="Makoto Wallet PenguJar savings dashboard" width="100%" />
+</p>
+
+<p align="center">
+  <strong>PenguJar Savings</strong> — goal-based USDC savings integrated directly into Makoto Wallet.
+</p>
+
 ## Current Features
 
 ### Wallet
