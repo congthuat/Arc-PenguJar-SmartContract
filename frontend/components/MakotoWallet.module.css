@@ -1708,3 +1708,12 @@
 @media(max-width:430px){.payHomeGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:340px){.payHomeGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
+/* Makoto Pay object-forward presentation: large artwork without taller cards. */
+.payHomeGrid{gap:9px}.payShortcut{padding:5px 5px 9px;gap:3px;border-color:color-mix(in srgb,var(--mw-accent) 12%,var(--mw-border));background:linear-gradient(155deg,color-mix(in srgb,var(--mw-surface-solid) 92%,#fff),color-mix(in srgb,var(--mw-accent) 5%,var(--mw-surface)));box-shadow:0 9px 24px rgba(57,65,154,.07);transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease}.payShortcut:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(57,65,154,.12)}.payShortcutArt{width:min(106px,100%);border-radius:0;overflow:visible}.payShortcut strong{min-height:25px}.payShortcutArt img{filter:drop-shadow(0 10px 10px rgba(38,37,96,.25)) saturate(1.12)}.payShortcut:hover .payShortcutArt img{transform:translateY(-3px) scale(1.04) rotate(-1deg)}
+/* Phone, data device, router and storefront need extra weight beside organic objects. */
+.payShortcut:nth-child(1) .payShortcutArt img,.payShortcut:nth-child(2) .payShortcutArt img,.payShortcut:nth-child(5) .payShortcutArt img,.payShortcut:nth-child(8) .payShortcutArt img{transform:scale(1.09)}.payShortcut:nth-child(1):hover .payShortcutArt img,.payShortcut:nth-child(2):hover .payShortcutArt img,.payShortcut:nth-child(5):hover .payShortcutArt img,.payShortcut:nth-child(8):hover .payShortcutArt img{transform:translateY(-3px) scale(1.13) rotate(-1deg)}
+@media(max-width:1120px){.payShortcutArt{width:min(100px,100%)}}
+@media(max-width:760px){.payShortcut{padding:4px 3px 8px}.payShortcutArt{width:min(92px,100%)}}
+@media(max-width:430px){.payShortcutArt{width:min(88px,100%)}}
+@media(prefers-reduced-motion:reduce){.payShortcut,.payShortcutArt img{transition:none}.payShortcut:hover,.payShortcut:hover .payShortcutArt img{transform:none}.payShortcut:nth-child(1):hover .payShortcutArt img,.payShortcut:nth-child(2):hover .payShortcutArt img,.payShortcut:nth-child(5):hover .payShortcutArt img,.payShortcut:nth-child(8):hover .payShortcutArt img{transform:scale(1.09)}}
+

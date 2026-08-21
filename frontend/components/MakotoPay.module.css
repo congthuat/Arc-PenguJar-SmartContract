@@ -18,3 +18,10 @@
 
 .topupHero>img{width:150px;height:150px;border-radius:0;box-shadow:none;filter:drop-shadow(0 14px 13px rgba(38,37,96,.22)) saturate(1.08)}
 @media(max-width:430px){.topupHero>img{width:104px;height:104px}}
+
+/* Keep the catalog compact while giving transparent 3D objects stronger presence. */
+.serviceCard{padding:9px 10px 10px;gap:4px;box-shadow:0 12px 30px rgba(57,65,154,.08)}.serviceIcon{width:94px;height:94px;overflow:visible}.popularGrid .serviceCard{min-height:170px;grid-template-columns:104px minmax(0,1fr);gap:10px}.popularGrid .serviceIcon{width:104px;height:104px}.serviceIcon img{filter:drop-shadow(0 10px 10px rgba(38,37,96,.25)) saturate(1.12)}.serviceCard:hover .serviceIcon img{transform:translateY(-3px) scale(1.04) rotate(-1deg)}
+@media(max-width:760px){.serviceIcon{width:90px;height:90px}.popularGrid .serviceIcon{width:98px;height:98px}}
+@media(max-width:430px){.serviceCard,.popularGrid .serviceCard{min-height:150px;padding:7px}.serviceIcon,.popularGrid .serviceIcon{width:86px;height:86px}.serviceText strong{font-size:12px}.status{padding:5px 8px}}
+@media(max-width:340px){.serviceIcon,.popularGrid .serviceIcon{width:78px;height:78px}.serviceCard,.popularGrid .serviceCard{min-height:142px}}
+@media(prefers-reduced-motion:reduce){.serviceIcon img{transition:none}.serviceCard:hover .serviceIcon img{transform:none}}
