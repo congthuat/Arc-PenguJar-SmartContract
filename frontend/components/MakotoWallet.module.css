@@ -1688,3 +1688,12 @@
 }
 /* MAKOTO 3D TOKEN LOGOS END */
 
+/* Security Center */
+.securityOverview{margin:0 0 20px;padding:22px 24px;border:1px solid var(--mw-border);border-radius:24px;display:flex;align-items:center;justify-content:space-between;gap:20px;background:var(--mw-surface);box-shadow:0 16px 42px rgba(57,65,154,.08)}
+.securityOverview h2{margin:6px 0 5px;font:850 25px var(--font-display),sans-serif}.securityOverview p{margin:0;color:var(--mw-text-muted);font-size:12px;line-height:1.55}.securityEyebrow{color:var(--mw-text-muted);font-size:9px;font-weight:900;letter-spacing:1.3px}.securityStatusDot{width:18px;height:18px;flex:0 0 18px;border:5px solid color-mix(in srgb,var(--mw-border) 70%,transparent);border-radius:50%;background:var(--mw-text-muted)}
+.securityOverview_protected .securityStatusDot{background:#23a46f}.securityOverview_review .securityStatusDot{background:#e69a27}.securityOverview_disconnected .securityStatusDot{background:#7d849b}.securityOverview_unknown .securityStatusDot{background:#6d5ce7}
+.settingsSectionHeading{padding:38px 0 16px}.settingsSectionHeading p{margin:0;color:var(--mw-accent);font-size:9px;font-weight:900;letter-spacing:1.3px}.settingsSectionHeading h2{margin:6px 0 0;font:850 28px var(--font-display),sans-serif}
+.securityMetrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.securityMetric{min-height:72px;padding:13px;border:1px solid var(--mw-border);border-radius:14px;display:grid;align-content:center;gap:5px;background:var(--mw-surface-solid)}.securityMetric span{color:var(--mw-text-muted);font-size:10px}.securityMetric strong{font-size:15px}
+.securityAlerts{display:grid;gap:9px}.securityAlert{padding:12px 14px;border:1px solid var(--mw-border);border-left-width:4px;border-radius:13px;display:grid;gap:3px;background:var(--mw-surface-solid)}.securityAlert strong{font-size:12px}.securityAlert span{color:var(--mw-text-muted);font-size:11px;line-height:1.5}.securityAlert_info{border-left-color:#6170d8}.securityAlert_attention{border-left-color:#e69a27}.securityAlert_warning{border-left-color:#dc5a62}.settingsActions button:disabled{opacity:.55;cursor:wait}
+@media(max-width:760px){.securityOverview{padding:19px}.securityMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}.settingsSectionHeading{padding-top:30px}}@media(max-width:430px){.securityMetrics{grid-template-columns:1fr}.securityOverview h2{font-size:22px}}
+
