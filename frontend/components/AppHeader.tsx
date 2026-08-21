@@ -9,11 +9,12 @@ import { LanguageMenu } from "./LanguageMenu";
 import { usePreferences } from "@/hooks/usePreferences";
 import styles from "./MakotoWallet.module.css";
 
-type HeaderIconName = "wallet" | "activity" | "savings" | "settings" | "network" | "language" | "theme" | "sun" | "address";
+type HeaderIconName = "wallet" | "activity" | "pay" | "savings" | "settings" | "network" | "language" | "theme" | "sun" | "address";
 
 const navItems: ReadonlyArray<{ href: string; icon: HeaderIconName; en: string; vi: string; active?: boolean }> = [
   { href: "/", icon: "wallet", en: "Wallet", vi: "Ví", active: true },
   { href: "#activity", icon: "activity", en: "Activity", vi: "Hoạt động" },
+  { href: "/pay", icon: "pay", en: "Pay", vi: "Thanh toán" },
   { href: "/savings", icon: "savings", en: "Savings", vi: "Tiết kiệm" },
 ];
 
@@ -22,6 +23,7 @@ function HeaderIcon({ name, className }: { name: HeaderIconName; className: stri
   switch (name) {
     case "wallet": glyph = <><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M16 10h5v5h-5a2.5 2.5 0 0 1 0-5Z" /><path d="M5 6V5a2 2 0 0 1 2-2h10" /><circle cx="16.5" cy="12.5" r=".5" /></>; break;
     case "activity": glyph = <><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" /><path d="M12 2v3M22 12h-3M12 22v-3M2 12h3" /></>; break;
+    case "pay": glyph = <><rect x="3" y="5" width="18" height="14" rx="3" /><path d="M3 9h18M7 15h4" /><path d="m16 13 2 2 3-4" /></>; break;
     case "savings": glyph = <><path d="M7 4h10M8 4 7 8v9a3 3 0 0 0 3 3h4a3 3 0 0 0 3-3V8l-1-4" /><path d="M7 9h10M10 13h4" /></>; break;
     case "settings": glyph = <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1v.1h-4v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1-.4h-.1v-4H3a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1v-.1h4V3a1.7 1.7 0 0 0 1.1 1.6 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.12.36.33.7.6 1 .27.27.62.48 1 .6h.1v4H21a1.7 1.7 0 0 0-1.6.4Z" /></>; break;
     case "network": glyph = <><circle cx="6" cy="7" r="2" /><circle cx="18" cy="7" r="2" /><circle cx="12" cy="18" r="2" /><path d="m7.7 8.1 3.2 7.8M16.3 8.1l-3.2 7.8M8 7h8" /></>; break;
@@ -84,7 +86,7 @@ export function AppHeader() {
           ) : (
             <Link
               key={item.en}
-              className={pathname === item.href ? styles.navActive : undefined}
+              className={pathname === item.href || (item.href === "/pay" && pathname.startsWith("/pay/")) ? styles.navActive : undefined}
               href={item.href}
             >
               <HeaderIcon name={item.icon} className={styles.headerGlyph} />
