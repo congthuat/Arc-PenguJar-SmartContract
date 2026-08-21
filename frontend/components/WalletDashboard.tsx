@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useConnection } from "wagmi";
 
 import { AppHeader } from "./AppHeader";
@@ -27,9 +27,11 @@ import { activityIdentity } from "@/lib/onchainActivity";
 import { addWalletActivity, mergeWalletActivity } from "@/lib/walletActivity";
 import {
   appKitViewForPath,
+  appKitViewForCreateMethod,
   ONBOARDING_INTENT_KEY,
   parseOnboardingIntent,
   shouldShowWalletReady,
+  type CreateWalletMethod,
   type OnboardingPath,
 } from "@/lib/onboarding";
 import { getAppKit, isReownConfigured } from "@/lib/wagmi";
@@ -78,9 +80,24 @@ export function WalletDashboard() {
   const [optimisticActivity, setOptimisticActivity] = useState<{ address: string; records: WalletActivity[] }>();
   const [copied, setCopied] = useState(false);
   const [receiptActivity, setReceiptActivity] = useState<WalletActivity>();
+  const [createGuideOpen, setCreateGuideOpen] = useState(false);
   const [onboardingIntent, setOnboardingIntent] = useState<OnboardingPath | undefined>(() =>
     typeof window === "undefined" ? undefined : parseOnboardingIntent(window.sessionStorage.getItem(ONBOARDING_INTENT_KEY)),
   );
+
+  useEffect(() => {
+    if (!createGuideOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setCreateGuideOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [createGuideOpen]);
 
   const activities = useMemo(() => {
     const optimistic = optimisticActivity && connection.address && optimisticActivity.address.toLowerCase() === connection.address.toLowerCase()
@@ -119,6 +136,15 @@ export function WalletDashboard() {
     await appKit.open({ view: appKitViewForPath(path) });
   }
 
+  async function beginCreateWallet(method: CreateWalletMethod) {
+    const appKit = getAppKit();
+    if (!appKit) return;
+    window.sessionStorage.setItem(ONBOARDING_INTENT_KEY, "create");
+    setOnboardingIntent("create");
+    setCreateGuideOpen(false);
+    await appKit.open({ view: appKitViewForCreateMethod(method) });
+  }
+
   function continueToWallet() {
     window.sessionStorage.removeItem(ONBOARDING_INTENT_KEY);
     setOnboardingIntent(undefined);
@@ -144,7 +170,7 @@ export function WalletDashboard() {
                 <button
                   type="button"
                   className={styles.createWalletButton}
-                  onClick={() => void beginOnboarding("create")}
+                  onClick={() => setCreateGuideOpen(true)}
                   disabled={!isReownConfigured}
                 >
                   <strong>{t("onboarding.createWallet")}</strong>
@@ -564,6 +590,32 @@ export function WalletDashboard() {
       )}
 
       {receiptActivity && connection.address && <TransactionReceiptPanel activity={receiptActivity} walletAddress={connection.address} onClose={() => setReceiptActivity(undefined)} />}
+      {createGuideOpen && <div className={styles.createGuideLayer}>
+        <button type="button" className={styles.createGuideBackdrop} onClick={() => setCreateGuideOpen(false)} aria-label={t("common.close")} />
+        <section className={styles.createGuide} role="dialog" aria-modal="true" aria-labelledby="create-guide-title">
+          <header>
+            <div><span className={styles.kicker}>MAKOTO WALLET</span><h2 id="create-guide-title">{t("onboarding.createGuideTitle")}</h2></div>
+            <button type="button" className={styles.createGuideClose} onClick={() => setCreateGuideOpen(false)} aria-label={t("common.close")}>×</button>
+          </header>
+          <p>{t("onboarding.createGuideCopy")}</p>
+          <div className={styles.createGuideChoices}>
+            <article className={styles.emailChoice}>
+              <button type="button" onClick={() => void beginCreateWallet("email")} autoFocus>{t("onboarding.continueEmail")}</button>
+              <p>{t("onboarding.emailGuide")}</p>
+              <ol>
+                <li>{t("onboarding.emailStep1")}</li>
+                <li>{t("onboarding.emailStep2")}</li>
+                <li>{t("onboarding.emailStep3")}</li>
+              </ol>
+            </article>
+            <article className={styles.googleChoice}>
+              <button type="button" onClick={() => void beginCreateWallet("google")}>{t("onboarding.continueGoogle")}</button>
+              <p>{t("onboarding.googleGuide")}</p>
+            </article>
+          </div>
+          <p className={styles.createGuideSafety}>{t("onboarding.noPrivateKeyStorage")}</p>
+        </section>
+      </div>}
     </main>
   );
 }
