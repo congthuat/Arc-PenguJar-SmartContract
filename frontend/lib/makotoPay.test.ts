@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 import { createDemoOrderId, demoUsdcForVnd, isValidVietnamDemoPhone, maskVietnamPhone, normalizeVietnamPhone, TOP_UP_DENOMINATIONS } from "./makotoPay.ts";
 
@@ -10,10 +10,34 @@ const dialog = readFileSync(new URL("../components/ServiceComingSoonDialog.tsx",
 const styles = readFileSync(new URL("../components/MakotoPay.module.css", import.meta.url), "utf8");
 const en = readFileSync(new URL("../i18n/en.ts", import.meta.url), "utf8");
 const vi = readFileSync(new URL("../i18n/vi.ts", import.meta.url), "utf8");
+const dashboard = readFileSync(new URL("../components/WalletDashboard.tsx", import.meta.url), "utf8");
+const homePay = readFileSync(new URL("../components/MakotoPayHomeSection.tsx", import.meta.url), "utf8");
+const catalogData = readFileSync(new URL("./makotoPayCatalog.ts", import.meta.url), "utf8");
 
 test("Pay navigation exists and remains active on nested Pay routes", () => {
   assert.match(header, /href:\s*"\/pay"[^\n]*en:\s*"Pay"[^\n]*vi:\s*"Thanh toán"/);
   assert.match(header, /item\.href === "\/pay" && pathname\.startsWith\("\/pay\/"\)/);
+  assert.ok(header.indexOf('href: "/pay"') < header.indexOf('href: "#activity"'));
+});
+
+test("connected Wallet home promotes eight Makoto Pay shortcuts after quick actions", () => {
+  assert.match(dashboard, /<MakotoPayHomeSection\s*\/>[\s\S]*?<section className=\{styles\.assetsSection\}/);
+  assert.match(dashboard, /onboarding\.payStory/);
+  assert.match(homePay, /HOME_PAY_SERVICE_IDS\.map/);
+  assert.match(homePay, /href="\/pay\/mobile-topup"/);
+  assert.match(homePay, /href="\/pay"/);
+  assert.match(homePay, /ServiceComingSoonDialog/);
+  const homeIds = catalogData.match(/HOME_PAY_SERVICE_IDS:[^=]+=\s*\[([^\]]+)\]/)?.[1].match(/"[^"]+"/g) ?? [];
+  assert.equal(homeIds.length, 8);
+});
+
+test("full catalog keeps all eighteen services and every original artwork path exists", () => {
+  const allIds = catalogData.match(/PAY_SERVICE_IDS = \[([^\]]+)\]/)?.[1].match(/"[^"]+"/g) ?? [];
+  assert.equal(allIds.length, 18);
+  const paths = [...catalogData.matchAll(/"(\/makoto\/pay\/[^"]+\.svg)"/g)].map((match) => match[1]);
+  assert.equal(paths.length, 18);
+  for (const path of paths) assert.equal(existsSync(new URL(`../public${path}`, import.meta.url)), true, path);
+  assert.doesNotMatch(catalogData, /momo|viettel|vinaphone|mobifone/i);
 });
 
 test("catalog distinguishes the Mobile Top-up demo from planned services", () => {

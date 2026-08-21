@@ -10,6 +10,7 @@ import { SendFlow } from "./SendFlow";
 import { ReceivePanel } from "./ReceivePanel";
 import { SwapPanel } from "./SwapPanel";
 import { TransactionReceiptPanel } from "./TransactionReceiptPanel";
+import { MakotoPayHomeSection } from "./MakotoPayHomeSection";
 
 import { useHydrated } from "@/hooks/useHydrated";
 import { useOwnerJars } from "@/hooks/useOwnerJars";
@@ -186,6 +187,7 @@ export function WalletDashboard() {
                   <span>{t("onboarding.connectHelp")}</span>
                 </button>
                 <p className={styles.onboardingSafety}>{t("onboarding.methods")}<br />{t("onboarding.noPrivateKeyStorage")}</p>
+                <p className={styles.onboardingProductStory}>{t("onboarding.payStory")}</p>
                 {!isReownConfigured && <p className={styles.onboardingUnavailable} role="status">{t("onboarding.unavailable")}</p>}
               </div>
             </div>
@@ -391,6 +393,8 @@ export function WalletDashboard() {
                 </div>
               </section>
             </section>
+
+            <MakotoPayHomeSection />
 
             <section className={styles.assetsSection} aria-labelledby="assets-title">
               <header className={styles.assetsHeader}><p>{t("walletHome.assetsEyebrow")}</p><h2 id="assets-title">{t("walletHome.assets")}</h2></header>

@@ -13,8 +13,8 @@ type HeaderIconName = "wallet" | "activity" | "pay" | "savings" | "settings" | "
 
 const navItems: ReadonlyArray<{ href: string; icon: HeaderIconName; en: string; vi: string; active?: boolean }> = [
   { href: "/", icon: "wallet", en: "Wallet", vi: "Ví", active: true },
-  { href: "#activity", icon: "activity", en: "Activity", vi: "Hoạt động" },
   { href: "/pay", icon: "pay", en: "Pay", vi: "Thanh toán" },
+  { href: "#activity", icon: "activity", en: "Activity", vi: "Hoạt động" },
   { href: "/savings", icon: "savings", en: "Savings", vi: "Tiết kiệm" },
 ];
 

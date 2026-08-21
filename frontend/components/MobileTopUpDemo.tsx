@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import { AppHeader } from "./AppHeader";
 import { usePreferences } from "@/hooks/usePreferences";
@@ -28,7 +29,7 @@ export function MobileTopUpDemo() {
 
   return <main className={`${walletStyles.page} ${styles.page}`}><div className={styles.shell}><AppHeader />
     <div className={styles.topupBack}><Link href="/pay">← {t("pay.backToPay")}</Link></div>
-    <section className={styles.topupHero}><span className={styles.badge}>{t("pay.productDemo")}</span><p className={styles.eyebrow}>MAKOTO PAY</p><h1>{t("pay.topup.title")}</h1><p>{t("pay.topup.subtitle")}</p></section>
+    <section className={styles.topupHero}><div><span className={styles.badge}>{t("pay.productDemo")}</span><p className={styles.eyebrow}>MAKOTO PAY</p><h1>{t("pay.topup.title")}</h1><p>{t("pay.topup.subtitle")}</p></div><Image src="/makoto/pay/mobile-topup.svg" alt="" width={150} height={150} /></section>
     {step === "entry" && <section className={styles.flowCard} aria-labelledby="topup-entry-title"><h2 id="topup-entry-title">{t("pay.topup.details")}</h2>
       <fieldset><legend><span>1</span>{t("pay.topup.chooseCarrier")}</legend><div className={styles.carrierGrid}>{DEMO_CARRIERS.map((name) => <button key={name} type="button" className={carrier === name ? styles.selected : undefined} aria-pressed={carrier === name} onClick={() => setCarrier(name)}>{name}</button>)}</div><p className={styles.secondary}>{t("pay.topup.carrierDisclosure")}</p></fieldset>
       <label className={styles.phoneField}><span><b>2</b>{t("pay.topup.phone")}</span><input inputMode="numeric" autoComplete="off" value={phone} placeholder="0912 345 678" aria-describedby="phone-help phone-error" aria-invalid={touched && !validPhone} onBlur={() => setTouched(true)} onChange={(event) => { if (/^[\d\s]*$/.test(event.target.value)) setPhone(event.target.value); }} /><small id="phone-help">{t("pay.topup.phoneHelp")}</small>{touched && !validPhone && <em id="phone-error" role="alert">{t("pay.topup.phoneError")}</em>}</label>
