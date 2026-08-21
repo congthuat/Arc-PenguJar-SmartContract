@@ -108,8 +108,9 @@ The project started as **PenguJar**, an on-chain USDC savings dApp. PenguJar V3 
 - Successful-receipt verification before confirmed UI and non-blocking background data refresh
 - Security Center for deterministic wallet, network, PenguJar, privacy, and beta-status information
 - Optional browser-local Makoto App Lock with a six-digit PIN verifier, inactivity lock, cooldown, and cross-tab locking
+- Optional **Keep unlocked for this browser session** convenience for reloads and other live Makoto tabs
 
-App Lock restricts the normal Makoto interface on the current browser. It does not encrypt or control wallet private keys, replace Reown or external-wallet security, or make browser storage a hardware security boundary.
+App Lock restricts the normal Makoto interface on the current browser. By default, reloads and new tabs require the PIN. When the optional browser-session convenience is enabled, an authenticated session can survive reloads and be shared with another live Makoto tab. Manual Lock Now and inactivity auto-lock override that convenience. App Lock does not encrypt or control wallet private keys, replace Reown or external-wallet security, or make browser storage a hardware security boundary.
 
 ### Swap
 
@@ -167,6 +168,7 @@ App Lock restricts the normal Makoto interface on the current browser. It does n
 | Transaction Safety Review | ✅ Available |
 | Security Center | ✅ Available |
 | Optional local App Lock | ✅ Available |
+| Browser-session App Lock convenience | ✅ Available |
 | EN / VI and Light / Dark | ✅ Available |
 | Mainnet release | ⏳ Not released |
 
@@ -212,7 +214,7 @@ Contacts are browser-local, scoped by connected wallet and chain, and have no cl
 
 ### App Lock and local data
 
-Makoto App Lock stores a salted PBKDF2-SHA-256 verifier and local lock settings, never the raw PIN. It gates Makoto's normal UI without disconnecting or authenticating the wallet. Contacts, Recent recipients, and optimistic Activity remain browser-local; PRIVATE PenguJar metadata retains its separate wallet-signature-derived encryption architecture.
+Makoto App Lock stores a salted PBKDF2-SHA-256 verifier and local lock settings, never the raw PIN. It gates Makoto's normal UI without disconnecting or authenticating the wallet. Its optional browser-session convenience uses ephemeral session state: reloads can remain unlocked, and another live Makoto tab can request access from an already authenticated tab. Manual and inactivity locks clear that convenience. This does not change wallet custody or private-key security. Contacts, Recent recipients, and optimistic Activity remain browser-local; PRIVATE PenguJar metadata retains its separate wallet-signature-derived encryption architecture.
 
 ### Receive Payment Requests
 
@@ -232,7 +234,7 @@ Makoto bridges USDC from Arc Testnet to Base Sepolia through Circle CCTP V2 Forw
 
 ### Activity and Verified Receipts
 
-Activity is derived from ArcScan/Blockscout on-chain transfer data. The receipt viewer independently reads the real transaction receipt and verifies the transaction hash, successful status, block, token contract, amount, direction, addresses, and relevant log indices. Swap verification requires both legs; Bridge receipts confirm the Arc-side transaction; matching Arc Memo events are bound through their sender, target, and inner transfer calldata hash.
+Wallet Activity is derived from ArcScan/Blockscout on-chain transfer data. PenguJar Activity uses a constrained same-origin API with indexed event filtering, bounded requests, incremental refresh, deduplication, and RPC failover. The receipt viewer independently reads the real transaction receipt and verifies the transaction hash, successful status, block, token contract, amount, direction, addresses, and relevant log indices. Swap verification requires both legs; Bridge receipts confirm the Arc-side transaction; matching Arc Memo events are bound through their sender, target, and inner transfer calldata hash.
 
 ## Security Model
 
@@ -267,7 +269,9 @@ npm run lint
 npm run build
 ```
 
-At checkpoint `b62af77325ea06344117d82bb4876c6631fc05e0`, **197/197 frontend tests** and **19/19 contract tests** passed. These counts describe that checkpoint only; subsequent commits must run validation again.
+For the Public Beta 0.2 preparation checkpoint, **265/265 frontend tests** and **19/19 required contract tests** pass. TypeScript, ESLint, the production build, and whitespace validation also pass.
+
+Manual QA has been reported complete for the core release flows, including onboarding, supported wallet actions, PenguJar, Security Center, App Lock, English/Vietnamese, themes, and responsive layouts. This is a project QA statement, not evidence of an independent professional security audit or exhaustive testing of every wallet and transaction path.
 
 ## Local Development
 
@@ -330,9 +334,11 @@ V3 deployment and verification tooling remains available through the existing ro
 
 The `main` branch retains earlier PenguJar project history. Makoto Wallet is developed and deployed from `makoto-wallet`; this housekeeping checkpoint does not rename the repository or merge branches.
 
-## Roadmap
+## Development Status
 
-Phases 1–9 are complete for the Arc Testnet Public Beta feature set. Phase 10 is the final audit and manual-QA preparation checkpoint.
+The planned Arc Testnet Public Beta roadmap through Phase 10 is complete. Phase 10, **Final Audit & Product Polish**, is complete for the current beta scope.
+
+Project history:
 
 - Phase 1 — Wallet Foundation ✅
 - Phase 2 — Mini Wallet Core ✅
@@ -348,14 +354,16 @@ Phases 1–9 are complete for the Arc Testnet Public Beta feature set. Phase 10 
   - Verified transaction receipts
   - Swap quick amount controls
 - Phase 9 — Onboarding, Security Center, Transaction Safety, and App Lock ✅
-- Phase 10 — Final audit and manual-QA preparation
+- Phase 10 — Final Audit & Product Polish ✅
 
-### Future / Deferred
+Development after Phase 10 is feedback-driven rather than phase-number-driven. Future work may respond to:
 
-Potential ideas—not promised releases—include:
+- real user feedback
+- bug reports
+- Arc ecosystem changes
+- future mainnet-readiness work when officially appropriate
 
-- Deeper smart-account and recovery research
-- Further Public Beta improvements based on manual QA
+These are directions, not promised releases. Makoto Wallet remains Arc Testnet-only and does not promise Arc Mainnet support.
 
 ## Public Beta Release
 
