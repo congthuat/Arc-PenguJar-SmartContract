@@ -65,7 +65,7 @@ export function validateUsdcSend(recipient: string, amount: string, balance: big
 export function validateAssetSend(recipient: string, amount: string, balance: bigint, asset: SupportedAsset, sender?: Address) {
   const address = normalizeRecipient(recipient);
   if (!address) return { error: "address" as const };
-  if (isSelfSend(address, sender)) return { error: "self" as const };
+  void sender;
   if (!/^\d+(\.\d{1,6})?$/.test(amount.trim())) return { error: "amount" as const };
   let parsedAmount: bigint;
   try { parsedAmount = parseUnits(amount.trim(), asset.decimals); } catch { return { error: "amount" as const }; }

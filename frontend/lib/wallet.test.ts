@@ -50,9 +50,9 @@ test("selected USDC and EURC MAX use their own balances", () => {
   }
 });
 
-test("EURC validation rejects insufficient balance and self-send", () => {
+test("asset validation rejects insufficient balance and leaves self-send to the safety review", () => {
   const eurc = getAssetById("eurc")!;
   const sender = "0x000000000000000000000000000000000000dEaD";
   assert.deepEqual(validateAssetSend("0x0000000000000000000000000000000000000001", "2", 1_000_000n, eurc), { error: "balance" });
-  assert.deepEqual(validateAssetSend(sender.toLowerCase(), "1", 2_000_000n, eurc, sender), { error: "self" });
+  assert.equal("error" in validateAssetSend(sender.toLowerCase(), "1", 2_000_000n, eurc, sender), false);
 });

@@ -17,11 +17,13 @@ import {
   savePendingEncryptedMetadata,
   type PendingEncryptedMetadata,
 } from "@/lib/privateMetadata";
+import { TransactionSafetyChecks } from "./TransactionSafetyReview";
 
 type Step = "form" | "review" | "wallet" | "submitted" | "success" | "error";
 
 export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; onClose(): void; onConfirmed(): Promise<void> }) {
-  const { t } = usePreferences();
+  const { t, locale } = usePreferences();
+  const vi = locale === "vi";
   const connection = useConnection();
   const verifiedChain = useVerifiedWalletChain();
   const write = useWriteContract();
@@ -39,6 +41,7 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
   const [formError, setFormError] = useState<string>();
   const [transactionError, setTransactionError] = useState<string>();
   const [confirmedHash, setConfirmedHash] = useState<`0x${string}`>();
+  const [reviewedAccount, setReviewedAccount] = useState<`0x${string}`>();
   const finalizedHash = useRef<`0x${string}` | undefined>(undefined);
   const pendingEncrypted = useRef<PendingEncryptedMetadata | undefined>(undefined);
   const receipt = useWaitForTransactionReceipt({ hash: write.data, chainId: arcTestnet.id, query: { enabled: Boolean(write.data) } });
@@ -58,6 +61,7 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
         if (guardianProtection) validateProtectionWallets(guardianWallet, recoveryWallet, connection.address, t("create.walletsError"), t("create.distinctWalletsError"));
       }
       setFormError(undefined);
+      setReviewedAccount(connection.address);
       setStep("review");
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
@@ -67,6 +71,7 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
 
   async function submit() {
     if (connection.status !== "connected" || !onArc || !contractAddress) return;
+    if (!reviewedAccount || !connection.address || reviewedAccount.toLowerCase() !== connection.address.toLowerCase()) { setStep("form"); setFormError(t("review.changed")); return; }
     const safe = parseCreateJar(values);
     setStep("wallet");
     setTransactionError(undefined);
@@ -184,7 +189,8 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
 
         {step === "review" && parsed && <div className="review-panel">
           <div className="review-hero"><span>✦</span><div><small>{t("create.name")}</small><strong>{parsed.name}</strong></div></div>
-          <dl><div><dt>{t("jar.target")}</dt><dd>{formatUsdc(parsed.targetAmount)} USDC</dd></div><div><dt>{t("jar.unlocks")}</dt><dd>{formatLocalDateTime(parsed.unlockDate)}</dd></div><div><dt>{t("wallet.wallet")}</dt><dd>{connection.address ? shortAddress(connection.address) : t("actions.connect")}</dd></div><div><dt>{t("wallet.network")}</dt><dd>{onArc ? "Arc Testnet" : t("wallet.switch")}</dd></div><div><dt>{t("create.starting")}</dt><dd>0 USDC</dd></div></dl>
+          <dl><div><dt>{t("jar.target")}</dt><dd>{formatUsdc(parsed.targetAmount)} USDC</dd></div><div><dt>{t("jar.unlocks")}</dt><dd>{formatLocalDateTime(parsed.unlockDate)}</dd></div><div><dt>{t("create.withdrawalProtection")}</dt><dd>{jarMode === "shielded" ? `SHIELDED · ${withdrawalDelayHours} ${t("create.hours")}` : "SAFE"}</dd></div><div><dt>{t("create.metadataVisibility")}</dt><dd>{privacy === "private" ? "PRIVATE" : "PUBLIC"}</dd></div><div><dt>{t("wallet.wallet")}</dt><dd>{connection.address ? <span className="full-address">{connection.address}</span> : t("actions.connect")}</dd></div><div><dt>{t("wallet.network")}</dt><dd>{onArc ? "Arc Testnet · 5042002" : t("wallet.switch")}</dd></div><div><dt>{t("create.starting")}</dt><dd>0 USDC</dd></div></dl>
+          <TransactionSafetyChecks checks={[{ code: connection.isConnected && connection.address !== reviewedAccount ? "account" : "wallet", status: connection.isConnected && connection.address === reviewedAccount ? "verified" : "blocking", label: connection.isConnected ? (connection.address === reviewedAccount ? (vi ? "Tài khoản kết nối khớp với bản kiểm tra" : "Connected account matches review") : t("review.changed")) : t("validation.disconnected") }, { code: "network", status: onArc ? "verified" : "blocking", label: onArc ? "Arc Testnet · 5042002" : t("wallet.switch") }, { code: "config", status: "info", label: t("create.noDeposit") }]} />
           <p className="review-note">{t("create.noDeposit")}</p>
           {privacy === "private" && <p className="review-note">{t("create.privateReview")}</p>}
           {jarMode === "shielded" && guardianProtection && <p className="review-note">{t("create.protectedReview", { guardian: shortAddress(getAddress(guardianWallet)), recovery: shortAddress(getAddress(recoveryWallet)) })}</p>}

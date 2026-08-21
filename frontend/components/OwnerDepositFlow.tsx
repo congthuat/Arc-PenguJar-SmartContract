@@ -2,7 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getAddress, type Address, type Hash } from "viem";
+import { getAddress, zeroAddress, type Address, type Hash } from "viem";
 import { useConnection, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { arcTestnet } from "viem/chains";
 import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
@@ -12,13 +12,16 @@ import { erc20BalanceAbi } from "@/lib/abi/erc20";
 import { penguJarV3Abi } from "@/lib/abi/penguJarV3";
 import { ARC_EXPLORER_URL, contractAddress, EXPECTED_USDC_ADDRESS } from "@/lib/config";
 import { parseDepositAmount } from "@/lib/deposit";
-import { formatUsdc, shortAddress } from "@/lib/format";
+import { formatUsdc } from "@/lib/format";
 import type { Jar } from "@/lib/types";
+import { globalReviewChecks } from "@/lib/transactionReview";
+import { TransactionSafetyReview } from "./TransactionSafetyReview";
 
 type Step = "form" | "review" | "checking" | "approval-required" | "approval-wallet" | "approval-submitted" | "approval-confirmed" | "ready" | "deposit-wallet" | "deposit-submitted" | "confirming" | "success" | "error";
 
 export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; open: boolean; onClose(): void; onSuccess(): Promise<void> }) {
-  const { t } = usePreferences();
+  const { t, locale } = usePreferences();
+  const vi = locale === "vi";
   const connection = useConnection();
   const queryClient = useQueryClient();
   const verifiedChain = useVerifiedWalletChain();
@@ -38,6 +41,7 @@ export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; 
   const [error, setError] = useState<string>();
   const [approvalHash, setApprovalHash] = useState<Hash>();
   const [depositHash, setDepositHash] = useState<Hash>();
+  const [reviewedAccount, setReviewedAccount] = useState<Address>();
   const amount = useMemo(() => { try { return parseDepositAmount(value); } catch { return undefined; } }, [value]);
 
   function review(event: FormEvent) {
@@ -46,6 +50,7 @@ export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; 
       const parsed = parseDepositAmount(value);
       if (balances.usdc.data !== undefined && parsed > balances.usdc.data) throw new Error("Deposit exceeds your available USDC balance.");
       setError(undefined);
+      setReviewedAccount(connection.address);
       setStep("review");
     } catch {
       setError(t("validation.amount"));
@@ -175,11 +180,18 @@ export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; 
         <div className="modal-actions"><button type="button" className="cancel-action" onClick={close}>{t("common.cancel")}</button><button type="submit" className="primary-action">{t("flow.reviewDeposit")}</button></div>
       </form>}
 
-      {step === "review" && amount && expectedBalance !== undefined && <div className="review-panel">
-        <dl><div><dt>{t("actions.deposit")}</dt><dd>{formatUsdc(amount)} USDC</dd></div><div><dt>{t("jar.number", { id: jar.id.toString() })}</dt><dd>{jar.name}</dd></div><div><dt>{t("flow.currentBalance")}</dt><dd>{formatUsdc(jar.balance)} USDC</dd></div><div><dt>{t("flow.expectedBalance")}</dt><dd>{formatUsdc(expectedBalance)} USDC</dd></div><div><dt>{t("wallet.wallet")}</dt><dd>{connection.address ? shortAddress(connection.address) : t("validation.disconnected")}</dd></div><div><dt>{t("wallet.network")}</dt><dd>Arc Testnet</dd></div></dl>
+      {step === "review" && amount && expectedBalance !== undefined && <TransactionSafetyReview
+        title={vi ? "Kiểm tra gửi tiết kiệm" : "Review Savings Deposit"}
+        summary={vi ? "Giao dịch này gửi USDC vào hũ tiết kiệm PenguJar đã chọn. Giao dịch không cung cấp lợi suất hay lợi nhuận đầu tư." : "This transaction deposits USDC into the selected PenguJar savings jar. It does not provide yield or investment returns."}
+        details={[{ label: t("actions.deposit"), value: `${formatUsdc(amount)} USDC` }, { label: t("jar.number", { id: jar.id.toString() }), value: `${jar.name} · #${jar.id}` }, { label: vi ? "Bảo vệ" : "Protection", value: `${Number(jar.mode) === 1 ? "SHIELDED" : "SAFE"} · ${Number(jar.privacyMode) === 1 ? "PRIVATE" : "PUBLIC"}` }, { label: "Guardian / Recovery", value: `${jar.guardian !== zeroAddress ? (vi ? "Đã cấu hình" : "Configured") : (vi ? "Chưa cấu hình" : "Not configured")} / ${jar.recoveryWallet !== zeroAddress ? (vi ? "Đã cấu hình" : "Configured") : (vi ? "Chưa cấu hình" : "Not configured")}` }, { label: t("flow.currentBalance"), value: `${formatUsdc(jar.balance)} USDC` }, { label: t("flow.expectedBalance"), value: `${formatUsdc(expectedBalance)} USDC` }, { label: t("wallet.wallet"), value: connection.address ? <span className="full-address">{connection.address}</span> : t("validation.disconnected") }, { label: t("wallet.network"), value: "Arc Testnet · 5042002" }]}
+        checks={globalReviewChecks({ connected: connection.isConnected, account: connection.address, reviewedAccount, isArc: verifiedChain.isArc, amount, balance: balances.usdc.data })}
+        walletNotice={vi ? "Makoto kiểm tra allowance chính xác. Nếu cần, ví có thể yêu cầu approve đúng số lượng rồi xác nhận gửi tiền." : "Makoto checks the exact allowance. If needed, the wallet may request an exact-amount approval followed by the deposit confirmation."}
+        onBack={() => setStep("form")}
+        onContinue={() => void checkAllowance()}
+      >
         <p className="review-note">Arc network gas is paid separately in native USDC. If approval is needed, it will be limited to this deposit amount—never unlimited.</p>
-        <div className="modal-actions"><button className="cancel-action" onClick={() => setStep("form")}>{t("common.back")}</button><button className="primary-action" onClick={() => void checkAllowance()}>{t("flow.checkAllowance")}</button></div>
-      </div>}
+        <p className="wallet-notice">{vi ? "USDC cũng dùng để trả phí mạng Arc. Gửi gần hết hoặc toàn bộ có thể khiến bạn thiếu USDC cho giao dịch sau; Makoto không tự đặt mức gas dự phòng." : "USDC also pays Arc network fees. Depositing nearly or all of it may leave too little USDC for a future transaction; Makoto does not reserve an invented gas amount."}</p>
+      </TransactionSafetyReview>}
 
       {step === "approval-required" && <TransactionPanel title={t("flow.approvalRequired")} copy={t("flow.approvalExactCopy")} hashes={{ approvalHash }} action={<button className="primary-action standalone-action" onClick={() => void approve()}>{t("flow.approveExact")}</button>} />}
       {step === "approval-confirmed" && <TransactionPanel title={t("flow.approvalConfirmed")} copy={t("tx.success")} hashes={{ approvalHash }} action={<button className="primary-action standalone-action" onClick={() => setStep("ready")}>{t("flow.continue")}</button>} />}

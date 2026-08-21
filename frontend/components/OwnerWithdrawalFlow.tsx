@@ -8,14 +8,16 @@ import { arcTestnet } from "viem/chains";
 import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
 import { penguJarV3Abi } from "@/lib/abi/penguJarV3";
 import { ARC_EXPLORER_URL, contractAddress } from "@/lib/config";
-import { formatDate, formatUsdc, shortAddress } from "@/lib/format";
+import { formatDate, formatUsdc } from "@/lib/format";
 import type { Jar } from "@/lib/types";
 import { usePreferences } from "@/hooks/usePreferences";
+import { TransactionSafetyChecks } from "./TransactionSafetyReview";
 
 type Step = "review" | "wallet" | "submitted" | "confirming" | "success" | "error";
 
 export function OwnerWithdrawalFlow({ jar, open, onClose, onSuccess }: { jar: Jar; open: boolean; onClose(): void; onSuccess(): Promise<void> }) {
-  const { t } = usePreferences();
+  const { t, locale } = usePreferences();
+  const vi = locale === "vi";
   const connection = useConnection();
   const verifiedChain = useVerifiedWalletChain();
   const queryClient = useQueryClient();
@@ -85,7 +87,7 @@ export function OwnerWithdrawalFlow({ jar, open, onClose, onSuccess }: { jar: Ja
   if (!open) return null;
   return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}><section className="create-modal deposit-modal" role="dialog" aria-modal="true" aria-labelledby="withdraw-title">
     <div className="modal-header"><div><p className="eyebrow">{t("flow.ownerWithdrawal")} · {t("jar.number", { id: jar.id.toString() })}</p><h2 id="withdraw-title">{t("flow.withdrawName", { name: jar.name })}</h2></div><button onClick={close} disabled={isBusy(step)} aria-label={t("common.close")}>×</button></div>
-    {step === "review" && <div className="review-panel"><dl><div><dt>{t("jar.number", { id: jar.id.toString() })}</dt><dd>{jar.name}</dd></div><div><dt>{t("flow.amount")}</dt><dd>{formatUsdc(jar.balance)} USDC</dd></div><div><dt>{t("jar.owner")}</dt><dd>{shortAddress(jar.owner)}</dd></div><div><dt>{t("jar.unlockDate")}</dt><dd>{formatDate(jar.unlockTime)}</dd></div><div><dt>{t("wallet.network")}</dt><dd>Arc Testnet</dd></div><div><dt>{t("flow.destination")}</dt><dd>{connection.address ? shortAddress(connection.address) : t("validation.disconnected")}</dd></div></dl><p className="review-note">{t("flow.withdrawWarning")}</p><div className="modal-actions"><button className="cancel-action" onClick={close}>{t("common.cancel")}</button><button className="primary-action" onClick={() => void withdraw()}>{t("flow.confirmWithdrawal")}</button></div></div>}
+    {step === "review" && <div className="review-panel"><dl><div><dt>{t("jar.number", { id: jar.id.toString() })}</dt><dd>{jar.name}</dd></div><div><dt>{t("flow.amount")}</dt><dd>{formatUsdc(jar.balance)} USDC</dd></div><div><dt>{t("jar.owner")}</dt><dd className="full-address">{jar.owner}</dd></div><div><dt>{t("jar.unlockDate")}</dt><dd>{formatDate(jar.unlockTime)}</dd></div><div><dt>{t("wallet.network")}</dt><dd>Arc Testnet · 5042002</dd></div><div><dt>{t("flow.destination")}</dt><dd className="full-address">{connection.address ?? t("validation.disconnected")}</dd></div></dl><TransactionSafetyChecks checks={[{ code: "owner", status: connection.address?.toLowerCase() === jar.owner.toLowerCase() ? "verified" : "blocking", label: connection.address ? (connection.address.toLowerCase() === jar.owner.toLowerCase() ? (vi ? "Tài khoản kết nối là chủ hũ" : "Connected account is the jar owner") : (vi ? "Chỉ chủ hũ hiện tại mới có thể rút" : "Only the current jar owner may withdraw")) : t("validation.disconnected") }, { code: "network", status: verifiedChain.isArc ? "verified" : "blocking", label: verifiedChain.isArc ? "Arc Testnet · 5042002" : t("wallet.switch") }, { code: "freeze", status: jar.frozen ? "blocking" : "verified", label: jar.frozen ? (vi ? "Đóng băng khẩn cấp đang hoạt động" : "Emergency Freeze is active") : (vi ? "Không có đóng băng khẩn cấp" : "No active Emergency Freeze") }, { code: "timelock", status: "info", label: vi ? "Giới hạn mở khóa/rút được kiểm tra lại từ Arc ngay trước khi ký" : "Unlock and withdrawal restrictions are rechecked from Arc immediately before signing" }]} /><p className="review-note">{t("flow.withdrawWarning")}</p><div className="modal-actions"><button className="cancel-action" onClick={close}>{t("common.cancel")}</button><button className="primary-action" onClick={() => void withdraw()} disabled={connection.address?.toLowerCase() !== jar.owner.toLowerCase() || !verifiedChain.isArc || jar.frozen}>{t("flow.confirmWithdrawal")}</button></div></div>}
     {step === "success" && <Panel title={t("flow.withdrawSuccess")} copy={t("tx.success")} hash={hash} action={<button className="primary-action standalone-action" onClick={close}>{t("flow.closedJar")}</button>} />}
     {step === "error" && <Panel title={t("flow.withdrawFailed")} copy={error ?? t("tx.failed")} hash={hash} action={<button className="primary-action standalone-action" onClick={() => setStep("review")}>{t("flow.reviewRetry")}</button>} />}
     {!["review", "success", "error"].includes(step) && <Panel title={step === "wallet" ? t("tx.waiting") : step === "submitted" ? t("tx.submitted") : t("tx.confirming")} copy={t("create.submittedCopy")} hash={hash} />}
