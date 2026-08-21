@@ -40,6 +40,17 @@ test("full catalog keeps all eighteen services and every original artwork path e
   assert.doesNotMatch(catalogData, /momo|viettel|vinaphone|mobifone/i);
 });
 
+test("every Makoto Pay artwork is a local layered vector with dimensional shading", () => {
+  const paths = [...catalogData.matchAll(/"(\/makoto\/pay\/[^"]+\.svg)"/g)].map((match) => match[1]);
+  for (const path of paths) {
+    const svg = readFileSync(new URL(`../public${path}`, import.meta.url), "utf8");
+    assert.match(svg, /<(?:linearGradient|radialGradient)/, path);
+    assert.match(svg, /<filter[^>]*>[\s\S]*?<feDropShadow/, path);
+    assert.match(svg, /<ellipse/, path);
+    assert.doesNotMatch(svg, /<(?:image|script)|(?:xlink:)?href=/i, path);
+  }
+});
+
 test("catalog distinguishes the Mobile Top-up demo from planned services", () => {
   assert.match(catalog, /const demo = id === "mobile"/);
   assert.match(catalog, /pay\.demoAvailable/);

@@ -10,6 +10,8 @@
 @media(max-width:1120px){.serviceGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:760px){.serviceGrid{grid-template-columns:repeat(3,minmax(0,1fr))}.popularGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.popularGrid .serviceCard{display:flex;text-align:center}.popularGrid .serviceText{align-items:center}}
 @media(max-width:430px){.serviceGrid,.popularGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.serviceCard,.popularGrid .serviceCard{min-height:154px;padding:10px}.serviceIcon,.popularGrid .serviceIcon{width:78px;height:78px}}
+
+.serviceIcon img{filter:drop-shadow(0 8px 10px rgba(38,37,96,.24)) saturate(1.08);transition:transform .18s ease,filter .18s ease}.serviceCard:hover .serviceIcon img{transform:translateY(-2px) scale(1.055) rotate(-1deg);filter:drop-shadow(0 12px 12px rgba(38,37,96,.3)) saturate(1.12)}
 @media(max-width:340px){.serviceGrid,.popularGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .topupHero{display:flex;align-items:center;justify-content:space-between;gap:25px}.topupHero>div{min-width:0}.topupHero>div>p:last-child{max-width:670px;color:var(--mw-text-muted);line-height:1.65}.topupHero>img{width:130px;height:130px;border-radius:28px;box-shadow:0 18px 40px rgba(57,65,154,.15)}
 @media(max-width:430px){.topupHero>img{width:88px;height:88px;border-radius:20px}}

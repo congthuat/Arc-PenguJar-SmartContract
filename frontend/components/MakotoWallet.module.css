@@ -1703,6 +1703,8 @@
 
 @media(max-width:1120px){.payHomeGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:760px){.payHome{padding:20px 15px}.payHomeHeader{align-items:flex-start;flex-direction:column}.payHomeHeader>a{width:100%;justify-content:center}.payHomeGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.payShortcut{padding-inline:3px}.payShortcutArt{border-radius:15px}.payShortcut strong{font-size:9px}}
+
+.payShortcutArt img{filter:drop-shadow(0 8px 9px rgba(38,37,96,.22)) saturate(1.08);transition:transform .2s ease,filter .2s ease}.payShortcut:hover .payShortcutArt img{transform:translateY(-2px) scale(1.045) rotate(-1deg);filter:drop-shadow(0 11px 11px rgba(38,37,96,.28)) saturate(1.12)}
 @media(max-width:430px){.payHomeGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:340px){.payHomeGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
