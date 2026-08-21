@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <strong>A non-custodial Arc Testnet wallet experience.</strong><br />
-  USDC/EURC payments, swaps, bridging, savings, transaction memos, and verifiable transaction history.
+  <strong>A non-custodial Arc Testnet wallet for everyday stablecoin use.</strong><br />
+  Hold, pay, move, swap, bridge, and save USDC and EURC through one consumer-friendly wallet experience.
 </p>
 
 <p align="center">
@@ -19,9 +19,11 @@
 
 ## Overview
 
-Makoto Wallet is a client-side, non-custodial wallet experience built for **Arc Testnet**. It supports everyday USDC and EURC payments, real XyloNet swaps, Circle CCTP V2 bridging, PenguJar savings, public Arc transaction memos, and receipts verified against on-chain transaction logs.
+Makoto Wallet is a client-side, non-custodial wallet built on **Arc Testnet** around a simple idea: make stablecoins useful beyond holding and transferring. It combines USDC/EURC payments, Send and Receive, XyloNet swaps, Circle CCTP bridging, PenguJar savings, transaction safety, local security controls, and Makoto Pay—a product prototype exploring how stablecoins could be used for everyday services.
 
 The project started as **PenguJar**, an on-chain USDC savings dApp. PenguJar V3 is now the savings module inside the broader Makoto Wallet product.
+
+**Hold → Pay → Move → Save.** Makoto explores a consumer-wallet experience where stablecoins can be held, used for payments, transferred through supported flows, and placed into goal-based savings—without overstating the readiness of its testnet software or product prototypes.
 
 > Makoto Wallet is a testnet product for development, testing, and demonstration. Testnet assets have no intended real-world monetary value. The project is not independently security audited or represented as mainnet-ready financial software.
 
@@ -102,6 +104,26 @@ The project started as **PenguJar**, an on-chain USDC savings dApp. PenguJar V3 
 - Verified transaction receipts
 - Real ArcScan/Blockscout on-chain Activity for Send, Receive, Swap, and Bridge
 
+### Makoto Pay
+
+Makoto Pay is integrated into the main Wallet dashboard, while `/pay` presents a responsive catalog of 18 everyday-service concepts with original Makoto artwork. **Mobile Top-up is the only interactive product demo**; every other service is a Coming soon product concept, not a provider integration.
+
+The Mobile Top-up simulation uses a fixed demonstration rate of `1 USDC = 25,000 VND` and supports `20,000`, `50,000`, `100,000`, `200,000`, and `500,000 VND`. The phone number exists only in component memory, is masked during review, and completion creates a local `MKT-DEMO-*` order ID.
+
+Mobile Top-up does **not** submit an on-chain transaction, transfer USDC, deliver real mobile credit, represent a telecom integration or provider partnership, or use a live FX quote.
+
+| Service concept | Status | Service concept | Status |
+| --- | --- | --- | --- |
+| Mobile Top-up | Demo available | Data Packages | Coming soon |
+| Electricity | Coming soon | Water | Coming soon |
+| Internet | Coming soon | Television | Coming soon |
+| Movies | Coming soon | Games & Entertainment | Coming soon |
+| Gift Cards | Coming soon | Shopping | Coming soon |
+| Food & Delivery | Coming soon | Transport | Coming soon |
+| Travel | Coming soon | Hotels | Coming soon |
+| Education | Coming soon | Other Bills | Coming soon |
+| Merchant Pay | Coming soon | Subscriptions | Coming soon |
+
 ### Safety and local security
 
 - Transaction Safety Review before supported write actions, with account/network/input invalidation
@@ -153,6 +175,11 @@ App Lock restricts the normal Makoto interface on the current browser. By defaul
 | Email / Google embedded-wallet onboarding | ✅ Available |
 | Arc Testnet detection | ✅ Available |
 | Real USDC and EURC balances | ✅ Available |
+| Makoto Pay home experience | ✅ Available |
+| Makoto Pay service catalog | ✅ Available |
+| Mobile Top-up product simulation | 🧪 Demo |
+| Real service-provider integrations | ⏳ Not integrated |
+| Real Makoto Pay USDC settlement | ⏳ Not implemented |
 | Send and Receive USDC / EURC | ✅ Available |
 | Contacts & Recent recipients | ✅ Available |
 | Receive QR payment requests | ✅ Available |
@@ -207,6 +234,10 @@ Makoto Wallet is a client-side dApp. It does not require a custodial backend to 
 - Solidity and Hardhat
 - OpenZeppelin contracts
 - PenguJar V3 on Arc Testnet
+
+### Makoto Pay prototype
+
+The service catalog and artwork are local frontend assets and data. Mobile Top-up state is client-side: the phone number is not persisted, the fixed FX rate is deterministic demonstration data, and its completion receipt is a product simulation. An `MKT-DEMO-*` ID is not a blockchain transaction hash, and Mobile Top-up performs no wallet signing or blockchain write. Any future service-provider integration would require separate architecture, security review, and explicit implementation.
 
 ### Contacts
 
@@ -269,7 +300,9 @@ npm run lint
 npm run build
 ```
 
-For the Public Beta 0.2 preparation checkpoint, **265/265 frontend tests** and **19/19 required contract tests** pass. TypeScript, ESLint, the production build, and whitespace validation also pass.
+The historical **Public Beta 0.2 release checkpoint** passed **265/265 frontend tests** and **19/19 required contract tests**.
+
+At the current post-beta development HEAD, **284/284 frontend tests** and **19/19 required contract tests** pass. Typecheck, lint, the production build, and `git diff --check` also pass.
 
 Manual QA has been reported complete for the core release flows, including onboarding, supported wallet actions, PenguJar, Security Center, App Lock, English/Vietnamese, themes, and responsive layouts. This is a project QA statement, not evidence of an independent professional security audit or exhaustive testing of every wallet and transaction path.
 
@@ -365,9 +398,25 @@ Development after Phase 10 is feedback-driven rather than phase-number-driven. F
 
 These are directions, not promised releases. Makoto Wallet remains Arc Testnet-only and does not promise Arc Mainnet support.
 
+### Post-Public-Beta development
+
+Makoto Pay was developed after the Public Beta 0.2 release checkpoint. Current post-beta development includes:
+
+- Makoto Pay integrated into Wallet Home
+- An everyday-service concept catalog
+- The Mobile Top-up simulation
+- Original 3D Makoto Pay service artwork
+- Localized decimal inputs
+- Improved modal UX
+- Final mobile-responsive polish
+
+Future work remains feedback-driven. Potential directions include real Merchant Pay or QR flows on Arc Testnet, provider integrations only when technically and legally appropriate, user-feedback-driven improvements, and future mainnet-readiness work only when officially appropriate. These are directions, not promised releases.
+
 ## Current Public Beta Release
 
 Makoto Wallet Public Beta 0.2 is available on Arc Testnet.
+
+This historical release checkpoint predates the post-beta Makoto Pay development described above; Makoto Pay was not included in `v0.2.0-beta.1`.
 
 - **Version:** `v0.2.0-beta.1`
 - **Release title:** `Makoto Wallet Public Beta 0.2`
@@ -377,7 +426,7 @@ Makoto Wallet Public Beta 0.2 is available on Arc Testnet.
 - **Deployment:** https://makoto-wallet.vercel.app
 - **Status:** Arc Testnet Public Beta pre-release
 
-Current validation:
+Public Beta 0.2 release-checkpoint validation:
 
 - Required contract tests: 19/19
 - Frontend tests: 265/265
