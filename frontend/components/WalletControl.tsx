@@ -10,6 +10,7 @@ import { formatUsdc, shortAddress } from "@/lib/format";
 import { ARC_EXPLORER_URL } from "@/lib/config";
 import { usePreferences } from "@/hooks/usePreferences";
 import { getAppKit, isReownConfigured } from "@/lib/wagmi";
+import { appKitViewForPath, walletKindFromConnector } from "@/lib/onboarding";
 
 export function WalletControl() {
   const hydrated = useHydrated();
@@ -27,6 +28,7 @@ export function WalletControl() {
   const onArc = verifiedChain.isArc;
   const balances = useWalletBalances(connection.address, connection.isConnected && onArc);
   const walletName = connection.connector?.name;
+  const walletKind = walletKindFromConnector(connection.connector?.id);
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 620px)");
@@ -72,7 +74,7 @@ export function WalletControl() {
     const appKit = getAppKit();
     if (!appKit) return;
     setMessage(undefined);
-    await appKit.open({ view: "Connect" });
+    await appKit.open({ view: appKitViewForPath("existing") });
   }
 
   async function switchToArc() {
@@ -102,7 +104,7 @@ export function WalletControl() {
 
   const accountPanel = <div className="wallet-popover connected-popover account-menu" role="dialog" aria-modal={isMobileAccountSheet ? "true" : undefined} aria-label={t("wallet.connected")}>
     <div className="wallet-popover-heading"><strong>{t("wallet.account")}</strong><button ref={panelCloseRef} onClick={(event) => closeAccount(event.detail === 0)} aria-label={t("common.close")}>×</button></div>
-    {walletName && <span className="account-provider">{walletName}</span>}
+    <span className="account-provider">{walletKind === "embedded" ? t("onboarding.walletType") : t("onboarding.externalWalletType")}{walletName ? ` · ${walletName}` : ""}</span>
     <p className="account-address">{shortAddress(connection.address)}</p>
     <div className="account-links"><button onClick={() => void copyAddress()}>{copied ? t("wallet.copied") : t("wallet.copy")}</button><a href={`${ARC_EXPLORER_URL}/address/${connection.address}`} target="_blank" rel="noreferrer">{t("wallet.arcscan")} ↗</a></div>
     <div className="wallet-network-row"><span>{t("wallet.network")}</span><strong><i className={onArc ? "healthy-dot" : "warning-dot"} />{onArc ? t("network.arc") : t("wallet.wrongNetwork")}</strong></div>

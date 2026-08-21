@@ -25,6 +25,14 @@ import { summarizeSavingsJars } from "@/lib/savingsSummary";
 import { arcScanTransactionUrl, type WalletActivity } from "@/lib/wallet";
 import { activityIdentity } from "@/lib/onchainActivity";
 import { addWalletActivity, mergeWalletActivity } from "@/lib/walletActivity";
+import {
+  appKitViewForPath,
+  ONBOARDING_INTENT_KEY,
+  parseOnboardingIntent,
+  shouldShowWalletReady,
+  type OnboardingPath,
+} from "@/lib/onboarding";
+import { getAppKit, isReownConfigured } from "@/lib/wagmi";
 import styles from "./MakotoWallet.module.css";
 
 type Action = "send" | "receive" | "swap";
@@ -70,6 +78,9 @@ export function WalletDashboard() {
   const [optimisticActivity, setOptimisticActivity] = useState<{ address: string; records: WalletActivity[] }>();
   const [copied, setCopied] = useState(false);
   const [receiptActivity, setReceiptActivity] = useState<WalletActivity>();
+  const [onboardingIntent, setOnboardingIntent] = useState<OnboardingPath | undefined>(() =>
+    typeof window === "undefined" ? undefined : parseOnboardingIntent(window.sessionStorage.getItem(ONBOARDING_INTENT_KEY)),
+  );
 
   const activities = useMemo(() => {
     const optimistic = optimisticActivity && connection.address && optimisticActivity.address.toLowerCase() === connection.address.toLowerCase()
@@ -100,8 +111,22 @@ export function WalletDashboard() {
     ]);
   }
 
+  async function beginOnboarding(path: OnboardingPath) {
+    const appKit = getAppKit();
+    if (!appKit) return;
+    window.sessionStorage.setItem(ONBOARDING_INTENT_KEY, path);
+    setOnboardingIntent(path);
+    await appKit.open({ view: appKitViewForPath(path) });
+  }
+
+  function continueToWallet() {
+    window.sessionStorage.removeItem(ONBOARDING_INTENT_KEY);
+    setOnboardingIntent(undefined);
+  }
+
   const usdcBalance =
     balances.usdc.data === undefined ? "—" : formatUsdc(balances.usdc.data);
+  const showWalletReady = shouldShowWalletReady(onboardingIntent, onArc, connection.connector?.id);
 
   return (
     <main className={styles.page}>
@@ -114,6 +139,29 @@ export function WalletDashboard() {
               <span className={styles.kicker}>MAKOTO WALLET{" · "}ARC TESTNET</span>
               <h1>{t("walletHome.connectTitle")}</h1>
               <p>{t("walletHome.connectCopy")}</p>
+              <div className={styles.onboardingPanel} aria-labelledby="onboarding-title">
+                <h2 id="onboarding-title">{t("onboarding.title")}</h2>
+                <button
+                  type="button"
+                  className={styles.createWalletButton}
+                  onClick={() => void beginOnboarding("create")}
+                  disabled={!isReownConfigured}
+                >
+                  <strong>{t("onboarding.createWallet")}</strong>
+                  <span>{t("onboarding.createHelp")}</span>
+                </button>
+                <button
+                  type="button"
+                  className={styles.connectExistingButton}
+                  onClick={() => void beginOnboarding("existing")}
+                  disabled={!isReownConfigured}
+                >
+                  <strong>{t("onboarding.connectExisting")}</strong>
+                  <span>{t("onboarding.connectHelp")}</span>
+                </button>
+                <p className={styles.onboardingSafety}>{t("onboarding.methods")}<br />{t("onboarding.noPrivateKeyStorage")}</p>
+                {!isReownConfigured && <p className={styles.onboardingUnavailable} role="status">{t("onboarding.unavailable")}</p>}
+              </div>
             </div>
             <div className={styles.disconnectedArt}>
               <Image
@@ -124,6 +172,20 @@ export function WalletDashboard() {
                 className={styles.coverImage}
               />
             </div>
+          </section>
+        ) : showWalletReady && connection.address ? (
+          <section className={styles.walletReady} aria-labelledby="wallet-ready-title">
+            <span className={styles.kicker}>MAKOTO WALLET{" · "}ARC TESTNET</span>
+            <div className={styles.walletReadyBadge}>Arc Testnet</div>
+            <h1 id="wallet-ready-title">{t("onboarding.walletReady")}</h1>
+            <p>{t("onboarding.walletReadyCopy")}</p>
+            <dl>
+              <div><dt>{t("onboarding.walletAddress")}</dt><dd>{shortAddress(connection.address)}</dd></div>
+              <div><dt>{t("wallet.network")}</dt><dd>Arc Testnet · 5042002</dd></div>
+              <div><dt>{t("wallet.usdcBalance")}</dt><dd>{usdcBalance} USDC</dd></div>
+            </dl>
+            <p className={styles.walletReadySafety}>{t("onboarding.noPrivateKeyStorage")}</p>
+            <button type="button" onClick={continueToWallet}>{t("onboarding.continue")}</button>
           </section>
         ) : (
           <>

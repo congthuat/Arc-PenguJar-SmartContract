@@ -34,7 +34,18 @@ if (REOWN_PROJECT_ID) {
     projectId: REOWN_PROJECT_ID,
     metadata: REOWN_METADATA,
     allowUnsupportedChain: false,
-    features: { analytics: false, email: false, socials: false, swaps: false, onramp: false },
+    features: {
+      analytics: false,
+      email: true,
+      socials: ["google"],
+      emailShowWallets: false,
+      connectMethodsOrder: ["email", "social", "wallet"],
+      collapseWallets: true,
+      swaps: false,
+      onramp: false,
+      send: false,
+      receive: false,
+    },
     themeVariables: { "--w3m-accent": "#7250ff", "--w3m-border-radius-master": "3px" },
   });
 } else {
