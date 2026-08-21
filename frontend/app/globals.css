@@ -1248,6 +1248,12 @@ html[data-theme="dark"] .makoto-page{background:radial-gradient(circle at 10% 10
   }
 }
 
+/* Receive owns a non-form amount row, so keep its control aligned with Makoto fields. */
+.receive-amount{position:relative;display:block;width:100%;margin-top:7px}
+.receive-amount input{box-sizing:border-box;width:100%;min-width:0;min-height:48px;padding:0 72px 0 12px;border:1px solid var(--line);border-radius:12px;color:var(--ink);background:var(--white);font:inherit;appearance:none}
+.receive-amount>span,.wallet-field-with-action.receive-amount>span{position:absolute;z-index:1;top:50%;right:14px;transform:translateY(-50%);color:var(--purple);font-size:10px;font-weight:900;line-height:1;pointer-events:none}
+.receive-amount input:hover{border-color:color-mix(in srgb,var(--purple) 35%,var(--line))}.receive-amount input:focus-visible{border-color:var(--purple);outline:3px solid color-mix(in srgb,var(--purple) 35%,transparent);outline-offset:2px}.receive-amount input[aria-invalid="true"]{border-color:#c75252}.receive-amount input:disabled{color:var(--muted);background:var(--background);cursor:not-allowed;opacity:.7}
+
 /* Public beta micro-polish: compact mobile art and balanced CTA. */
 .eyebrow,
 .card-footer,
