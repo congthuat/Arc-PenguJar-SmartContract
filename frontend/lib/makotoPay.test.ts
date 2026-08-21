@@ -47,6 +47,8 @@ test("every Makoto Pay artwork is a local layered vector with dimensional shadin
     assert.match(svg, /<(?:linearGradient|radialGradient)/, path);
     assert.match(svg, /<filter[^>]*>[\s\S]*?<feDropShadow/, path);
     assert.match(svg, /<ellipse/, path);
+    assert.doesNotMatch(svg, /<rect[^>]+width="160"[^>]+height="160"/i, path);
+    assert.doesNotMatch(svg, /<rect[^>]+height="160"[^>]+width="160"/i, path);
     assert.doesNotMatch(svg, /<(?:image|script)|(?:xlink:)?href=/i, path);
   }
 });
