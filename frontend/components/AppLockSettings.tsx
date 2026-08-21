@@ -27,7 +27,12 @@ export function AppLockSettings() {
     {!lock.available ? <p className={styles.settingsMuted}>{t("appLock.unavailable")}</p> : <>
       <div className={styles.settingsInfo}><span>{t("appLock.status")}</span><strong>{lock.enabled ? t("appLock.enabled") : t("appLock.off")}</strong></div>
       {!lock.enabled && <div className={`${styles.securityAlert} ${styles.securityAlert_attention}`}><strong>{t("appLock.off")}</strong><span>{t("appLock.storageDisclosure")}</span></div>}
-      {lock.enabled && <label className={styles.appLockTiming}>{t("appLock.autoLock")}<select value={lock.config?.autoLockMs ?? 0} onChange={(event) => lock.setAutoLockMs(Number(event.target.value))}>{AUTO_LOCK_OPTIONS.map((value) => <option key={value} value={value}>{autoLabel(value, t)}</option>)}</select></label>}
+      {lock.enabled && <><label className={styles.appLockTiming}>{t("appLock.autoLock")}<select value={lock.config?.autoLockMs ?? 0} onChange={(event) => lock.setAutoLockMs(Number(event.target.value))}>{AUTO_LOCK_OPTIONS.map((value) => <option key={value} value={value}>{autoLabel(value, t)}</option>)}</select></label>
+        <div className={styles.appLockSessionSetting}>
+          <div><strong id="app-lock-session-label">{t("appLock.keepSession")}</strong><p id="app-lock-session-description">{t("appLock.keepSessionDescription")}</p><small>{t("appLock.keepSessionSecurity")}</small></div>
+          <button type="button" role="switch" aria-checked={lock.config?.keepUnlockedSession ?? false} aria-labelledby="app-lock-session-label" aria-describedby="app-lock-session-description" className={styles.appLockSwitch} onClick={() => lock.setKeepUnlockedSession(!(lock.config?.keepUnlockedSession ?? false))}><span aria-hidden="true" /><b>{t(lock.config?.keepUnlockedSession ? "appLock.on" : "appLock.offState")}</b></button>
+        </div>
+      </>}
       <p className={styles.settingsMuted}>{t("appLock.disclosure")}</p><p className={styles.settingsMuted}>{t("appLock.storageDisclosure")}</p>
       <div className={styles.settingsActions}>{!lock.enabled ? <button type="button" onClick={() => setFlow("setup")}>{t("appLock.setup")}</button> : <><button type="button" onClick={lock.lock}>{t("appLock.lockNow")}</button><button type="button" onClick={() => setFlow("change")}>{t("appLock.changePin")}</button><button type="button" onClick={() => setFlow("disable")}>{t("appLock.disable")}</button><button type="button" onClick={() => setFlow("reset")}>{t("appLock.forgot")}</button></>}</div>
     </>}

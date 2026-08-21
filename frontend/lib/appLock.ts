@@ -1,5 +1,8 @@
 export const APP_LOCK_STORAGE_KEY = "makoto-wallet:app-lock:v1";
 export const APP_LOCK_SIGNAL_KEY = "makoto-wallet:app-lock-signal:v1";
+export const APP_LOCK_SESSION_KEY = "makoto-wallet:app-lock-session:v1";
+export const APP_LOCK_SESSION_CHANNEL = "makoto-wallet-app-lock-session-v1";
+export const APP_LOCK_SESSION_MARKER = "authenticated";
 export const APP_LOCK_ITERATIONS = 210_000;
 export const AUTO_LOCK_OPTIONS = [60_000, 300_000, 900_000, 1_800_000, 0] as const;
 
@@ -12,10 +15,14 @@ export type AppLockConfig = {
   failedAttempts: number;
   cooldownLevel: number;
   cooldownUntil: number;
+  keepUnlockedSession: boolean;
 };
 
 export type AppLockSignalAction = "lock" | "disable" | "reset";
 export type AppLockSessionState = { config?: AppLockConfig; locked: boolean };
+export type AppLockSessionMessage =
+  | { type: "request-session-unlock"; requestId: string }
+  | { type: "grant-session-unlock"; requestId: string };
 
 export type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem" | "key" | "length">;
 
@@ -27,10 +34,10 @@ export function cooldownDuration(level: number) { return Math.min(30_000 * 2 ** 
 export function recordFailedAttempt(config: AppLockConfig, now: number) { const failures = config.failedAttempts + 1; const cooldown = failures >= 5; return { ...config, failedAttempts: cooldown ? 0 : failures, cooldownLevel: cooldown ? config.cooldownLevel + 1 : config.cooldownLevel, cooldownUntil: cooldown ? now + cooldownDuration(config.cooldownLevel) : 0 }; }
 export function resetFailedAttempts(config: AppLockConfig) { return { ...config, failedAttempts: 0, cooldownLevel: 0, cooldownUntil: 0 }; }
 
-export async function createAppLockConfig(pin: string, autoLockMs: number, cryptoApi: Crypto = crypto): Promise<AppLockConfig> {
+export async function createAppLockConfig(pin: string, autoLockMs: number, cryptoApi: Crypto = crypto, keepUnlockedSession = false): Promise<AppLockConfig> {
   if (!isValidPin(pin) || !AUTO_LOCK_OPTIONS.includes(autoLockMs as (typeof AUTO_LOCK_OPTIONS)[number])) throw new Error("Invalid App Lock configuration.");
   const salt = cryptoApi.getRandomValues(new Uint8Array(16));
-  return { version: 1, salt: bytesToBase64(salt), verifier: await deriveVerifier(pin, salt, APP_LOCK_ITERATIONS, cryptoApi), iterations: APP_LOCK_ITERATIONS, autoLockMs, failedAttempts: 0, cooldownLevel: 0, cooldownUntil: 0 };
+  return { version: 1, salt: bytesToBase64(salt), verifier: await deriveVerifier(pin, salt, APP_LOCK_ITERATIONS, cryptoApi), iterations: APP_LOCK_ITERATIONS, autoLockMs, failedAttempts: 0, cooldownLevel: 0, cooldownUntil: 0, keepUnlockedSession };
 }
 
 export async function verifyAppLockPin(pin: string, config: AppLockConfig, cryptoApi: Crypto = crypto) {
@@ -48,14 +55,31 @@ export function parseAppLockConfig(raw: string | null): AppLockConfig | undefine
     const value: unknown = raw ? JSON.parse(raw) : undefined;
     if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
     const item = value as Record<string, unknown>;
-    if (item.version !== 1 || typeof item.salt !== "string" || typeof item.verifier !== "string" || item.iterations !== APP_LOCK_ITERATIONS || typeof item.autoLockMs !== "number" || !AUTO_LOCK_OPTIONS.includes(item.autoLockMs as never) || !safeNumber(item.failedAttempts) || !safeNumber(item.cooldownLevel) || !safeNumber(item.cooldownUntil)) return undefined;
-    return value as AppLockConfig;
+    if (item.version !== 1 || typeof item.salt !== "string" || typeof item.verifier !== "string" || item.iterations !== APP_LOCK_ITERATIONS || typeof item.autoLockMs !== "number" || !AUTO_LOCK_OPTIONS.includes(item.autoLockMs as never) || !safeNumber(item.failedAttempts) || !safeNumber(item.cooldownLevel) || !safeNumber(item.cooldownUntil) || (item.keepUnlockedSession !== undefined && typeof item.keepUnlockedSession !== "boolean")) return undefined;
+    return { version: 1, salt: item.salt, verifier: item.verifier, iterations: APP_LOCK_ITERATIONS, autoLockMs: item.autoLockMs, failedAttempts: item.failedAttempts, cooldownLevel: item.cooldownLevel, cooldownUntil: item.cooldownUntil, keepUnlockedSession: item.keepUnlockedSession === true };
   } catch { return undefined; }
 }
 
-export function initialAppLockState(raw: string | null): AppLockSessionState {
+export function initialAppLockState(raw: string | null, authenticatedSession = false): AppLockSessionState {
   const config = parseAppLockConfig(raw);
-  return { config, locked: Boolean(config) };
+  return { config, locked: Boolean(config) && !(config?.keepUnlockedSession && authenticatedSession) };
+}
+
+export function hasAuthenticatedAppLockSession(raw: string | null) { return raw === APP_LOCK_SESSION_MARKER; }
+
+export function parseAppLockSessionMessage(value: unknown): AppLockSessionMessage | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const message = value as Record<string, unknown>;
+  if ((message.type !== "request-session-unlock" && message.type !== "grant-session-unlock") || typeof message.requestId !== "string" || !/^[a-zA-Z0-9-]{8,100}$/.test(message.requestId)) return undefined;
+  return { type: message.type, requestId: message.requestId };
+}
+
+export function canGrantAppLockSession(config: AppLockConfig | undefined, locked: boolean, message: AppLockSessionMessage | undefined) {
+  return Boolean(config?.keepUnlockedSession && !locked && message?.type === "request-session-unlock");
+}
+
+export function isMatchingAppLockSessionGrant(requestId: string, message: AppLockSessionMessage | undefined) {
+  return message?.type === "grant-session-unlock" && message.requestId === requestId;
 }
 
 export function parseAppLockSignal(raw: string | null): AppLockSignalAction | undefined {
