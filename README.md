@@ -365,19 +365,41 @@ Development after Phase 10 is feedback-driven rather than phase-number-driven. F
 
 These are directions, not promised releases. Makoto Wallet remains Arc Testnet-only and does not promise Arc Mainnet support.
 
-## Public Beta Release
+## Current Public Beta Release
 
-Makoto Wallet Public Beta 0.1 is officially released on Arc Testnet:
+Makoto Wallet Public Beta 0.2 is available on Arc Testnet.
+
+- **Version:** `v0.2.0-beta.1`
+- **Release title:** `Makoto Wallet Public Beta 0.2`
+- **Release checkpoint:** `f17cb1f497bb7e810291bc58563a98ebf9de8b1d`
+- **GitHub Release:** https://github.com/congthuat/Makoto-Wallet/releases/tag/v0.2.0-beta.1
+- **Branch:** `makoto-wallet`
+- **Deployment:** https://makoto-wallet.vercel.app
+- **Status:** Arc Testnet Public Beta pre-release
+
+Current validation:
+
+- Required contract tests: 19/19
+- Frontend tests: 265/265
+- Typecheck: PASS
+- Lint: PASS
+- Production build: PASS
+
+Makoto Wallet remains Arc Testnet-only test software. Testnet assets have no intended real-world monetary value. Makoto Wallet and PenguJar have not undergone an independent professional security audit and are not mainnet-ready financial software.
+
+## Previous Releases
+
+### Makoto Wallet Public Beta 0.1
 
 - **Version:** `v0.1.0-beta.1`
 - **Release title:** `Makoto Wallet Public Beta 0.1`
 - **Release commit:** `44df6a11d71a85774c2b0e4128118a1493c65707`
-- **Release:** https://github.com/congthuat/Makoto-Wallet/releases/tag/v0.1.0-beta.1
+- **GitHub Release:** https://github.com/congthuat/Makoto-Wallet/releases/tag/v0.1.0-beta.1
 - **Branch:** `makoto-wallet`
 - **Deployment:** https://makoto-wallet.vercel.app
 - **Status:** Arc Testnet Public Beta released
 
-Verified release checks:
+Historical release checks:
 
 - Contract tests: 85 passing
 - Frontend tests: 197 passing
@@ -385,26 +407,17 @@ Verified release checks:
 - Lint: PASS
 - Production build: PASS
 
-Manual on-chain QA has specifically verified:
+Manual on-chain QA for this release specifically verified:
 
 - direct USDC Send receipt → Verified on Arc
 - Arc Memo Send receipt → Verified on Arc
 - matching on-chain note → Verified
 
-Broader Public Beta QA continues after release. This release does not claim a full professional audit, mainnet readiness, or manual testing of every possible wallet and transaction path.
+This historical release did not claim a full professional audit, mainnet readiness, or manual testing of every possible wallet and transaction path.
 
 ## PenguJar Project History
 
 PenguJar was the original project in this repository and remains the contract-backed savings module within Makoto Wallet. Its history includes time-locked savings, privacy modes, Guardian controls, recovery flows, security tests, and Arc Testnet deployment tooling.
-
-## Official Release
-
-The first Arc Testnet Public Beta release is published:
-
-- **Tag:** `v0.1.0-beta.1`
-- **Release title:** `Makoto Wallet Public Beta 0.1`
-- **Release commit:** `44df6a11d71a85774c2b0e4128118a1493c65707`
-- **GitHub Release:** https://github.com/congthuat/Makoto-Wallet/releases/tag/v0.1.0-beta.1
 
 ## License
 
