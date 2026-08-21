@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ARC_EXPLORER_URL } from "@/lib/config";
 import { formatDate, formatUsdc, shortAddress } from "@/lib/format";
 import type { JarActivityItem } from "@/lib/types";
@@ -9,11 +10,21 @@ export function JarActivity({ items, isLoading, isError, onRetry }: { items: Jar
   const { t } = usePreferences();
   return <section className="activity-card" aria-labelledby="activity-heading">
     <div className="activity-heading"><div><p className="eyebrow">{t("activity.onchain")}</p><h2 id="activity-heading">{t("activity.title")}</h2></div></div>
-    {isLoading ? <p className="activity-state">{t("activity.loading")}</p>
+    {isLoading ? <ActivityLoading />
       : isError ? <div className="activity-state"><p>{t("activity.error")}</p><button className="secondary-button" onClick={onRetry}>{t("common.tryAgain")}</button></div>
         : items.length === 0 ? <p className="activity-state">{t("activity.empty")}</p>
           : <ol className="activity-list">{items.map((item) => <ActivityRow key={item.id} item={item} />)}</ol>}
   </section>;
+}
+
+function ActivityLoading() {
+  const { t } = usePreferences();
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSlow(true), 4_000);
+    return () => window.clearTimeout(timer);
+  }, []);
+  return <div className="activity-state" role="status"><p>{t("activity.loading")}</p>{slow && <small>{t("activity.slow")}</small>}</div>;
 }
 
 function ActivityRow({ item }: { item: JarActivityItem }) {
