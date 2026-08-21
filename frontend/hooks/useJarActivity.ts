@@ -6,7 +6,7 @@ import { arcTestnet } from "viem/chains";
 import { decodeEventLog, encodeEventTopics, toHex, type Hex } from "viem";
 import { penguJarV3Abi } from "@/lib/abi/penguJarV3";
 import { contractAddress, PENGUJAR_DEPLOYMENT_BLOCK } from "@/lib/config";
-import { fetchAdaptiveRange, incrementalScanStart, loadBlockTimestamps, mergeActivityOverlap, withRateLimitRetry } from "@/lib/jarActivity";
+import { fetchCompatibleEventLogs, incrementalScanStart, loadBlockTimestamps, mergeActivityOverlap, withRateLimitRetry } from "@/lib/jarActivity";
 import type { JarActivityItem } from "@/lib/types";
 
 type ActivityLog = {
@@ -56,13 +56,15 @@ export function useJarActivity(jarId?: bigint) {
         const canIncrement = previous !== undefined && latestBlock >= previous.lastScannedBlock;
         const fromBlock = canIncrement ? incrementalScanStart(PENGUJAR_DEPLOYMENT_BLOCK, previous.lastScannedBlock) : PENGUJAR_DEPLOYMENT_BLOCK;
         const jarTopic = toHex(jarId, { size: 32 });
-        const rawLogs = await fetchAdaptiveRange<RawRpcLog>({
+        const rawLogs = await fetchCompatibleEventLogs<RawRpcLog, Hex>({
           fromBlock,
           toBlock: latestBlock,
-          request: (rangeStart, rangeEnd) => publicClient.request({
+          eventTopics,
+          request: (rangeStart, rangeEnd, selectedEventTopics) => publicClient.request({
             method: "eth_getLogs",
-            params: [{ address: contractAddress, topics: [eventTopics, jarTopic], fromBlock: toHex(rangeStart), toBlock: toHex(rangeEnd) }],
+            params: [{ address: contractAddress, topics: [selectedEventTopics.length === 1 ? selectedEventTopics[0] : selectedEventTopics, jarTopic], fromBlock: toHex(rangeStart), toBlock: toHex(rangeEnd) }],
           }) as Promise<RawRpcLog[]>,
+          identity: (log) => `${log.transactionHash}:${log.logIndex}`,
         });
         const logs = decodeActivityLogs(rawLogs);
         const blockNumbers = logs.map(({ blockNumber }) => blockNumber);

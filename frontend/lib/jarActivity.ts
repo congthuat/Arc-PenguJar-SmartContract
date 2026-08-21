@@ -8,6 +8,8 @@ export async function fetchAdaptiveRange<T>(options: {
   request(fromBlock: bigint, toBlock: bigint): Promise<T[]>;
   wait?: (milliseconds: number) => Promise<void>;
   attempts?: number;
+  ambiguousFallbacks?: number;
+  splitsRemaining?: number;
 }): Promise<T[]> {
   const wait = options.wait ?? delay;
   const attempts = options.attempts ?? 4;
@@ -20,16 +22,42 @@ export async function fetchAdaptiveRange<T>(options: {
         await wait(600 * 2 ** attempt);
         continue;
       }
-      if (isRangeLimitError(message) && options.fromBlock < options.toBlock) {
+      const canSplit = options.fromBlock < options.toBlock;
+      const knownRangeLimit = isRangeLimitError(message);
+      const ambiguousFallbacks = options.ambiguousFallbacks ?? 1;
+      const splitsRemaining = options.splitsRemaining ?? 20;
+      const ambiguousBroadFailure = ambiguousFallbacks > 0 && isAmbiguousGetLogsError(message) && options.toBlock - options.fromBlock >= 50_000n;
+      if ((knownRangeLimit || ambiguousBroadFailure) && canSplit && splitsRemaining > 0) {
         const middle = (options.fromBlock + options.toBlock) / 2n;
-        const first = await fetchAdaptiveRange({ ...options, toBlock: middle });
-        const second = await fetchAdaptiveRange({ ...options, fromBlock: middle + 1n });
+        const nextAmbiguousFallbacks = knownRangeLimit ? ambiguousFallbacks : ambiguousFallbacks - 1;
+        const first = await fetchAdaptiveRange({ ...options, toBlock: middle, ambiguousFallbacks: nextAmbiguousFallbacks, splitsRemaining: splitsRemaining - 1 });
+        const second = await fetchAdaptiveRange({ ...options, fromBlock: middle + 1n, ambiguousFallbacks: nextAmbiguousFallbacks, splitsRemaining: splitsRemaining - 1 });
         return [...first, ...second];
       }
       throw error;
     }
   }
   return [];
+}
+
+export async function fetchCompatibleEventLogs<T, TTopic>(options: {
+  fromBlock: bigint;
+  toBlock: bigint;
+  eventTopics: readonly TTopic[];
+  request(fromBlock: bigint, toBlock: bigint, eventTopics: readonly TTopic[]): Promise<T[]>;
+  identity(value: T): string;
+}): Promise<T[]> {
+  try {
+    return await fetchAdaptiveRange({ fromBlock: options.fromBlock, toBlock: options.toBlock, request: (fromBlock, toBlock) => options.request(fromBlock, toBlock, options.eventTopics) });
+  } catch (error) {
+    if (!isTopicCompatibilityError(rpcErrorMessage(error)) || options.eventTopics.length < 2) throw error;
+    const merged = new Map<string, T>();
+    for (const eventTopic of options.eventTopics) {
+      const logs = await fetchAdaptiveRange({ fromBlock: options.fromBlock, toBlock: options.toBlock, request: (fromBlock, toBlock) => options.request(fromBlock, toBlock, [eventTopic]) });
+      for (const log of logs) merged.set(options.identity(log), log);
+    }
+    return [...merged.values()];
+  }
 }
 
 export async function withRateLimitRetry<T>(request: () => Promise<T>, wait: (milliseconds: number) => Promise<void> = delay, attempts = 4): Promise<T> {
@@ -70,9 +98,20 @@ export async function loadBlockTimestamps(
 }
 
 export function rpcErrorMessage(error: unknown) {
-  if (!(error instanceof Error)) return String(error);
-  const details = "details" in error && typeof error.details === "string" ? error.details : "";
-  return `${error.message} ${details}`;
+  const messages: string[] = [];
+  const seen = new Set<unknown>();
+  function collect(value: unknown, depth: number) {
+    if (value === null || value === undefined || depth > 4 || seen.has(value)) return;
+    if (typeof value === "string") { messages.push(value); return; }
+    if (typeof value !== "object") return;
+    seen.add(value);
+    const record = value as Record<string, unknown>;
+    for (const key of ["message", "shortMessage", "details"]) if (typeof record[key] === "string") messages.push(record[key]);
+    if (Array.isArray(record.metaMessages)) for (const message of record.metaMessages) if (typeof message === "string") messages.push(message);
+    collect(record.cause, depth + 1);
+  }
+  collect(error, 0);
+  return messages.length > 0 ? messages.join(" ") : String(error);
 }
 
 export function isRateLimitError(message: string) {
@@ -80,7 +119,16 @@ export function isRateLimitError(message: string) {
 }
 
 export function isRangeLimitError(message: string) {
-  return /block range|range limit|range too large|requested range|response size|too many results|query returned more than/i.test(message);
+  return /block range|range limit|range too large|requested range|maximum (?:block )?range|max(?:imum)? range|exceeds? (?:the )?(?:maximum|allowed) (?:block )?range|limited to [\d,]+ blocks|please limit (?:the )?query|too many blocks|log response size (?:limit )?exceeded|response size|too many results|query returned more than|query timeout.{0,40}(?:range|blocks)|(?:range|blocks).{0,40}query timeout/i.test(message);
+}
+
+export function isAmbiguousGetLogsError(message: string) {
+  if (/invalid (?:param|argument|topic|address)|malformed|method not found|unsupported method|unauthori[sz]ed|forbidden|authentication|api key|network error|failed to fetch|connection (?:failed|refused|reset)|\bdns\b|offline/i.test(message)) return false;
+  return /timeout|timed out|internal error|server error|request failed|query failed|eth_getLogs/i.test(message);
+}
+
+export function isTopicCompatibilityError(message: string) {
+  return /(?:nested|array|or)[ -]?topics?.{0,50}(?:unsupported|not supported|invalid)|(?:unsupported|not supported).{0,50}(?:nested|array|or)[ -]?topics?|topic[ -]?0.{0,30}(?:array|or).{0,30}(?:invalid|unsupported|not supported)/i.test(message);
 }
 
 async function mapWithConcurrency<T>(values: readonly T[], limit: number, task: (value: T) => Promise<void>) {
