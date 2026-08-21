@@ -6,6 +6,7 @@ import { useAppLock } from "@/hooks/useAppLock";
 import { usePreferences } from "@/hooks/usePreferences";
 import { AUTO_LOCK_OPTIONS, isValidPin, isWeakPin, pinsMatch } from "@/lib/appLock";
 import styles from "./MakotoWallet.module.css";
+import { AppLockPinInput } from "./AppLockPinInput";
 
 type Flow = "setup" | "change" | "disable" | "reset" | undefined;
 export function AppLockSettings() {
@@ -28,7 +29,7 @@ export function AppLockSettings() {
       {!lock.enabled && <div className={`${styles.securityAlert} ${styles.securityAlert_attention}`}><strong>{t("appLock.off")}</strong><span>{t("appLock.storageDisclosure")}</span></div>}
       {lock.enabled && <label className={styles.appLockTiming}>{t("appLock.autoLock")}<select value={lock.config?.autoLockMs ?? 0} onChange={(event) => lock.setAutoLockMs(Number(event.target.value))}>{AUTO_LOCK_OPTIONS.map((value) => <option key={value} value={value}>{autoLabel(value, t)}</option>)}</select></label>}
       <p className={styles.settingsMuted}>{t("appLock.disclosure")}</p><p className={styles.settingsMuted}>{t("appLock.storageDisclosure")}</p>
-      <div className={styles.settingsActions}>{!lock.enabled ? <button type="button" onClick={() => setFlow("setup")}>{t("appLock.setup")}</button> : <><button type="button" onClick={lock.lock}>{t("appLock.lockNow")}</button><button type="button" onClick={() => setFlow("change")}>{t("appLock.changePin")}</button><button type="button" onClick={() => setFlow("disable")}>{t("appLock.disable")}</button></>}<button type="button" onClick={() => setFlow("reset")}>{t("appLock.forgot")}</button></div>
+      <div className={styles.settingsActions}>{!lock.enabled ? <button type="button" onClick={() => setFlow("setup")}>{t("appLock.setup")}</button> : <><button type="button" onClick={lock.lock}>{t("appLock.lockNow")}</button><button type="button" onClick={() => setFlow("change")}>{t("appLock.changePin")}</button><button type="button" onClick={() => setFlow("disable")}>{t("appLock.disable")}</button><button type="button" onClick={() => setFlow("reset")}>{t("appLock.forgot")}</button></>}</div>
     </>}
     {flow && <div className={styles.appLockPanel} role="dialog" aria-modal="true" aria-labelledby="app-lock-flow-title"><h3 id="app-lock-flow-title">{t(flow === "setup" ? "appLock.setup" : flow === "change" ? "appLock.changePin" : flow === "disable" ? "appLock.disable" : "appLock.resetTitle")}</h3>
       {(flow === "setup" || flow === "change") && <p>{t("appLock.disclosure")}</p>}{flow === "setup" && <ol><li>{t("appLock.setupStep1")}</li><li>{t("appLock.setupStep2")}</li><li>{t("appLock.setupStep3")}</li><li>{t("appLock.setupStep4")}</li></ol>}
@@ -41,5 +42,5 @@ export function AppLockSettings() {
     </div>}
   </section>;
 }
-function PinField({ label, value, setValue }: { label: string; value: string; setValue(value: string): void }) { return <label>{label}<input type="password" inputMode="numeric" autoComplete="new-password" pattern="[0-9]{6}" maxLength={6} value={value} onChange={(event) => setValue(event.target.value.replace(/\D/g, "").slice(0, 6))} /></label>; }
+function PinField({ label, value, setValue }: { label: string; value: string; setValue(value: string): void }) { return <AppLockPinInput label={label} value={value} onChange={setValue} />; }
 function autoLabel(value: number, t: ReturnType<typeof usePreferences>["t"]) { return value === 0 ? t("appLock.never") : t(value === 60_000 ? "appLock.oneMinute" : value === 300_000 ? "appLock.fiveMinutes" : value === 900_000 ? "appLock.fifteenMinutes" : "appLock.thirtyMinutes"); }

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useDisconnect } from "wagmi";
 import { useAppLock } from "@/hooks/useAppLock";
 import { usePreferences } from "@/hooks/usePreferences";
+import { AppLockPinInput } from "./AppLockPinInput";
 
 export function AppLockGate({ children }: { children: ReactNode }) {
   const appLock = useAppLock();
@@ -28,7 +29,7 @@ export function AppLockGate({ children }: { children: ReactNode }) {
   return <main className="app-lock-screen"><section className="app-lock-card" aria-labelledby="app-lock-title">
     <Image src="/makoto/logo-pro-v2.png" alt="" width={76} height={76} priority />
     <h1 id="app-lock-title">{t("appLock.lockedTitle")}</h1><p>{t("appLock.enterToContinue")}</p>
-    <form onSubmit={(event) => void submit(event)}><label htmlFor="app-lock-pin">{t("appLock.pin")}</label><input ref={inputRef} id="app-lock-pin" type="password" inputMode="numeric" autoComplete="current-password" pattern="[0-9]{6}" maxLength={6} value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, "").slice(0, 6))} aria-describedby={message ? "app-lock-error" : undefined} /><button type="submit" disabled={pin.length !== 6}>{t("appLock.unlock")}</button></form>
+    <form autoComplete="off" data-form-type="other" onSubmit={(event) => void submit(event)}><AppLockPinInput ref={inputRef} label={t("appLock.pin")} value={pin} onChange={setPin} describedBy={message ? "app-lock-error" : undefined} /><button type="submit" disabled={pin.length !== 6}>{t("appLock.unlock")}</button></form>
     {message && <p id="app-lock-error" className="app-lock-error" role="alert">{message}</p>}
     <button className="app-lock-link" type="button" onClick={() => setResetOpen(true)}>{t("appLock.forgot")}</button>
     {resetOpen && <div className="app-lock-reset" role="alertdialog" aria-modal="true" aria-labelledby="reset-lock-title"><h2 id="reset-lock-title">{t("appLock.resetTitle")}</h2><p>{t("appLock.resetDisclosure")}</p><div><button type="button" onClick={() => setResetOpen(false)}>{t("common.cancel")}</button><button type="button" onClick={reset}>{t("appLock.confirmReset")}</button></div></div>}
