@@ -338,14 +338,25 @@ Potential ideas—not promised releases—include:
 - Deeper smart-account and recovery research
 - Further Public Beta improvements based on manual QA
 
-## Public Beta Checkpoint
+## Public Beta Release
 
-Current Arc Testnet Public Beta release candidate:
+Makoto Wallet Public Beta 0.1 is officially released on Arc Testnet:
 
-- **Commit:** `b62af77325ea06344117d82bb4876c6631fc05e0`
+- **Version:** `v0.1.0-beta.1`
+- **Release title:** `Makoto Wallet Public Beta 0.1`
+- **Release commit:** `44df6a11d71a85774c2b0e4128118a1493c65707`
+- **Release:** https://github.com/congthuat/Makoto-Wallet/releases/tag/v0.1.0-beta.1
 - **Branch:** `makoto-wallet`
 - **Deployment:** https://makoto-wallet.vercel.app
-- **Status:** Arc Testnet Public Beta release candidate
+- **Status:** Arc Testnet Public Beta released
+
+Verified release checks:
+
+- Contract tests: 85 passing
+- Frontend tests: 197 passing
+- Typecheck: PASS
+- Lint: PASS
+- Production build: PASS
 
 Manual on-chain QA has specifically verified:
 
@@ -353,20 +364,20 @@ Manual on-chain QA has specifically verified:
 - Arc Memo Send receipt → Verified on Arc
 - matching on-chain note → Verified
 
-Broader Public Beta QA can continue after release. This checkpoint does not claim a full professional audit, mainnet readiness, or manual testing of every possible wallet and transaction path.
+Broader Public Beta QA continues after release. This release does not claim a full professional audit, mainnet readiness, or manual testing of every possible wallet and transaction path.
 
 ## PenguJar Project History
 
 PenguJar was the original project in this repository and remains the contract-backed savings module within Makoto Wallet. Its history includes time-locked savings, privacy modes, Guardian controls, recovery flows, security tests, and Arc Testnet deployment tooling.
 
-## Release Preparation
+## Official Release
 
-This is the intended first Arc Testnet Public Beta release:
+The first Arc Testnet Public Beta release is published:
 
 - **Tag:** `v0.1.0-beta.1`
 - **Release title:** `Makoto Wallet Public Beta 0.1`
-
-The tag and GitHub Release have not been created yet.
+- **Release commit:** `44df6a11d71a85774c2b0e4128118a1493c65707`
+- **GitHub Release:** https://github.com/congthuat/Makoto-Wallet/releases/tag/v0.1.0-beta.1
 
 ## License
 
