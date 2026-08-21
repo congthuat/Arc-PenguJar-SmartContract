@@ -1,5 +1,6 @@
 import { formatUnits, getAddress, parseUnits, type Address } from "viem";
 import { arcTestnet } from "viem/chains";
+import { normalizeDecimalInput } from "./decimalInput.ts";
 
 export type SupportedAssetId = "usdc" | "eurc";
 
@@ -30,9 +31,10 @@ export function formatAssetAmount(amount: bigint, asset: SupportedAsset) {
 }
 
 export function parseAssetAmount(value: string, asset: SupportedAsset): bigint | undefined {
-  if (!/^\d+(\.\d{1,6})?$/.test(value.trim())) return undefined;
+  const normalized = normalizeDecimalInput(value, asset.decimals);
+  if (!normalized) return undefined;
   try {
-    const amount = parseUnits(value.trim(), asset.decimals);
+    const amount = parseUnits(normalized, asset.decimals);
     return amount > 0n ? amount : undefined;
   } catch { return undefined; }
 }

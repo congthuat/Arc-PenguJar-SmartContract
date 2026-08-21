@@ -1,5 +1,6 @@
 import { getAddress, isAddress, parseUnits, type Address, type Hash } from "viem";
 import type { SupportedAsset, SupportedAssetId } from "./assets";
+import { normalizeDecimalInput } from "./decimalInput.ts";
 const ARC_SCAN_URL = "https://testnet.arcscan.app";
 
 export type WalletActivity = {
@@ -31,9 +32,10 @@ export function normalizeRecipient(value: string): Address | undefined {
 }
 
 export function parseUsdcAmount(value: string): bigint | undefined {
-  if (!/^\d+(\.\d{1,6})?$/.test(value.trim())) return undefined;
+  const normalized = normalizeDecimalInput(value, 6);
+  if (!normalized) return undefined;
   try {
-    const amount = parseUnits(value.trim(), 6);
+    const amount = parseUnits(normalized, 6);
     return amount > 0n ? amount : undefined;
   } catch {
     return undefined;
@@ -66,9 +68,10 @@ export function validateAssetSend(recipient: string, amount: string, balance: bi
   const address = normalizeRecipient(recipient);
   if (!address) return { error: "address" as const };
   void sender;
-  if (!/^\d+(\.\d{1,6})?$/.test(amount.trim())) return { error: "amount" as const };
+  const normalized = normalizeDecimalInput(amount, asset.decimals);
+  if (!normalized) return { error: "amount" as const };
   let parsedAmount: bigint;
-  try { parsedAmount = parseUnits(amount.trim(), asset.decimals); } catch { return { error: "amount" as const }; }
+  try { parsedAmount = parseUnits(normalized, asset.decimals); } catch { return { error: "amount" as const }; }
   if (parsedAmount <= 0n) return { error: "amount" as const };
   if (parsedAmount > balance) return { error: "balance" as const };
   return { address, amount: parsedAmount, remaining: balance - parsedAmount, tokenAddress: asset.address };

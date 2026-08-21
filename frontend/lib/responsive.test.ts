@@ -47,6 +47,8 @@ test("transaction modals stay above Makoto chrome and lock background scrolling"
 });
 test("shared transaction dialogs contain keyboard focus", () => { const panel = readFileSync(new URL("../components/WalletPanel.tsx", import.meta.url), "utf8"); assert.match(panel, /event\.key !== "Tab"/); assert.match(panel, /querySelectorAll<HTMLElement>/); assert.match(panel, /event\.shiftKey/); assert.match(panel, /last\.focus\(\)/); assert.match(panel, /first\.focus\(\)/); });
 
+test("shared transaction dialogs reset scroll and keep their header sticky", () => { const panel = readFileSync(new URL("../components/WalletPanel.tsx", import.meta.url), "utf8"); assert.match(panel, /panelRef\.current\.scrollTop = 0/); assert.match(globals, /\.modal-header\s*\{[^}]*position:sticky[^}]*z-index:3[^}]*background:var\(--white\)/); });
+
 test("language switcher is a keyboard-accessible custom menu", () => {
   assert.doesNotMatch(languageMenu, /<select|<option/);
   assert.match(languageMenu, /aria-haspopup="menu"/);

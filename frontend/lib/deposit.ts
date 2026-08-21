@@ -1,4 +1,5 @@
 import { parseUnits } from "viem";
+import { normalizeDecimalInput } from "./decimalInput.ts";
 
 export function parseDepositAmount(value: string) {
   return parseUsdcAmount(value, "Deposit");
@@ -9,8 +10,8 @@ export function parseContributionAmount(value: string) {
 }
 
 function parseUsdcAmount(value: string, label: string) {
-  const normalized = value.trim();
-  if (!/^(?:0|[1-9]\d*)(?:\.\d{1,6})?$/.test(normalized)) {
+  const normalized = normalizeDecimalInput(value, 6);
+  if (!normalized) {
     throw new Error("Enter a USDC amount with no more than 6 decimal places.");
   }
   const amount = parseUnits(normalized, 6);

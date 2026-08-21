@@ -1,4 +1,5 @@
 import { parseUnits, stringToBytes } from "viem";
+import { normalizeDecimalInput } from "./decimalInput.ts";
 
 export type CreateJarValues = { name: string; target: string; unlockLocal: string };
 export type ParsedCreateJar = { name: string; targetAmount: bigint; unlockTime: bigint; unlockDate: Date };
@@ -8,10 +9,11 @@ export function parseCreateJar(values: CreateJarValues, now = Date.now()): Parse
   const name = values.name.trim();
   if (!name) throw new Error("Give your jar a name.");
   if (stringToBytes(name).length > 64) throw new Error("Jar name must be 64 UTF-8 bytes or fewer.");
-  if (!/^\d+(?:\.\d{1,6})?$/.test(values.target.trim())) {
+  const normalizedTarget = normalizeDecimalInput(values.target, 6);
+  if (!normalizedTarget) {
     throw new Error("Enter a positive USDC target with no more than 6 decimal places.");
   }
-  const targetAmount = parseUnits(values.target.trim(), 6);
+  const targetAmount = parseUnits(normalizedTarget, 6);
   if (targetAmount <= 0n) throw new Error("Target amount must be greater than 0 USDC.");
   const unlockDate = new Date(values.unlockLocal);
   if (!values.unlockLocal || Number.isNaN(unlockDate.getTime())) throw new Error("Choose a valid unlock date and time.");

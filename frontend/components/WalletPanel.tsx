@@ -12,6 +12,7 @@ export function WalletPanel({ title, onClose, children, closeDisabled = false }:
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
     const previousBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    if (panelRef.current) panelRef.current.scrollTop = 0;
     panelRef.current?.focus();
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !closeDisabled) { closeRef.current(); return; }
