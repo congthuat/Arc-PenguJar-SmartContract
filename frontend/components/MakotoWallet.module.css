@@ -1717,3 +1717,34 @@
 @media(max-width:430px){.payShortcutArt{width:min(88px,100%)}}
 @media(prefers-reduced-motion:reduce){.payShortcut,.payShortcutArt img{transition:none}.payShortcut:hover,.payShortcut:hover .payShortcutArt img{transform:none}.payShortcut:nth-child(1):hover .payShortcutArt img,.payShortcut:nth-child(2):hover .payShortcutArt img,.payShortcut:nth-child(5):hover .payShortcutArt img,.payShortcut:nth-child(8):hover .payShortcutArt img{transform:scale(1.09)}}
 
+/* Final phone composition: compact top row, one scrollable nav row, and dense Home cards. */
+@media(max-width:760px){
+  .header{grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px 10px}
+  .brandLogo{display:block;flex:0 0 auto}
+  .headerActions{justify-self:end;max-width:100%}
+  .nav{order:3;grid-column:1/-1;width:100%;margin:0 0 12px;padding:4px 6px;display:flex;flex-wrap:nowrap;justify-content:flex-start;gap:3px;overflow-x:auto;overflow-y:hidden;white-space:nowrap;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .nav::-webkit-scrollbar{display:none}
+  .nav a{flex:0 0 auto;min-width:max-content;min-height:48px;padding:0 11px;flex-direction:row;gap:6px;white-space:nowrap}
+  .topGrid{grid-template-rows:320px auto auto}
+  .actionsArea{grid-row:2}
+  .companionCard{grid-row:3;grid-template-columns:minmax(0,1fr) 140px;grid-template-rows:150px}
+  .companionImage{grid-column:2;grid-row:1;min-height:150px}
+  .companionImage .coverImage{object-fit:cover;object-position:center 42%}
+  .companionText{grid-column:1;grid-row:1;padding:20px;justify-content:center}
+  .companionText h2{font-size:21px}
+  .companionText p{margin-top:9px;font-size:11px;line-height:1.45}
+  .actionsGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .actionCard{min-height:102px;padding:9px 10px 9px 7px;grid-template-columns:54px minmax(0,1fr) 18px;gap:5px}
+  .actionIcon{width:54px;height:54px}
+  .actionText{gap:3px}.actionText strong{font-size:15px}.actionText small{min-height:0;font-size:9px;line-height:1.3}.chevron{width:18px;height:18px}
+}
+@media(max-width:390px){
+  .headerActions{gap:3px}.languageTrigger{padding-inline:7px}.walletControlWrap{max-width:118px}
+  .companionCard{grid-template-columns:minmax(0,1fr) 122px;grid-template-rows:142px}.companionImage{min-height:142px}.companionText{padding:16px}.companionText h2{font-size:19px}.companionText p{font-size:10px}
+  .actionCard{min-height:98px;grid-template-columns:50px minmax(0,1fr) 16px}.actionIcon{width:50px;height:50px}.actionText strong{font-size:14px}
+}
+@media(max-width:340px){
+  .nav a{padding-inline:9px}.companionCard{grid-template-columns:minmax(0,1fr) 108px;grid-template-rows:132px}.companionImage{min-height:132px}.companionText{padding:13px}.companionText p{font-size:9px}
+  .actionCard{min-height:92px;padding:7px;grid-template-columns:46px minmax(0,1fr) 14px}.actionIcon{width:46px;height:46px}.actionText small{display:none}
+}
+

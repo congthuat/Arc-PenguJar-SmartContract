@@ -16,6 +16,16 @@ test("responsive CSS fixes overflow sources instead of masking the page", () => 
   assert.match(wallet, /\.activityStatus\s*\{[^}]*display:\s*inline-flex/s);
 });
 
+test("mobile Home keeps one scrollable nav row, a two-by-two action grid, and compact Makoto art", () => {
+  assert.match(wallet, /@media\(max-width:760px\)[\s\S]*?\.nav\{[^}]*display:flex[^}]*flex-wrap:nowrap[^}]*overflow-x:auto[^}]*white-space:nowrap/);
+  assert.match(wallet, /\.nav::-webkit-scrollbar\{display:none\}/);
+  assert.match(wallet, /@media\(max-width:760px\)[\s\S]*?\.actionsGrid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(wallet, /@media\(max-width:760px\)[\s\S]*?\.companionCard\{[^}]*grid-template-columns:minmax\(0,1fr\) 140px[^}]*grid-template-rows:150px/);
+  assert.match(dashboard, /styles\.actionSend[\s\S]*styles\.actionReceive[\s\S]*styles\.actionSwap[\s\S]*styles\.actionSave/);
+  assert.match(dashboard, /styles\.companionCard[\s\S]*companion-art\.jpg/);
+  assert.match(dashboard, /<MakotoPayHomeSection\s*\/>/);
+});
+
 test("wallet balances avoid the obsolete native query and aggressive background refresh", () => {
   assert.doesNotMatch(balanceHook, /useBalance|\bnative\b/);
   assert.doesNotMatch(dashboard, /balances\.native/);
