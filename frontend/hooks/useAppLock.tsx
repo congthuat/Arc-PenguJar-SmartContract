@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { APP_LOCK_SIGNAL_KEY, APP_LOCK_STORAGE_KEY, AUTO_LOCK_OPTIONS, clearMakotoConvenienceData, createAppLockConfig, inactivityExpired, parseAppLockConfig, recordFailedAttempt, resetFailedAttempts, verifyAppLockPin, type AppLockConfig } from "@/lib/appLock";
+import { APP_LOCK_SIGNAL_KEY, APP_LOCK_STORAGE_KEY, AUTO_LOCK_OPTIONS, clearMakotoConvenienceData, createAppLockConfig, inactivityExpired, initialAppLockState, recordFailedAttempt, resetFailedAttempts, syncAppLockStorageEvent, verifyAppLockPin, type AppLockConfig } from "@/lib/appLock";
 
 type UnlockResult = "success" | "wrong" | "cooldown";
 type AppLockContextValue = {
@@ -24,8 +24,8 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
     queueMicrotask(() => {
       if (!active) return;
       const usable = Boolean(globalThis.crypto?.subtle && globalThis.crypto?.getRandomValues);
-      const stored = usable ? parseAppLockConfig(localStorage.getItem(APP_LOCK_STORAGE_KEY)) : undefined;
-      lastActivity.current = Date.now(); setAvailable(usable); setConfig(stored); setLocked(Boolean(stored)); setInitialized(true);
+      const initial = usable ? initialAppLockState(localStorage.getItem(APP_LOCK_STORAGE_KEY)) : { config: undefined, locked: false };
+      lastActivity.current = Date.now(); setAvailable(usable); setConfig(initial.config); setLocked(initial.locked); setInitialized(true);
     });
     return () => { active = false; };
   }, []);
@@ -56,7 +56,18 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
     document.addEventListener("visibilitychange", visibility);
     return () => { events.forEach((event) => window.removeEventListener(event, activity)); if (timer) window.clearInterval(timer); document.removeEventListener("visibilitychange", visibility); };
   }, [config, lock, locked]);
-  useEffect(() => { const sync = (event: StorageEvent) => { if (event.key !== APP_LOCK_STORAGE_KEY && event.key !== APP_LOCK_SIGNAL_KEY) return; const next = parseAppLockConfig(localStorage.getItem(APP_LOCK_STORAGE_KEY)); setConfig(next); setLocked(Boolean(next)); }; window.addEventListener("storage", sync); return () => window.removeEventListener("storage", sync); }, []);
+  useEffect(() => {
+    const sync = (event: StorageEvent) => {
+      if (event.key !== APP_LOCK_STORAGE_KEY && event.key !== APP_LOCK_SIGNAL_KEY) return;
+      const configRaw = event.key === APP_LOCK_STORAGE_KEY ? event.newValue : localStorage.getItem(APP_LOCK_STORAGE_KEY);
+      const signalRaw = event.key === APP_LOCK_SIGNAL_KEY ? event.newValue : null;
+      const next = syncAppLockStorageEvent({ config, locked }, event.key, configRaw, signalRaw);
+      setConfig(next.config);
+      setLocked(next.locked);
+    };
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, [config, locked]);
 
   const value = useMemo(() => ({ initialized, available, enabled: Boolean(config), locked, config, unlock, lock, setup, changePin, setAutoLockMs, disable, reset }), [available, changePin, config, disable, initialized, lock, locked, reset, setAutoLockMs, setup, unlock]);
   return <AppLockContext.Provider value={value}>{children}</AppLockContext.Provider>;

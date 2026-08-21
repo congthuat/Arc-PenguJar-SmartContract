@@ -14,6 +14,9 @@ export type AppLockConfig = {
   cooldownUntil: number;
 };
 
+export type AppLockSignalAction = "lock" | "disable" | "reset";
+export type AppLockSessionState = { config?: AppLockConfig; locked: boolean };
+
 export type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem" | "key" | "length">;
 
 export function isValidPin(pin: string) { return /^\d{6}$/.test(pin); }
@@ -48,6 +51,37 @@ export function parseAppLockConfig(raw: string | null): AppLockConfig | undefine
     if (item.version !== 1 || typeof item.salt !== "string" || typeof item.verifier !== "string" || item.iterations !== APP_LOCK_ITERATIONS || typeof item.autoLockMs !== "number" || !AUTO_LOCK_OPTIONS.includes(item.autoLockMs as never) || !safeNumber(item.failedAttempts) || !safeNumber(item.cooldownLevel) || !safeNumber(item.cooldownUntil)) return undefined;
     return value as AppLockConfig;
   } catch { return undefined; }
+}
+
+export function initialAppLockState(raw: string | null): AppLockSessionState {
+  const config = parseAppLockConfig(raw);
+  return { config, locked: Boolean(config) };
+}
+
+export function parseAppLockSignal(raw: string | null): AppLockSignalAction | undefined {
+  try {
+    const value: unknown = raw ? JSON.parse(raw) : undefined;
+    if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+    const action = (value as Record<string, unknown>).action;
+    return action === "lock" || action === "disable" || action === "reset" ? action : undefined;
+  } catch { return undefined; }
+}
+
+export function syncAppLockStorageEvent(
+  state: AppLockSessionState,
+  key: string | null,
+  configRaw: string | null,
+  signalRaw: string | null,
+): AppLockSessionState {
+  if (key === APP_LOCK_STORAGE_KEY) return { config: parseAppLockConfig(configRaw), locked: state.locked };
+  if (key !== APP_LOCK_SIGNAL_KEY) return state;
+  const action = parseAppLockSignal(signalRaw);
+  if (action === "disable" || action === "reset") return { config: undefined, locked: false };
+  if (action === "lock") {
+    const config = parseAppLockConfig(configRaw);
+    return { config, locked: Boolean(config) };
+  }
+  return state;
 }
 
 export function clearMakotoConvenienceData(storage: StorageLike) {
