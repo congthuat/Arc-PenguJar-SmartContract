@@ -7,6 +7,8 @@ import { createWagmiConfig, getAppKit } from "@/lib/wagmi";
 import { WalletNetworkProvider } from "@/hooks/useVerifiedWalletChain";
 import { PreferenceProvider, usePreferences } from "@/hooks/usePreferences";
 import type { Locale, ThemePreference } from "@/i18n";
+import { AppLockProvider } from "@/hooks/useAppLock";
+import { AppLockGate } from "@/components/AppLockGate";
 
 export function Providers({ children, initialLocale, initialTheme }: { children: ReactNode; initialLocale: Locale; initialTheme: ThemePreference }) {
   const [queryClient] = useState(() => new QueryClient());
@@ -17,7 +19,7 @@ export function Providers({ children, initialLocale, initialTheme }: { children:
       <AppKitThemeSync />
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
-          <WalletNetworkProvider>{children}</WalletNetworkProvider>
+          <AppLockProvider><AppLockGate><WalletNetworkProvider>{children}</WalletNetworkProvider></AppLockGate></AppLockProvider>
         </QueryClientProvider>
       </WagmiProvider>
     </PreferenceProvider>

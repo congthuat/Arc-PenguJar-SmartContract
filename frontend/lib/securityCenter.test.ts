@@ -3,6 +3,7 @@ import test from "node:test";
 import { zeroAddress, type Address } from "viem";
 import type { Jar } from "./types.ts";
 import {
+  appLockRecommendation,
   SECURITY_DATA_STORAGE,
   deriveNetworkSafety,
   deriveOverallSecurityStatus,
@@ -29,6 +30,7 @@ test("network state is derived without trusting a display-only chain value", () 
   assert.equal(deriveNetworkSafety(true, false), "wrong");
   assert.equal(deriveNetworkSafety(true, true), "correct");
 });
+test("optional App Lock state remains informational", () => { assert.equal(appLockRecommendation("enabled").severity, "info"); assert.equal(appLockRecommendation("disabled").severity, "attention"); });
 
 test("jar protection summary only alerts on active lifecycle state", () => {
     const summary = summarizeJarProtection([

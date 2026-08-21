@@ -43,6 +43,7 @@ export const SECURITY_DATA_STORAGE = {
   privateMetadata: "browser-local-encrypted",
   arcMemo: "public-onchain",
 } as const;
+export function appLockRecommendation(status: "enabled" | "disabled" | "unavailable") { return status === "enabled" ? { severity: "info" as const, label: "Local App Lock enabled" } : status === "disabled" ? { severity: "attention" as const, label: "Optional App Lock is disabled" } : { severity: "info" as const, label: "App Lock unavailable" }; }
 
 export function deriveNetworkSafety(connected: boolean, isArc: boolean): NetworkSafetyStatus {
   if (!connected) return "disconnected";
