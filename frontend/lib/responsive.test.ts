@@ -45,6 +45,7 @@ test("transaction modals stay above Makoto chrome and lock background scrolling"
   assert.match(panel, /document\.body\.style\.overflow\s*=\s*"hidden"/);
   assert.match(panel, /document\.body\.style\.overflow\s*=\s*previousBodyOverflow/);
 });
+test("shared transaction dialogs contain keyboard focus", () => { const panel = readFileSync(new URL("../components/WalletPanel.tsx", import.meta.url), "utf8"); assert.match(panel, /event\.key !== "Tab"/); assert.match(panel, /querySelectorAll<HTMLElement>/); assert.match(panel, /event\.shiftKey/); assert.match(panel, /last\.focus\(\)/); assert.match(panel, /first\.focus\(\)/); });
 
 test("language switcher is a keyboard-accessible custom menu", () => {
   assert.doesNotMatch(languageMenu, /<select|<option/);

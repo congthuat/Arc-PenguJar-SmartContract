@@ -13,7 +13,15 @@ export function WalletPanel({ title, onClose, children, closeDisabled = false }:
     const previousBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     panelRef.current?.focus();
-    const handleKey = (event: KeyboardEvent) => { if (event.key === "Escape" && !closeDisabled) closeRef.current(); };
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !closeDisabled) { closeRef.current(); return; }
+      if (event.key !== "Tab" || !panelRef.current) return;
+      const focusable = [...panelRef.current.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')].filter((element) => !element.hidden && element.getAttribute("aria-hidden") !== "true");
+      if (!focusable.length) { event.preventDefault(); panelRef.current.focus(); return; }
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === panelRef.current)) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
     document.addEventListener("keydown", handleKey);
     return () => { document.removeEventListener("keydown", handleKey); document.body.style.overflow = previousBodyOverflow; previous?.focus(); };
   }, [closeDisabled]);

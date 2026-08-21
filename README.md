@@ -90,6 +90,7 @@ The project started as **PenguJar**, an on-chain USDC savings dApp. PenguJar V3 
 ### Wallet
 
 - Reown AppKit multi-wallet connection
+- Email and Google embedded-wallet onboarding with a Makoto-owned OTP guidance step
 - Injected wallets, WalletConnect, and mobile wallet deep links
 - Arc Testnet detection
 - Real USDC and EURC balances
@@ -100,6 +101,15 @@ The project started as **PenguJar**, an on-chain USDC savings dApp. PenguJar V3 
 - Optional Arc on-chain transaction Memo for Send
 - Verified transaction receipts
 - Real ArcScan/Blockscout on-chain Activity for Send, Receive, Swap, and Bridge
+
+### Safety and local security
+
+- Transaction Safety Review before supported write actions, with account/network/input invalidation
+- Successful-receipt verification before confirmed UI and non-blocking background data refresh
+- Security Center for deterministic wallet, network, PenguJar, privacy, and beta-status information
+- Optional browser-local Makoto App Lock with a six-digit PIN verifier, inactivity lock, cooldown, and cross-tab locking
+
+App Lock restricts the normal Makoto interface on the current browser. It does not encrypt or control wallet private keys, replace Reown or external-wallet security, or make browser storage a hardware security boundary.
 
 ### Swap
 
@@ -139,6 +149,7 @@ The project started as **PenguJar**, an on-chain USDC savings dApp. PenguJar V3 
 | Feature | Status |
 | --- | --- |
 | Reown/AppKit wallet connection | ✅ Available |
+| Email / Google embedded-wallet onboarding | ✅ Available |
 | Arc Testnet detection | ✅ Available |
 | Real USDC and EURC balances | ✅ Available |
 | Send and Receive USDC / EURC | ✅ Available |
@@ -153,6 +164,9 @@ The project started as **PenguJar**, an on-chain USDC savings dApp. PenguJar V3 
 | PenguJar V3 savings | ✅ Available |
 | PUBLIC / PRIVATE jar metadata | ✅ Available |
 | Guardian & Recovery Wallet | ✅ Available |
+| Transaction Safety Review | ✅ Available |
+| Security Center | ✅ Available |
+| Optional local App Lock | ✅ Available |
 | EN / VI and Light / Dark | ✅ Available |
 | Mainnet release | ⏳ Not released |
 
@@ -195,6 +209,10 @@ Makoto Wallet is a client-side dApp. It does not require a custodial backend to 
 ### Contacts
 
 Contacts are browser-local, scoped by connected wallet and chain, and have no cloud synchronization. Contact names are display metadata and are excluded from canonical shared receipt text.
+
+### App Lock and local data
+
+Makoto App Lock stores a salted PBKDF2-SHA-256 verifier and local lock settings, never the raw PIN. It gates Makoto's normal UI without disconnecting or authenticating the wallet. Contacts, Recent recipients, and optimistic Activity remain browser-local; PRIVATE PenguJar metadata retains its separate wallet-signature-derived encryption architecture.
 
 ### Receive Payment Requests
 
@@ -314,7 +332,7 @@ The `main` branch retains earlier PenguJar project history. Makoto Wallet is dev
 
 ## Roadmap
 
-Phases 1–8 are complete for the Arc Testnet Public Beta feature set.
+Phases 1–9 are complete for the Arc Testnet Public Beta feature set. Phase 10 is the final audit and manual-QA preparation checkpoint.
 
 - Phase 1 — Wallet Foundation ✅
 - Phase 2 — Mini Wallet Core ✅
@@ -329,12 +347,13 @@ Phases 1–8 are complete for the Arc Testnet Public Beta feature set.
   - Arc transaction Memo
   - Verified transaction receipts
   - Swap quick amount controls
+- Phase 9 — Onboarding, Security Center, Transaction Safety, and App Lock ✅
+- Phase 10 — Final audit and manual-QA preparation
 
 ### Future / Deferred
 
 Potential ideas—not promised releases—include:
 
-- Optional Security Lock or local app access protection
 - Deeper smart-account and recovery research
 - Further Public Beta improvements based on manual QA
 
