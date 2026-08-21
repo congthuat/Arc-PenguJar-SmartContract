@@ -102,10 +102,11 @@ test("timestamps are fetched only for matching uncached blocks with bounded conc
   assert.equal(cache.get("arc:10"), 100n);
 });
 
-test("hook contains no mandatory 10000-block scan loop and keeps indexed jar topic", () => {
+test("hook delegates to the same-origin API and server keeps indexed jar topic", () => {
   const hook = readFileSync(new URL("../hooks/useJarActivity.ts", import.meta.url), "utf8");
-  assert.doesNotMatch(hook, /10_000|ACTIVITY_BLOCK_CHUNK/);
-  assert.match(hook, /topics:\s*\[selectedEventTopics[\s\S]*?,\s*jarTopic\]/);
+  const api = readFileSync(new URL("./jarActivityApi.ts", import.meta.url), "utf8");
+  assert.match(hook, /\/api\/jar-activity/);
+  assert.match(api, /topics:\s*\[eventTopics,\s*toHex\(jarId/);
 });
 
 function item(hash: string, blockNumber: bigint, logIndex: number): JarActivityItem {
