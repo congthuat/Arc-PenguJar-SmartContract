@@ -34,6 +34,18 @@ test("mobile controls and modals account for touch and safe areas", () => {
   assert.match(globals, /\.account-sheet-backdrop\s*\{[^}]*position:\s*fixed[^}]*inset:\s*0/s);
 });
 
+test("transaction modals stay above Makoto chrome and lock background scrolling", () => {
+  const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+  const makotoCss = readFileSync(new URL("../components/MakotoWallet.module.css", import.meta.url), "utf8");
+  const panel = readFileSync(new URL("../components/WalletPanel.tsx", import.meta.url), "utf8");
+  assert.match(css, /\.modal-backdrop\s*\{[^}]*z-index:\s*3000/);
+  assert.match(css, /\.create-modal\s*\{[^}]*max-height:\s*calc\(100dvh\s*-\s*48px\)[^}]*overflow-y:\s*auto/);
+  assert.match(makotoCss, /z-index:\s*1000/);
+  assert.match(panel, /previousBodyOverflow\s*=\s*document\.body\.style\.overflow/);
+  assert.match(panel, /document\.body\.style\.overflow\s*=\s*"hidden"/);
+  assert.match(panel, /document\.body\.style\.overflow\s*=\s*previousBodyOverflow/);
+});
+
 test("language switcher is a keyboard-accessible custom menu", () => {
   assert.doesNotMatch(languageMenu, /<select|<option/);
   assert.match(languageMenu, /aria-haspopup="menu"/);
