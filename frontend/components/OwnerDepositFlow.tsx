@@ -13,6 +13,7 @@ import { penguJarV3Abi } from "@/lib/abi/penguJarV3";
 import { ARC_EXPLORER_URL, contractAddress, EXPECTED_USDC_ADDRESS } from "@/lib/config";
 import { parseDepositAmount } from "@/lib/deposit";
 import { formatUsdc } from "@/lib/format";
+import { confirmThenRefresh } from "@/lib/confirmedTransaction";
 import type { Jar } from "@/lib/types";
 import { globalReviewChecks } from "@/lib/transactionReview";
 import { TransactionSafetyReview } from "./TransactionSafetyReview";
@@ -142,14 +143,18 @@ export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; 
       setStep("deposit-submitted");
       setStep("confirming");
       let replacementReason: string | undefined;
-      const receipt = await publicClient.waitForTransactionReceipt({ hash, confirmations: 1, onReplaced: (replacement) => {
+      const receiptPromise = publicClient.waitForTransactionReceipt({ hash, confirmations: 1, onReplaced: (replacement) => {
         replacementReason = replacement.reason;
         setDepositHash(replacement.transaction.hash);
-      } });
-      if (replacementReason === "cancelled") throw new Error("The deposit transaction was cancelled.");
-      if (receipt.status !== "success") throw new Error("The jar deposit reverted.");
-      await Promise.all([onSuccess(), balances.usdc.refetch(), allowance.refetch(), queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "jar-activity" })]);
-      setStep("success");
+      } }).then((receipt) => {
+        if (replacementReason === "cancelled") throw new Error("The deposit transaction was cancelled.");
+        return receipt;
+      });
+      await confirmThenRefresh({
+        receipt: receiptPromise,
+        onConfirmed: () => setStep("success"),
+        refresh: () => Promise.all([onSuccess(), balances.usdc.refetch(), allowance.refetch(), queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "jar-activity" })]),
+      });
     } catch (reason) {
       setError(transactionError(reason, "deposit", t));
       setStep("error");

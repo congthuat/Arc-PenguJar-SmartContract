@@ -8,6 +8,7 @@ import { penguJarV3Abi } from "@/lib/abi/penguJarV3";
 import { ARC_EXPLORER_URL, contractAddress } from "@/lib/config";
 import { defaultUnlockLocal, minimumUnlockLocal, parseCreateJar, type CreateJarValues } from "@/lib/createJar";
 import { formatLocalDateTime, formatUsdc, shortAddress } from "@/lib/format";
+import { confirmThenRefresh } from "@/lib/confirmedTransaction";
 import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
 import { usePreferences } from "@/hooks/usePreferences";
 import {
@@ -142,7 +143,11 @@ export function CreateJarFlow({ open, onClose, onConfirmed }: { open: boolean; o
           );
         }
         finalizedHash.current = write.data;
-        void onConfirmed().then(() => setStep("success"));
+        void confirmThenRefresh({
+          receipt: Promise.resolve({ status: "success" as const }),
+          onConfirmed: () => setStep("success"),
+          refresh: onConfirmed,
+        });
       }
       if (receipt.isError) {
         setTransactionError(transactionErrorMessage(receipt.error, t));

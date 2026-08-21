@@ -9,6 +9,7 @@ import { useVerifiedWalletChain } from "@/hooks/useVerifiedWalletChain";
 import { penguJarV3Abi } from "@/lib/abi/penguJarV3";
 import { ARC_EXPLORER_URL, contractAddress } from "@/lib/config";
 import { formatDate, formatUsdc } from "@/lib/format";
+import { confirmThenRefresh } from "@/lib/confirmedTransaction";
 import type { Jar } from "@/lib/types";
 import { usePreferences } from "@/hooks/usePreferences";
 import { TransactionSafetyChecks } from "./TransactionSafetyReview";
@@ -32,9 +33,10 @@ export function OwnerWithdrawalFlow({ jar, open, onClose, onSuccess }: { jar: Ja
     try {
       const owner = await assertConnectedOwner(connection.connector, jar.owner, verifiedChain.isArc);
       if (!contractAddress || !publicClient) throw new Error("Withdrawal configuration is unavailable.");
+      const jarAddress = contractAddress;
 
       const [freshJar, latestBlock] = await Promise.all([
-        publicClient.readContract({ address: contractAddress, abi: penguJarV3Abi, functionName: "getJar", args: [jar.id] }),
+        publicClient.readContract({ address: jarAddress, abi: penguJarV3Abi, functionName: "getJar", args: [jar.id] }),
         publicClient.getBlock({ blockTag: "latest" }),
       ]);
       if (getAddress(freshJar.owner) !== getAddress(owner)) throw new Error("Only the jar owner can withdraw.");
@@ -46,7 +48,7 @@ export function OwnerWithdrawalFlow({ jar, open, onClose, onSuccess }: { jar: Ja
 
       setStep("wallet");
       const submittedHash = await writeContractAsync({
-        address: contractAddress,
+        address: jarAddress,
         abi: penguJarV3Abi,
         functionName: "withdrawJar",
         args: [jar.id],
@@ -57,22 +59,26 @@ export function OwnerWithdrawalFlow({ jar, open, onClose, onSuccess }: { jar: Ja
       setStep("submitted");
       setStep("confirming");
       let replacementReason: string | undefined;
-      const receipt = await publicClient.waitForTransactionReceipt({
+      const receiptPromise = publicClient.waitForTransactionReceipt({
         hash: submittedHash,
         confirmations: 1,
         onReplaced: (replacement) => {
           replacementReason = replacement.reason;
           setHash(replacement.transaction.hash);
         },
+      }).then((receipt) => {
+        if (replacementReason === "cancelled") throw new Error("The withdrawal transaction was cancelled.");
+        return receipt;
       });
-      if (replacementReason === "cancelled") throw new Error("The withdrawal transaction was cancelled.");
-      if (receipt.status !== "success") throw new Error("The withdrawal reverted on Arc.");
-
-      const withdrawnJar = await publicClient.readContract({ address: contractAddress, abi: penguJarV3Abi, functionName: "getJar", args: [jar.id] });
-      if (!withdrawnJar.closed || withdrawnJar.balance !== 0n) throw new Error("Arc confirmed the transaction, but the closed jar state could not be verified.");
-      if (getAddress(withdrawnJar.owner) !== getAddress(jar.owner)) throw new Error("Post-withdrawal owner verification failed.");
-      await Promise.all([onSuccess(), queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "jar-activity" })]);
-      setStep("success");
+      await confirmThenRefresh({
+        receipt: receiptPromise,
+        onConfirmed: () => setStep("success"),
+        refresh: async () => {
+          const [withdrawnJar] = await Promise.all([publicClient.readContract({ address: jarAddress, abi: penguJarV3Abi, functionName: "getJar", args: [jar.id] }), onSuccess(), queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "jar-activity" })]);
+          if (!withdrawnJar.closed || withdrawnJar.balance !== 0n) throw new Error("Confirmed withdrawal state refresh has not caught up yet.");
+          if (getAddress(withdrawnJar.owner) !== getAddress(jar.owner)) throw new Error("Post-withdrawal owner verification failed.");
+        },
+      });
     } catch (reason) {
       setError(withdrawalError(reason, t));
       setStep("error");

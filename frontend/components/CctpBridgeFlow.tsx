@@ -10,6 +10,7 @@ import { erc20BalanceAbi } from "@/lib/abi/erc20";
 import { formatAssetAmount, getAssetById, parseAssetAmount } from "@/lib/assets";
 import { ARC_EXPLORER_URL } from "@/lib/config";
 import { classifyWalletFailure } from "@/lib/walletSafety";
+import { confirmThenRefresh } from "@/lib/confirmedTransaction";
 import { addressToBytes32, BASE_SEPOLIA_CCTP_DOMAIN, BASE_SEPOLIA_EXPLORER_URL, calculateCctpForwardingAmounts, CCTP_FORWARDING_HOOK_DATA, CCTP_STANDARD_FINALITY, CCTP_TOKEN_MESSENGER_ABI, CCTP_TOKEN_MESSENGER_V2, type CctpForwardingFee } from "@/lib/cctp";
 import { globalReviewChecks } from "@/lib/transactionReview";
 import { TransactionSafetyReview } from "./TransactionSafetyReview";
@@ -86,7 +87,7 @@ export function CctpBridgeFlow({ locale, onBusyChange }: Props) {
       submitted = true; setPending(vi ? "Đã burn trên Arc. Đang chờ xác nhận…" : "Burn submitted on Arc. Waiting for confirmation…");
       const receipt = await client.waitForTransactionReceipt({ hash });
       if (receipt.status !== "success") throw new Error("revert");
-      await balances.usdc.refetch(); setBurnHash(hash); setReviewing(false);
+      await confirmThenRefresh({ receipt: Promise.resolve(receipt), onConfirmed: () => { setBurnHash(hash); setReviewing(false); }, refresh: async () => { await balances.usdc.refetch(); } });
     } catch (caught) {
       if (caught instanceof Error && caught.message === "arc") return setError(vi ? "Cần kết nối Arc Testnet." : "Arc Testnet is required.");
       if (caught instanceof Error && caught.message === "balance") return setError(vi ? "Số dư vừa thay đổi và không còn đủ." : "Your USDC balance changed and is no longer sufficient.");
