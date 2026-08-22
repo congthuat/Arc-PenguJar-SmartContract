@@ -7,7 +7,7 @@ export type WalletActivity = {
   hash: Hash;
   logIndex: number;
   direction: "send" | "receive";
-  kind: "transfer" | "swap" | "bridge";
+  kind: "transfer" | "swap" | "bridge" | "vault-deposit" | "vault-withdraw";
   amount: bigint;
   counterparty: Address;
   confirmedAt: number;
@@ -16,6 +16,7 @@ export type WalletActivity = {
   assetSymbol: SupportedAsset["symbol"];
   tokenAddress: Address;
   decimals: number;
+  source?: "local" | "onchain";
   swapReceive?: {
     amount: bigint;
     assetId: SupportedAssetId;

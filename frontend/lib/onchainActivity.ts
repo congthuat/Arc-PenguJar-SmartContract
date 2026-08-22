@@ -24,11 +24,11 @@ export function normalizeWalletActivities(records: WalletActivity[], limit = 50)
   return [...unique.values()].slice(0, limit);
 }
 
-export function parseArcScanActivity(payload: unknown, wallet: Address): WalletActivityPage {
+export function parseArcScanActivity(payload: unknown, wallet: Address, vaultAddress?: Address): WalletActivityPage {
   if (!isRecord(payload) || !Array.isArray(payload.items)) throw new Error("Invalid ArcScan activity response");
   const records: WalletActivity[] = [];
   for (const value of payload.items) {
-    const parsed = parseTransfer(value, wallet);
+    const parsed = parseTransfer(value, wallet, vaultAddress);
     if (parsed) records.push(parsed);
   }
   const nextCursor = encodeArcScanCursor(payload.next_page_params);
@@ -48,7 +48,7 @@ export function deserializeWalletActivityPage(payload: unknown): WalletActivityP
   for (const value of payload.activities) {
     if (!isRecord(value)) throw new Error("Invalid wallet activity record");
     const asset = typeof value.tokenAddress === "string" ? getAssetByAddress(value.tokenAddress) : undefined;
-    if (!asset || typeof value.hash !== "string" || !isHash(value.hash) || !isSafeNonNegativeInteger(value.logIndex) || (value.direction !== "send" && value.direction !== "receive") || (value.kind !== "transfer" && value.kind !== "bridge" && value.kind !== "swap") || typeof value.amount !== "string" || !/^\d+$/.test(value.amount) || BigInt(value.amount) <= 0n || typeof value.counterparty !== "string" || !isAddress(value.counterparty) || !isSafeNonNegativeInteger(value.confirmedAt) || typeof value.blockNumber !== "string" || !/^\d+$/.test(value.blockNumber) || value.assetId !== asset.id || value.assetSymbol !== asset.symbol || value.decimals !== asset.decimals) throw new Error("Invalid wallet activity record");
+    if (!asset || typeof value.hash !== "string" || !isHash(value.hash) || !isSafeNonNegativeInteger(value.logIndex) || (value.direction !== "send" && value.direction !== "receive") || !isActivityKind(value.kind) || typeof value.amount !== "string" || !/^\d+$/.test(value.amount) || BigInt(value.amount) <= 0n || typeof value.counterparty !== "string" || !isAddress(value.counterparty) || !isSafeNonNegativeInteger(value.confirmedAt) || typeof value.blockNumber !== "string" || !/^\d+$/.test(value.blockNumber) || value.assetId !== asset.id || value.assetSymbol !== asset.symbol || value.decimals !== asset.decimals) throw new Error("Invalid wallet activity record");
     const swapReceive = parseSwapReceive(value.swapReceive);
     if ((value.kind === "swap") !== Boolean(swapReceive)) throw new Error("Invalid wallet activity record");
     activities.push({ ...value, hash: value.hash, tokenAddress: asset.address, counterparty: getAddress(value.counterparty), amount: BigInt(value.amount), blockNumber: BigInt(value.blockNumber), assetId: asset.id, assetSymbol: asset.symbol, decimals: asset.decimals, ...(swapReceive ? { swapReceive } : {}) } as WalletActivity);
@@ -70,7 +70,7 @@ export function decodeArcScanCursor(cursor: string) {
   return Number.isSafeInteger(block_number) && Number.isSafeInteger(index) ? { block_number, index } : undefined;
 }
 
-function parseTransfer(value: unknown, wallet: Address): WalletActivity | undefined {
+function parseTransfer(value: unknown, wallet: Address, vaultAddress?: Address): WalletActivity | undefined {
   if (!isRecord(value) || !isRecord(value.from) || !isRecord(value.to) || !isRecord(value.token) || !isRecord(value.total)) return undefined;
   const tokenAddress = value.token.address_hash;
   const fromRaw = value.from.hash;
@@ -92,11 +92,12 @@ function parseTransfer(value: unknown, wallet: Address): WalletActivity | undefi
     && asset.id === "usdc"
     && to === CCTP_TOKEN_MINTER_V2
     && value.method === "depositForBurnWithHook";
+  const isVaultTransfer = Boolean(vaultAddress && (isFrom ? to : from) === vaultAddress);
   return {
     hash: value.transaction_hash,
     logIndex: value.log_index,
     direction: isFrom ? "send" : "receive",
-    kind: isCctpBridge ? "bridge" : "transfer",
+    kind: isCctpBridge ? "bridge" : isVaultTransfer ? (isFrom ? "vault-deposit" : "vault-withdraw") : "transfer",
     amount,
     counterparty: isFrom ? to : from,
     confirmedAt,
@@ -105,6 +106,7 @@ function parseTransfer(value: unknown, wallet: Address): WalletActivity | undefi
     assetSymbol: asset.symbol,
     tokenAddress: asset.address,
     decimals: asset.decimals,
+    source: "onchain",
   };
 }
 
@@ -148,8 +150,10 @@ function parseSwapReceive(value: unknown): WalletActivity["swapReceive"] {
 }
 
 function compareActivity(a: WalletActivity, b: WalletActivity) {
+  if (b.confirmedAt !== a.confirmedAt) return b.confirmedAt - a.confirmedAt;
   return b.blockNumber > a.blockNumber ? 1 : b.blockNumber < a.blockNumber ? -1 : b.logIndex - a.logIndex;
 }
 
 function isRecord(value: unknown): value is RecordValue { return Boolean(value && typeof value === "object" && !Array.isArray(value)); }
 function isSafeNonNegativeInteger(value: unknown): value is number { return typeof value === "number" && Number.isSafeInteger(value) && value >= 0; }
+function isActivityKind(value: unknown): value is WalletActivity["kind"] { return value === "transfer" || value === "swap" || value === "bridge" || value === "vault-deposit" || value === "vault-withdraw"; }

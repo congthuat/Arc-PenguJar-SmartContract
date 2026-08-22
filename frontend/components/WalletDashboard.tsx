@@ -4,13 +4,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useConnection } from "wagmi";
+import { zeroAddress } from "viem";
+import { arcTestnet } from "viem/chains";
 
 import { AppHeader } from "./AppHeader";
 import { SendFlow } from "./SendFlow";
 import { ReceivePanel } from "./ReceivePanel";
 import { SwapPanel } from "./SwapPanel";
 import { TransactionReceiptPanel } from "./TransactionReceiptPanel";
-import { MakotoPayHomeSection } from "./MakotoPayHomeSection";
+import { BalanceHistoryChart } from "./BalanceHistoryChart";
+import { ActivityHistoryPanel } from "./ActivityHistoryPanel";
 
 import { useHydrated } from "@/hooks/useHydrated";
 import { useOwnerJars } from "@/hooks/useOwnerJars";
@@ -25,7 +28,9 @@ import { formatUsdc, shortAddress } from "@/lib/format";
 import { summarizeSavingsJars } from "@/lib/savingsSummary";
 import { arcScanTransactionUrl, type WalletActivity } from "@/lib/wallet";
 import { activityIdentity } from "@/lib/onchainActivity";
-import { addWalletActivity, mergeWalletActivity } from "@/lib/walletActivity";
+import { mergeWalletActivity, recordWalletActivity } from "@/lib/walletActivity";
+import { deriveNetworkSafety, deriveOverallSecurityStatus, deriveSecurityAlerts, summarizeJarProtection } from "@/lib/securityCenter";
+import { loadBalanceHistory, recordBalanceSnapshot, type BalanceSnapshot } from "@/lib/balanceHistory";
 import {
   appKitViewForPath,
   appKitViewForCreateMethod,
@@ -40,24 +45,20 @@ import styles from "./MakotoWallet.module.css";
 
 type Action = "send" | "receive" | "swap";
 
-const jarImages = [
-  "/makoto/jar-rainy.png",
-  "/makoto/jar-trip.png",
-  "/makoto/jar-game.png",
-];
-
-function progressPercent(balance: bigint, target: bigint) {
-  if (target <= 0n) return 0;
-  const basisPoints = (balance * 10000n) / target;
-  return Math.min(100, Number(basisPoints) / 100);
-}
-
-function ChevronRightIcon() {
-  return <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m7 4 6 6-6 6" /></svg>;
-}
-
 function ExternalLinkIcon() {
   return <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 10 12 4M7 4h5v5" /><path d="M12 10v2H4V4h2" /></svg>;
+}
+
+function DashboardAppIcon({ name }: { name: "send" | "receive" | "swap" | "jar" | "pay" | "security" }) {
+  const paths = {
+    send: <><path d="M7 17 17 7" /><path d="M8 7h9v9" /></>,
+    receive: <><path d="m7 7 10 10" /><path d="M16 7v10H6" /></>,
+    swap: <><path d="M5 8h12l-3-3" /><path d="m17 16H5l3 3" /></>,
+    jar: <><path d="M8 4h8l1 4v9a3 3 0 0 1-3 3h-4a3 3 0 0 1-3-3V8l1-4Z" /><path d="M7 9h10" /></>,
+    pay: <><rect x="3" y="5" width="18" height="14" rx="3" /><path d="M3 10h18M7 15h4" /></>,
+    security: <><path d="M12 3 5 6v5c0 4.5 3 7.8 7 10 4-2.2 7-5.5 7-10V6l-7-3Z" /><path d="m9 12 2 2 4-4" /></>,
+  };
+  return <span className={styles.appIconTile}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg></span>;
 }
 
 export function WalletDashboard() {
@@ -81,7 +82,10 @@ export function WalletDashboard() {
   const [optimisticActivity, setOptimisticActivity] = useState<{ address: string; records: WalletActivity[] }>();
   const [copied, setCopied] = useState(false);
   const [receiptActivity, setReceiptActivity] = useState<WalletActivity>();
+  const [activityHistoryOpen, setActivityHistoryOpen] = useState(false);
+  const [activityHistoryLimit, setActivityHistoryLimit] = useState(20);
   const [createGuideOpen, setCreateGuideOpen] = useState(false);
+  const [balanceHistory, setBalanceHistory] = useState<BalanceSnapshot[]>([]);
   const [onboardingIntent, setOnboardingIntent] = useState<OnboardingPath | undefined>(() =>
     typeof window === "undefined" ? undefined : parseOnboardingIntent(window.sessionStorage.getItem(ONBOARDING_INTENT_KEY)),
   );
@@ -100,6 +104,17 @@ export function WalletDashboard() {
     };
   }, [createGuideOpen]);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (!onArc || !connection.address) return setBalanceHistory([]);
+      const history = balances.usdc.data === undefined
+        ? loadBalanceHistory(connection.address, arcTestnet.id, "usdc")
+        : recordBalanceSnapshot(connection.address, arcTestnet.id, "usdc", balances.usdc.data);
+      setBalanceHistory(history);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [balances.usdc.data, connection.address, onArc]);
+
   const activities = useMemo(() => {
     const optimistic = optimisticActivity && connection.address && optimisticActivity.address.toLowerCase() === connection.address.toLowerCase()
       ? optimisticActivity.records
@@ -108,8 +123,17 @@ export function WalletDashboard() {
   }, [activity.data, connection.address, optimisticActivity]);
 
   const totals = useMemo(() => summarizeSavingsJars(jars), [jars]);
+  const protection = useMemo(() => summarizeJarProtection(jars), [jars]);
+  const networkSafety = deriveNetworkSafety(connected, onArc);
+  const securityAlerts = deriveSecurityAlerts({
+    network: networkSafety,
+    protectionState: jarsLoading ? "loading" : "ready",
+    summary: protection,
+  });
+  const securityStatus = deriveOverallSecurityStatus(networkSafety, jarsLoading ? "loading" : "ready", securityAlerts);
 
   const visibleJars = jars.slice(0, 3);
+  const guardianSetupJar = jars.find((jar) => !jar.closed && Number(jar.mode) === 1 && jar.guardian === zeroAddress);
   const visibleActivities = activities.slice(0, 5);
   const refreshing = balances.usdc.isFetching || balances.eurc.isFetching;
 
@@ -127,6 +151,15 @@ export function WalletDashboard() {
       refetchJars(),
       activity.refetch(),
     ]);
+  }
+
+  async function showMoreActivity() {
+    if (activityHistoryLimit < activities.length) {
+      setActivityHistoryLimit((current) => current + 20);
+      return;
+    }
+    if (activity.hasNextPage) await activity.loadMore();
+    setActivityHistoryLimit((current) => current + 20);
   }
 
   async function beginOnboarding(path: OnboardingPath) {
@@ -158,7 +191,12 @@ export function WalletDashboard() {
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
-        <AppHeader />
+        <AppHeader guardianSetupJarId={guardianSetupJar?.id} />
+        <div className={styles.pageHeading}>
+          <span>{locale === "vi" ? "TỔNG QUAN VÍ" : "WALLET OVERVIEW"}</span>
+          <h1>{locale === "vi" ? "Tổng quan" : "Dashboard"}</h1>
+          <p>{locale === "vi" ? "Cổng kết nối an toàn của bạn tới hệ sinh thái Arc" : "Your secure gateway to the Arc ecosystem"}</p>
+        </div>
 
         {!connected ? (
           <section className={styles.disconnected}>
@@ -193,11 +231,12 @@ export function WalletDashboard() {
             </div>
             <div className={styles.disconnectedArt}>
               <Image
-                src="/makoto/companion-art.jpg"
+                src="/makoto/logo-pro-v2.png"
                 alt=""
-                fill
+                width={120}
+                height={120}
                 priority
-                className={styles.coverImage}
+                className={styles.disconnectedLogo}
               />
             </div>
           </section>
@@ -217,187 +256,40 @@ export function WalletDashboard() {
           </section>
         ) : (
           <>
-            <section className={styles.topGrid}>
-              <article
-                className={`${styles.balanceHero} ${
-                  onArc ? "" : styles.wrongNetwork
-                }`}
-              >
-                <div className={styles.heroArt} aria-hidden="true">
-                  <Image
-                    src="/makoto/hero-wallet-pro-v2.png"
-                    alt=""
-                    fill
-                    priority
-                    className={styles.heroWallet}
-                  />
-                </div>
-                <div className={styles.heroShade} aria-hidden="true" />
-
-                <div className={styles.heroContent}>
-                  <span className={styles.balanceLabel}>
-                    {t("walletHome.totalBalance")} <span className={styles.balanceDot} aria-hidden="true" />
-                  </span>
-                  <div className={styles.balanceValue}>
-                    {usdcBalance}
-                    <small>USDC</small>
+            <section className={styles.dashboardGrid}>
+              <article className={`${styles.dashboardCard} ${styles.balanceCard} ${onArc ? "" : styles.wrongNetwork}`}>
+                <div className={styles.balanceContent}>
+                  <header className={styles.cardHeader}><div><span>{locale === "vi" ? "Số dư USDC" : "USDC balance"}</span><small>{onArc ? "Arc Testnet" : locale === "vi" ? "Sai mạng" : "Wrong network"}</small></div><button type="button" onClick={() => void refresh()} disabled={refreshing} aria-busy={refreshing}>{refreshing ? t("common.refreshing") : "↻"}</button></header>
+                  <div className={styles.dashboardBalance}>{usdcBalance}<small>USDC</small></div>
+                  <p className={styles.dataDisclosure}>{locale === "vi" ? "Số dư trực tiếp và lịch sử quan sát cục bộ của ví đang kết nối." : "Live balance with locally observed history for this connected wallet."}</p>
+                  <div className={styles.primaryActions}>
+                    <button type="button" onClick={() => setAction("send")} disabled={!onArc}><DashboardAppIcon name="send" /><span>{t("walletHome.send")}</span></button>
+                    <button type="button" onClick={() => setAction("receive")} disabled={!onArc}><DashboardAppIcon name="receive" /><span>{t("walletHome.receive")}</span></button>
+                    <button type="button" onClick={() => setAction("swap")} disabled={!onArc}><DashboardAppIcon name="swap" /><span>{t("walletHome.swap")}</span></button>
                   </div>
-
-                  <div className={styles.heroPills}>
-                    <span className={styles.heroPill}>
-                      <i />
-                      Arc Testnet
-                    </span>
-                    <span className={styles.heroPill}>
-                      {t("walletHome.native")}: USDC
-                    </span>
-                  </div>
-
-                  <div className={styles.heroButtons}>
-                    <button
-                      type="button"
-                      onClick={() => void copyAddress()}
-                    >
-                      {copied ? t("walletHome.copied") : t("walletHome.copy")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void refresh()}
-                      className={refreshing ? styles.refreshingButton : undefined}
-                      disabled={refreshing}
-                      aria-busy={refreshing}
-                    >
-                      <span className={styles.refreshIcon} aria-hidden="true">↻</span>
-                      {refreshing ? t("common.refreshing") : t("common.refresh")}
-                    </button>
-                  </div>
-
-                  {connection.address && (
-                    <span className={styles.heroAddress}>
-                      {shortAddress(connection.address)}
-                    </span>
-                  )}
-
-                  {!onArc && (
-                    <button
-                      type="button"
-                      className={styles.switchNetwork}
-                      onClick={() => void chain.switchToArc()}
-                    >
-                      {t("wallet.switch")}
-                    </button>
-                  )}
+                  {!onArc && <button type="button" className={styles.inlineNetworkAction} onClick={() => void chain.switchToArc()}>{t("wallet.switch")}</button>}
                   {onArc && (balances.usdc.isError || balances.eurc.isError) && <p className={styles.balanceError} role="alert">{t("walletHome.balanceError")}</p>}
                 </div>
+                <BalanceHistoryChart history={balanceHistory} locale={locale} />
               </article>
 
-              <article className={styles.companionCard}>
-                <div className={styles.companionImage}>
-                  <Image
-                    src="/makoto/companion-art.jpg"
-                    alt=""
-                    fill
-                    priority
-                    className={styles.coverImage}
-                  />
-                </div>
-                <div className={styles.companionText}>
-                  <h2>{t("walletHome.companionTitle")}</h2>
-                  <p>{t("walletHome.companionCopy")}<br />{t("walletHome.companionSupport")}</p>
-                </div>
+              <article className={`${styles.dashboardCard} ${styles.statusCard}`}>
+                <header className={styles.cardHeader}><div><span>{locale === "vi" ? "Trạng thái ví" : "Wallet Status"}</span><small>{connection.connector?.name ?? (locale === "vi" ? "Ví kết nối" : "Connected wallet")}</small></div><span className={`${styles.statusBadge} ${securityStatus === "protected" ? styles.statusGood : styles.statusAttention}`}>{securityStatus === "protected" ? (locale === "vi" ? "Được bảo vệ" : "Protected") : (locale === "vi" ? "Nên kiểm tra" : "Review recommended")}</span></header>
+                <div className={`${styles.walletStatusBar} ${styles[`walletStatusBar_${securityStatus}`]}`} role="img" aria-label={securityStatus === "protected" ? (locale === "vi" ? "Trạng thái bảo mật: Được bảo vệ" : "Security status: Protected") : (locale === "vi" ? "Trạng thái bảo mật: Nên kiểm tra" : "Security status: Review recommended")}><span /></div>
+                <dl className={styles.statusList}>
+                  <div><dt>{t("wallet.network")}</dt><dd>{onArc ? "Arc Testnet" : locale === "vi" ? "Sai mạng" : "Wrong network"}</dd></div>
+                  <div><dt>{locale === "vi" ? "Tài khoản" : "Account"}</dt><dd>{connection.address ? shortAddress(connection.address) : "—"}</dd></div>
+                  <div><dt>{locale === "vi" ? "Người giám hộ" : "Guardian"}</dt><dd>{protection.guardianProtected ? `${protection.guardianProtected}/${protection.total}` : locale === "vi" ? "Chưa cấu hình" : "Not configured"}</dd></div>
+                  <div><dt>{locale === "vi" ? "Khôi phục" : "Recovery"}</dt><dd>{protection.recoveryConfigured ? `${protection.recoveryConfigured}/${protection.total}` : locale === "vi" ? "Chưa cấu hình" : "Not configured"}</dd></div>
+                </dl>
+                <Link className={styles.cardLink} href="/settings">{locale === "vi" ? "Mở Trung tâm bảo mật" : "Open Security Center"}</Link>
               </article>
-
-              <section className={styles.actionsArea} aria-labelledby="quick-actions-title">
-                <header className={styles.actionsHeader}>
-                  <h2 id="quick-actions-title">{t("walletHome.quickActions")}</h2>
-                  <p>{t("walletHome.quickActionsCopy")}</p>
-                </header>
-                <div className={styles.actionsGrid}>
-                <button
-                  type="button"
-                  className={`${styles.actionCard} ${styles.actionSend}`}
-                  onClick={() => setAction("send")}
-                  disabled={!onArc}
-                >
-                  <Image
-                    src="/makoto/icon-send-pro-v2.png"
-                    alt=""
-                    width={92}
-                    height={92}
-                    className={styles.actionIcon}
-                  />
-                  <span className={styles.actionText}>
-                    <strong>{t("walletHome.send")}</strong>
-                    <small>{t("walletHome.sendSub")}</small>
-                  </span>
-                  <span className={styles.chevron}><ChevronRightIcon /></span>
-                </button>
-
-                <button
-                  type="button"
-                  className={`${styles.actionCard} ${styles.actionReceive}`}
-                  onClick={() => setAction("receive")}
-                  disabled={!onArc}
-                >
-                  <Image
-                    src="/makoto/icon-receive-pro-v2.png"
-                    alt=""
-                    width={92}
-                    height={92}
-                    className={styles.actionIcon}
-                  />
-                  <span className={styles.actionText}>
-                    <strong>{t("walletHome.receive")}</strong>
-                    <small>{t("walletHome.receiveSub")}</small>
-                  </span>
-                  <span className={styles.chevron}><ChevronRightIcon /></span>
-                </button>
-
-                <button
-                  type="button"
-                  className={`${styles.actionCard} ${styles.actionSwap}`}
-                  onClick={() => setAction("swap")}
-                  disabled={!onArc}
-                >
-                  <Image
-                    src="/makoto/icon-swap-pro-v2.png"
-                    alt=""
-                    width={92}
-                    height={92}
-                    className={styles.actionIcon}
-                  />
-                  <span className={styles.actionText}>
-                    <strong>{t("walletHome.swap")}</strong>
-                    <small>{t("walletHome.swapSub")}</small>
-                  </span>
-                  <span className={styles.chevron}><ChevronRightIcon /></span>
-                </button>
-
-                <Link
-                  className={`${styles.actionCard} ${styles.actionSave}`}
-                  href="/savings"
-                >
-                  <Image
-                    src="/makoto/icon-save-pro-v2.png"
-                    alt=""
-                    width={92}
-                    height={92}
-                    className={styles.actionIcon}
-                  />
-                  <span className={styles.actionText}>
-                    <strong>{t("walletHome.save")}</strong>
-                    <small>{t("walletHome.saveSub")}</small>
-                  </span>
-                  <span className={styles.chevron}><ChevronRightIcon /></span>
-                </Link>
-                </div>
-              </section>
             </section>
 
-            <MakotoPayHomeSection />
-
-            <section className={styles.assetsSection} aria-labelledby="assets-title">
-              <header className={styles.assetsHeader}><p>{t("walletHome.assetsEyebrow")}</p><h2 id="assets-title">{t("walletHome.assets")}</h2></header>
+            <section className={styles.portfolioGrid}>
+            <section className={`${styles.assetsSection} ${styles.dashboardCard}`} id="assets" aria-labelledby="assets-title">
+              <header className={styles.assetsHeader}><div><h2 id="assets-title">{locale === "vi" ? "Tài sản của tôi" : "My Assets"}</h2><p>{locale === "vi" ? "Tài sản Arc Testnet được hỗ trợ" : "Supported Arc Testnet assets"}</p></div></header>
+              <div className={styles.assetTableHead}><span>{locale === "vi" ? "Tài sản" : "Asset"}</span><span>{locale === "vi" ? "Hợp đồng" : "Contract"}</span><span>{locale === "vi" ? "Số dư" : "Balance"}</span></div>
               <div className={styles.assetRows}>{SUPPORTED_ASSETS.map((asset) => {
                 const query = balances.assets[asset.id];
                 return <article className={`${styles.assetRow} ${asset.id === "usdc" ? styles.assetUsdc : styles.assetEurc}`} key={asset.id}>
@@ -415,26 +307,39 @@ export function WalletDashboard() {
               })}</div>
             </section>
 
+              <article className={`${styles.dashboardCard} ${styles.savingsPosition}`}>
+                <header className={styles.cardHeader}><div><span>Makoto Vault</span><small>{locale === "vi" ? "Vị thế tiết kiệm" : "Savings position"}</small></div><span className={`${styles.statusBadge} ${securityStatus === "protected" ? styles.statusGood : styles.statusAttention}`}>{securityStatus === "protected" ? (locale === "vi" ? "Được bảo vệ" : "Protected") : (locale === "vi" ? "Đang hoạt động" : "Active")}</span></header>
+                <div className={styles.jarPositionBody}>
+                  <dl><div><dt>{t("walletHome.totalSaved")}</dt><dd>{formatUsdc(totals.totalSaved)} USDC</dd></div><div><dt>{t("walletHome.activeJars")}</dt><dd>{totals.active}</dd></div><div><dt>{t("walletHome.completedJars")}</dt><dd>{totals.completed}</dd></div></dl>
+                  <div className={styles.jarVault} aria-hidden="true"><span className={styles.jarLid}/><span className={styles.jarGlassHighlight}/><Image src="/makoto/logo-pro-v2.png" alt="" width={48} height={48} /></div>
+                </div>
+                {jarsLoading ? <div className={styles.jarSkeleton}><span /></div> : visibleJars.length ? <Link className={styles.positionJarLink} href={`/jars/${visibleJars[0].id.toString()}`}>{visibleJars[0].name || t("jar.unnamed", { id: visibleJars[0].id.toString() })}<span>{formatUsdc(visibleJars[0].balance)} USDC</span></Link> : <div className={styles.positionEmpty}>{t("walletHome.noJars")}<Link href="/savings">{t("walletHome.createJar")}</Link></div>}
+                <Link className={styles.appsFooterLink} href="/savings">{t("walletHome.viewSavings")}</Link>
+              </article>
+            </section>
+
+            <section className={styles.appsRow}>
+              <article className={`${styles.dashboardCard} ${styles.appsPanel}`} id="apps">
+                <header className={styles.cardHeader}><div><span>{locale === "vi" ? "Công cụ Makoto" : "Makoto Tools"}</span><small>{locale === "vi" ? "Công cụ và dịch vụ ví" : "Wallet tools and services"}</small></div></header>
+                <div className={styles.appShortcuts}>
+                  <Link href="/savings"><DashboardAppIcon name="jar" /><span className={styles.appModuleCopy}><strong>Makoto Vault</strong><small>{locale === "vi" ? "Tiết kiệm theo mục tiêu được bảo vệ." : "Goal-based protected savings."}</small></span></Link>
+                  <Link href="/pay"><DashboardAppIcon name="pay" /><span className={styles.appModuleCopy}><strong>Makoto Pay</strong><small>{locale === "vi" ? "Dịch vụ thanh toán USDC hằng ngày." : "Everyday USDC payment services."}</small></span></Link>
+                  <Link href="/settings#security"><DashboardAppIcon name="security" /><span className={styles.appModuleCopy}><strong>{locale === "vi" ? "Trung tâm bảo mật" : "Security Center"}</strong><small>{locale === "vi" ? "Trạng thái ví, mạng, khôi phục và riêng tư." : "Wallet, network, recovery and privacy status."}</small></span></Link>
+                </div>
+              </article>
+            </section>
+
             <section className={styles.lowerGrid}>
               <article className={styles.activityCard} id="activity">
-                <header className={styles.sectionHeader}>
-                  <div>
-                    <p>{t("walletHome.activityEyebrow")}</p>
-                    <h2>{t("walletHome.activity")}</h2>
+                <div className={styles.activityHeader}>
+                  <div className={styles.activityHeading}>
+                    <span className={styles.activityEyebrow}>{t("walletHome.activityEyebrow")}</span>
+                    <h2 className={styles.activityTitle}>{t("walletHome.activity")}</h2>
                   </div>
-                  <a
-                    className={styles.viewButton}
-                    href={
-                      connection.address
-                        ? `${ARC_EXPLORER_URL}/address/${connection.address}`
-                        : ARC_EXPLORER_URL
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                  >
+                  <button className={styles.viewButton} type="button" onClick={() => { setActivityHistoryLimit(20); setActivityHistoryOpen(true); }}>
                     {t("walletHome.viewAll")}
-                  </a>
-                </header>
+                  </button>
+                </div>
 
                 {!onArc ? (
                   <div className={styles.emptyActivity}><strong>{t("walletHome.activityWrongNetwork")}</strong></div>
@@ -466,14 +371,14 @@ export function WalletDashboard() {
                         />
                         <div className={styles.activityMain}>
                           <strong>
-                            {item.kind === "swap" && item.swapReceive ? <>{t("walletHome.swap")} -{formatAssetAmount(item.amount, getAssetById(item.assetId)!)} {item.assetSymbol} → +{formatAssetAmount(item.swapReceive.amount, getAssetById(item.swapReceive.assetId)!)} {item.swapReceive.assetSymbol}</> : <>{item.kind === "bridge" ? t("walletHome.bridge") : item.direction === "receive" ? t("walletHome.receive") : t("walletHome.send")}{" "}{item.direction === "receive" ? "+" : "-"}{formatAssetAmount(item.amount, getAssetById(item.assetId)!)} {item.assetSymbol}</>}
+                            {item.kind === "swap" && item.swapReceive ? <>{t("walletHome.swap")} -{formatAssetAmount(item.amount, getAssetById(item.assetId)!)} {item.assetSymbol} → +{formatAssetAmount(item.swapReceive.amount, getAssetById(item.swapReceive.assetId)!)} {item.swapReceive.assetSymbol}</> : <>{dashboardActivityLabel(item, locale, t)}{" "}{item.direction === "receive" ? "+" : "-"}{formatAssetAmount(item.amount, getAssetById(item.assetId)!)} {item.assetSymbol}</>}
                           </strong>
                           <small>{item.kind === "swap" ? "XyloNet StableSwap" : item.kind === "bridge" ? t("walletHome.bridgeRoute") : <>{item.direction === "receive" ? t("walletHome.from") : t("walletHome.to")}{" "}{shortAddress(item.counterparty)}</>}{" · "}{formatActivityTime(item.confirmedAt, locale)}</small>
                         </div>
                         <span className={styles.activityStatus}>
                           {t("walletHome.confirmed")}
                         </span>
-                        <div className={styles.activityActions}><button type="button" onClick={() => setReceiptActivity(item)}>{locale === "vi" ? "Biên nhận" : "Receipt"}</button><a
+                        <div className={styles.activityActions}>{item.source !== "onchain" && <button type="button" onClick={() => setReceiptActivity(item)}>{locale === "vi" ? "Biên nhận" : "Receipt"}</button>}<a
                             href={arcScanTransactionUrl(item.hash)}
                             target="_blank"
                             rel="noreferrer"
@@ -487,77 +392,10 @@ export function WalletDashboard() {
                 )}
               </article>
 
-              <article className={styles.savingsCard}>
-                <header className={styles.sectionHeader}>
-                  <div>
-                    <p>{t("walletHome.penguJar")}</p>
-                    <h2>{t("walletHome.savings")}</h2>
-                  </div>
-                  <Link className={styles.viewButton} href="/savings">
-                    {t("walletHome.viewSavings")}
-                  </Link>
-                </header>
-
-                {jarsLoading ? (
-                  <div className={styles.jarSkeleton} aria-label={t("walletHome.loadingSavings")}>{Array.from({ length: 3 }, (_, index) => <span key={index} />)}</div>
-                ) : visibleJars.length === 0 ? (
-                  <div className={styles.emptyJars}>
-                    <p>{t("walletHome.noJars")}</p>
-                    <Link href="/savings">{t("walletHome.createJar")}</Link>
-                  </div>
-                ) : (
-                  <><dl className={styles.savingsSummary}>
-                    <div><dt>{t("walletHome.totalSaved")}</dt><dd>{formatUsdc(totals.totalSaved)} USDC</dd></div>
-                    <div><dt>{t("walletHome.activeJars")}</dt><dd>{totals.active}</dd></div>
-                    <div><dt>{t("walletHome.completedJars")}</dt><dd>{totals.completed}</dd></div>
-                  </dl><div className={styles.jarList}>
-                    {visibleJars.map((jar, index) => {
-                      const progress = progressPercent(
-                        jar.balance,
-                        jar.targetAmount,
-                      );
-                      return (
-                        <Link
-                          href={`/jars/${jar.id.toString()}`}
-                          className={`${styles.jarRow} ${jar.closed ? styles.jarCompleted : ""}`}
-                          key={jar.id.toString()}
-                        >
-                          <Image
-                            src={jarImages[index % jarImages.length]}
-                            alt=""
-                            width={70}
-                            height={70}
-                            className={styles.jarImage}
-                          />
-                          <div className={styles.jarBody}>
-                            <div className={styles.jarTitleRow}>
-                              <strong>{jar.name || t("jar.unnamed", { id: jar.id.toString() })}</strong>
-                              <span>{jar.closed ? t("walletHome.confirmed") : `${Math.round(progress)}%`}</span>
-                            </div>
-                            <div className={styles.progressTrack}>
-                              <span
-                                style={{ width: `${progress}%` }}
-                              />
-                            </div>
-                            <small>
-                              {formatUsdc(jar.balance)} USDC /{" "}
-                              {formatUsdc(jar.targetAmount)} USDC
-                            </small>
-                          </div>
-                          <span className={styles.jarArrow}><ChevronRightIcon /></span>
-                        </Link>
-                      );
-                    })}
-                  </div></>
-                )}
-
-                <footer className={styles.savingsFooter}>
-                  <span>
-                    {formatUsdc(totals.totalSaved)} USDC {t("walletHome.saved")}
-                  </span>
-                  <Link href="/savings">{t("walletHome.createJar")}</Link>
-                </footer>
-              </article>
+              <div className={styles.sideStack}>
+                <article className={`${styles.dashboardCard} ${styles.networkCard}`}><header className={styles.cardHeader}><div><span>{locale === "vi" ? "Mạng" : "Network"}</span><small>{onArc ? (locale === "vi" ? "Đã kết nối" : "Connected") : (locale === "vi" ? "Cần chuyển mạng" : "Switch required")}</small></div><span className={`${styles.networkDot} ${onArc ? styles.networkOnline : ""}`} /></header><dl className={styles.statusList}><div><dt>{t("wallet.network")}</dt><dd>Arc Testnet</dd></div><div><dt>Chain ID</dt><dd>{chain.providerChainId ?? "—"}</dd></div><div><dt>{locale === "vi" ? "Trình khám phá" : "Explorer"}</dt><dd><a href={ARC_EXPLORER_URL} target="_blank" rel="noreferrer">ArcScan <ExternalLinkIcon /></a></dd></div></dl>{!onArc && <button type="button" className={styles.inlineNetworkAction} onClick={() => void chain.switchToArc()}>{t("wallet.switch")}</button>}</article>
+                <article className={`${styles.dashboardCard} ${styles.quickPanel}`}><header className={styles.cardHeader}><div><span>{t("walletHome.quickActions")}</span><small>{t("walletHome.quickActionsCopy")}</small></div></header><div className={styles.compactActions}><button type="button" onClick={() => void copyAddress()}>{copied ? t("walletHome.copied") : t("walletHome.copy")}</button><Link href="/savings">Makoto Vault</Link><a href={connection.address ? `${ARC_EXPLORER_URL}/address/${connection.address}` : ARC_EXPLORER_URL} target="_blank" rel="noreferrer">ArcScan</a></div></article>
+              </div>
             </section>
           </>
         )}
@@ -573,7 +411,7 @@ export function WalletDashboard() {
           balances={{ usdc: balances.usdc.data ?? 0n, eurc: balances.eurc.data ?? 0n }}
           onClose={() => setAction(undefined)}
           onConfirmed={(item) => {
-            if (connection.address) setOptimisticActivity({ address: connection.address, records: addWalletActivity(connection.address, 5042002, item) });
+            if (connection.address) setOptimisticActivity({ address: connection.address, records: recordWalletActivity(connection.address, arcTestnet.id, item) });
             void balances.usdc.refetch();
             void balances.eurc.refetch();
             void activity.refetch();
@@ -594,6 +432,18 @@ export function WalletDashboard() {
       )}
 
       {receiptActivity && connection.address && <TransactionReceiptPanel activity={receiptActivity} walletAddress={connection.address} onClose={() => setReceiptActivity(undefined)} />}
+      {activityHistoryOpen && <ActivityHistoryPanel
+        activities={activities}
+        locale={locale}
+        limit={activityHistoryLimit}
+        loading={activity.isLoading}
+        loadingMore={activity.isLoadingMore}
+        partial={activity.isError}
+        canLoadMore={activityHistoryLimit < activities.length || Boolean(activity.hasNextPage)}
+        onClose={() => setActivityHistoryOpen(false)}
+        onLoadMore={() => void showMoreActivity()}
+        onReceipt={(item) => setReceiptActivity(item)}
+      />}
       {createGuideOpen && <div className={styles.createGuideLayer}>
         <button type="button" className={styles.createGuideBackdrop} onClick={() => setCreateGuideOpen(false)} aria-label={t("common.close")} />
         <section className={styles.createGuide} role="dialog" aria-modal="true" aria-labelledby="create-guide-title">
@@ -629,4 +479,11 @@ function formatActivityTime(timestamp: number, locale: "en" | "vi") {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(timestamp));
+}
+
+function dashboardActivityLabel(item: WalletActivity, locale: "en" | "vi", t: (key: "walletHome.bridge" | "walletHome.receive" | "walletHome.send") => string) {
+  if (item.kind === "bridge") return t("walletHome.bridge");
+  if (item.kind === "vault-deposit") return locale === "vi" ? "Nạp Makoto Vault" : "Makoto Vault Deposit";
+  if (item.kind === "vault-withdraw") return locale === "vi" ? "Rút Makoto Vault" : "Makoto Vault Withdraw";
+  return item.direction === "receive" ? t("walletHome.receive") : t("walletHome.send");
 }

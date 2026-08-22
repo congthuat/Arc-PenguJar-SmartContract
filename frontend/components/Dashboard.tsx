@@ -66,11 +66,6 @@ export function Dashboard({ initialOwner }: { initialOwner?: string }) {
             <h1>{walletConnected ? t("dashboard.connectedHero") : t("dashboard.hero")}</h1>
             <p>{walletConnected ? t("dashboard.syncedCopy") : t("dashboard.heroCopy")}</p>
           </div>
-          <div className="savings-hero-art" aria-hidden="true">
-            <span className="savings-orbit" />
-            <div className="savings-jar-art"><span>•ᴗ•</span><i /></div>
-            <span className="savings-spark">✦</span>
-          </div>
         </section>
 
         {walletConnected ? (

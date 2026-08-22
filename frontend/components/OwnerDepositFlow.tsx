@@ -14,6 +14,8 @@ import { ARC_EXPLORER_URL, contractAddress, EXPECTED_USDC_ADDRESS } from "@/lib/
 import { parseDepositAmount } from "@/lib/deposit";
 import { formatUsdc } from "@/lib/format";
 import { confirmThenRefresh } from "@/lib/confirmedTransaction";
+import { getAssetById } from "@/lib/assets";
+import { createAssetActivity, recordWalletActivity } from "@/lib/walletActivity";
 import type { Jar } from "@/lib/types";
 import { globalReviewChecks } from "@/lib/transactionReview";
 import { TransactionSafetyReview } from "./TransactionSafetyReview";
@@ -150,9 +152,11 @@ export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; 
         if (replacementReason === "cancelled") throw new Error("The deposit transaction was cancelled.");
         return receipt;
       });
+      const receipt = await receiptPromise;
+      const block = await publicClient.getBlock({ blockNumber: receipt.blockNumber });
       await confirmThenRefresh({
-        receipt: receiptPromise,
-        onConfirmed: () => setStep("success"),
+        receipt: Promise.resolve(receipt),
+        onConfirmed: () => { const usdc = getAssetById("usdc")!; const transferLog = receipt.logs.find((log) => log.address.toLowerCase() === usdc.address.toLowerCase()); recordWalletActivity(connection.address!, arcTestnet.id, createAssetActivity(usdc, { hash: receipt.transactionHash, logIndex: transferLog?.logIndex ?? -1, direction: "send", kind: "vault-deposit", amount: amount!, counterparty: contractAddress!, confirmedAt: Number(block.timestamp) * 1000, blockNumber: receipt.blockNumber })); setStep("success"); },
         refresh: () => Promise.all([onSuccess(), balances.usdc.refetch(), allowance.refetch(), queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "jar-activity" })]),
       });
     } catch (reason) {
@@ -187,7 +191,7 @@ export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; 
 
       {step === "review" && amount && expectedBalance !== undefined && <TransactionSafetyReview
         title={vi ? "Kiểm tra gửi tiết kiệm" : "Review Savings Deposit"}
-        summary={vi ? "Giao dịch này gửi USDC vào hũ tiết kiệm PenguJar đã chọn. Giao dịch không cung cấp lợi suất hay lợi nhuận đầu tư." : "This transaction deposits USDC into the selected PenguJar savings jar. It does not provide yield or investment returns."}
+        summary={vi ? "Giao dịch này gửi USDC vào hũ Makoto Vault đã chọn. Giao dịch không cung cấp lợi suất hay lợi nhuận đầu tư." : "This transaction deposits USDC into the selected Makoto Vault jar. It does not provide yield or investment returns."}
         details={[{ label: t("actions.deposit"), value: `${formatUsdc(amount)} USDC` }, { label: t("jar.number", { id: jar.id.toString() }), value: `${jar.name} · #${jar.id}` }, { label: vi ? "Bảo vệ" : "Protection", value: `${Number(jar.mode) === 1 ? "SHIELDED" : "SAFE"} · ${Number(jar.privacyMode) === 1 ? "PRIVATE" : "PUBLIC"}` }, { label: "Guardian / Recovery", value: `${jar.guardian !== zeroAddress ? (vi ? "Đã cấu hình" : "Configured") : (vi ? "Chưa cấu hình" : "Not configured")} / ${jar.recoveryWallet !== zeroAddress ? (vi ? "Đã cấu hình" : "Configured") : (vi ? "Chưa cấu hình" : "Not configured")}` }, { label: t("flow.currentBalance"), value: `${formatUsdc(jar.balance)} USDC` }, { label: t("flow.expectedBalance"), value: `${formatUsdc(expectedBalance)} USDC` }, { label: t("wallet.wallet"), value: connection.address ? <span className="full-address">{connection.address}</span> : t("validation.disconnected") }, { label: t("wallet.network"), value: "Arc Testnet · 5042002" }]}
         checks={globalReviewChecks({ connected: connection.isConnected, account: connection.address, reviewedAccount, isArc: verifiedChain.isArc, amount, balance: balances.usdc.data })}
         walletNotice={vi ? "Makoto kiểm tra allowance chính xác. Nếu cần, ví có thể yêu cầu approve đúng số lượng rồi xác nhận gửi tiền." : "Makoto checks the exact allowance. If needed, the wallet may request an exact-amount approval followed by the deposit confirmation."}

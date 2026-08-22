@@ -16,12 +16,13 @@ const catalogData = readFileSync(new URL("./makotoPayCatalog.ts", import.meta.ur
 
 test("Pay navigation exists and remains active on nested Pay routes", () => {
   assert.match(header, /href:\s*"\/pay"[^\n]*en:\s*"Pay"[^\n]*vi:\s*"Thanh toán"/);
-  assert.match(header, /item\.href === "\/pay" && pathname\.startsWith\("\/pay\/"\)/);
-  assert.ok(header.indexOf('href: "/pay"') < header.indexOf('href: "#activity"'));
+  assert.match(header, /route === "\/pay" && pathname\.startsWith\("\/pay\/"\)/);
+  assert.ok(header.indexOf('href: "/pay"') < header.indexOf('href: "/#activity"'));
 });
 
-test("connected Wallet home promotes eight Makoto Pay shortcuts after quick actions", () => {
-  assert.match(dashboard, /<MakotoPayHomeSection\s*\/>[\s\S]*?<section className=\{styles\.assetsSection\}/);
+test("connected Wallet dashboard links to Makoto Pay without a promotional home strip", () => {
+  assert.doesNotMatch(dashboard, /<MakotoPayHomeSection\s*\/>/);
+  assert.match(dashboard, /styles\.appsPanel[\s\S]*href="\/pay"/);
   assert.match(dashboard, /onboarding\.payStory/);
   assert.match(homePay, /HOME_PAY_SERVICE_IDS\.map/);
   assert.match(homePay, /href="\/pay\/mobile-topup"/);

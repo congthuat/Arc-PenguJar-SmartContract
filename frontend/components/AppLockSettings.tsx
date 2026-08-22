@@ -23,7 +23,7 @@ export function AppLockSettings() {
     } catch (reason) { setError(reason instanceof Error ? reason.message : t("appLock.unavailable")); setPin(""); setNext(""); setConfirm(""); setBusy(false); }
   }
   const newPin = flow === "change" ? next : pin;
-  return <section className={`${styles.settingsCard} ${styles.settingsWide}`}><h2>{t("appLock.title")}</h2>
+  return <section className={`${styles.settingsCard} ${styles.settingsWide} ${styles.appLockCard}`}><h2>{t("appLock.title")}</h2>
     {!lock.available ? <p className={styles.settingsMuted}>{t("appLock.unavailable")}</p> : <>
       <div className={styles.settingsInfo}><span>{t("appLock.status")}</span><strong>{lock.enabled ? t("appLock.enabled") : t("appLock.off")}</strong></div>
       {!lock.enabled && <div className={`${styles.securityAlert} ${styles.securityAlert_attention}`}><strong>{t("appLock.off")}</strong><span>{t("appLock.storageDisclosure")}</span></div>}

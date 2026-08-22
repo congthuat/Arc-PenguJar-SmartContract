@@ -10,6 +10,8 @@ import { penguJarV3Abi } from "@/lib/abi/penguJarV3";
 import { ARC_EXPLORER_URL, contractAddress } from "@/lib/config";
 import { formatDate, formatUsdc } from "@/lib/format";
 import { confirmThenRefresh } from "@/lib/confirmedTransaction";
+import { getAssetById } from "@/lib/assets";
+import { createAssetActivity, recordWalletActivity } from "@/lib/walletActivity";
 import type { Jar } from "@/lib/types";
 import { usePreferences } from "@/hooks/usePreferences";
 import { TransactionSafetyChecks } from "./TransactionSafetyReview";
@@ -70,9 +72,11 @@ export function OwnerWithdrawalFlow({ jar, open, onClose, onSuccess }: { jar: Ja
         if (replacementReason === "cancelled") throw new Error("The withdrawal transaction was cancelled.");
         return receipt;
       });
+      const receipt = await receiptPromise;
+      const block = await publicClient.getBlock({ blockNumber: receipt.blockNumber });
       await confirmThenRefresh({
-        receipt: receiptPromise,
-        onConfirmed: () => setStep("success"),
+        receipt: Promise.resolve(receipt),
+        onConfirmed: () => { const usdc = getAssetById("usdc")!; const transferLog = receipt.logs.find((log) => log.address.toLowerCase() === usdc.address.toLowerCase()); recordWalletActivity(owner, arcTestnet.id, createAssetActivity(usdc, { hash: receipt.transactionHash, logIndex: transferLog?.logIndex ?? -1, direction: "receive", kind: "vault-withdraw", amount: freshJar.balance, counterparty: jarAddress, confirmedAt: Number(block.timestamp) * 1000, blockNumber: receipt.blockNumber })); setStep("success"); },
         refresh: async () => {
           const [withdrawnJar] = await Promise.all([publicClient.readContract({ address: jarAddress, abi: penguJarV3Abi, functionName: "getJar", args: [jar.id] }), onSuccess(), queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "jar-activity" })]);
           if (!withdrawnJar.closed || withdrawnJar.balance !== 0n) throw new Error("Confirmed withdrawal state refresh has not caught up yet.");

@@ -1,14 +1,25 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import type { Address } from "viem";
 import { arcTestnet } from "viem/chains";
 
 import { deserializeWalletActivityPage, normalizeWalletActivities } from "@/lib/onchainActivity";
-import { loadWalletActivity, mergeWalletActivity } from "@/lib/walletActivity";
+import { loadWalletActivity, mergeWalletActivity, WALLET_ACTIVITY_UPDATED_EVENT } from "@/lib/walletActivity";
 
 export function useWalletActivity(address?: Address, enabled = false) {
+  const [localRevision, setLocalRevision] = useState(0);
+  useEffect(() => {
+    if (!address) return;
+    const normalized = address.toLowerCase();
+    const handleUpdate = (event: Event) => {
+      const detail = (event as CustomEvent<{ address?: string; chainId?: number }>).detail;
+      if (detail?.address === normalized && detail.chainId === arcTestnet.id) setLocalRevision((value) => value + 1);
+    };
+    window.addEventListener(WALLET_ACTIVITY_UPDATED_EVENT, handleUpdate);
+    return () => window.removeEventListener(WALLET_ACTIVITY_UPDATED_EVENT, handleUpdate);
+  }, [address]);
   const query = useInfiniteQuery({
     queryKey: ["wallet-activity", arcTestnet.id, address?.toLowerCase()],
     enabled: Boolean(address && enabled),
@@ -30,10 +41,11 @@ export function useWalletActivity(address?: Address, enabled = false) {
   });
 
   const data = useMemo(() => {
-    const onchain = normalizeWalletActivities(query.data?.pages.flatMap((page) => page.activities) ?? []);
+    void localRevision;
+    const onchain = normalizeWalletActivities(query.data?.pages.flatMap((page) => page.activities) ?? [], 250);
     const local = address ? loadWalletActivity(address, arcTestnet.id) : [];
     return mergeWalletActivity(onchain, local);
-  }, [address, query.data]);
+  }, [address, localRevision, query.data]);
 
   return {
     data,

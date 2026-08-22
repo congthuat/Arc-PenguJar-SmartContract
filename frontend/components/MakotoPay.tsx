@@ -22,11 +22,10 @@ export function MakotoPay() {
     <section className={styles.hero} aria-labelledby="pay-title"><div>
       <span className={styles.badge}>{t("pay.badge")}</span><p className={styles.eyebrow}>MAKOTO PAY</p>
       <h1 id="pay-title">{t("pay.heroTitle")}</h1><p className={styles.heroCopy}>{t("pay.heroCopy")}</p>
-    </div><div className={styles.heroMark} aria-hidden="true"><span>USDC</span><i>→</i><strong>PAY</strong></div></section>
+    </div></section>
     <aside className={styles.notice} aria-label={t("pay.prototypeNoticeTitle")}><strong>{t("pay.prototypeNoticeTitle")}</strong><span>{t("pay.prototypeNotice")}</span></aside>
     <ServiceSection title={t("pay.popular")} entries={POPULAR_PAY_SERVICE_IDS} t={t} onComingSoon={openComingSoon} featured />
     <ServiceSection title={t("pay.allServices")} entries={PAY_SERVICE_IDS} t={t} onComingSoon={openComingSoon} />
-    <section className={styles.story}><p className={styles.eyebrow}>{t("pay.storyEyebrow")}</p><h2>{t("pay.storyTitle")}</h2><div><p>{t("pay.storyWallet")}</p><p>{t("pay.storyPay")}</p><p>{t("pay.storySavings")}</p></div></section>
   </div>{comingSoon && <ServiceComingSoonDialog service={comingSoon} onClose={closeComingSoon} />}</main>;
 }
 

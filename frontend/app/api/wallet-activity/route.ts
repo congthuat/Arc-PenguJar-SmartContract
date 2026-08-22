@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAddress, isAddress } from "viem";
 
 import { decodeArcScanCursor, parseArcScanActivity, serializeWalletActivityPage } from "@/lib/onchainActivity";
+import { contractAddress } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
   if (!response.ok) return errorResponse("Activity provider could not load this wallet.", 502);
 
   try {
-    const page = parseArcScanActivity(await response.json(), address);
+    const page = parseArcScanActivity(await response.json(), address, contractAddress);
     return NextResponse.json(serializeWalletActivityPage(page), { headers: { "Cache-Control": "private, no-store" } });
   } catch {
     return errorResponse("Activity provider returned an invalid response.", 502);

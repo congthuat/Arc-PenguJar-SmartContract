@@ -4,7 +4,7 @@ import type { Address, Hash } from "viem";
 
 import { getAssetById } from "./assets.ts";
 import type { WalletActivity } from "./wallet.ts";
-import { addWalletActivity, createAssetActivity, deserializeWalletActivity, legacyWalletActivityKey, loadWalletActivity, mergeWalletActivity, serializeWalletActivity, v2WalletActivityKey, walletActivityKey } from "./walletActivity.ts";
+import { addWalletActivity, createAssetActivity, deserializeWalletActivity, legacyWalletActivityKey, loadWalletActivity, mergeWalletActivity, recordWalletActivity, serializeWalletActivity, v2WalletActivityKey, walletActivityKey } from "./walletActivity.ts";
 
 const owner = "0x0000000000000000000000000000000000000001" as Address;
 const recipient = "0x000000000000000000000000000000000000dEaD" as Address;
@@ -58,4 +58,29 @@ test("activity remains capped at 50 records", () => {
   const storage = new MemoryStorage();
   for (let index = 0; index < 55; index += 1) addWalletActivity(owner, 5042002, activity(index), storage);
   assert.equal(loadWalletActivity(owner, 5042002, storage).length, 50);
+});
+
+test("two existing Sends append one Swap and one Makoto Vault Deposit across reload without duplicates or wallet leakage", () => {
+  const storage = new MemoryStorage();
+  const secondWallet = "0x0000000000000000000000000000000000000002" as Address;
+  const oldSendOne = activity(1, "usdc", 100, 1);
+  const oldSendTwo = activity(2, "usdc", 200, 2);
+  recordWalletActivity(owner, 5042002, oldSendOne, storage);
+  recordWalletActivity(owner, 5042002, oldSendTwo, storage);
+
+  const swap = createAssetActivity(asset("usdc"), { hash: `0x${"a".repeat(64)}` as Hash, logIndex: 3, direction: "send", kind: "swap", amount: 100_000n, counterparty: recipient, confirmedAt: 300, blockNumber: 300n, swapReceive: { amount: 90_512n, assetId: "eurc", assetSymbol: "EURC", tokenAddress: asset("eurc").address, decimals: 6, logIndex: 4 } });
+  const vaultDeposit = createAssetActivity(asset("usdc"), { hash: `0x${"b".repeat(64)}` as Hash, logIndex: 5, direction: "send", kind: "vault-deposit", amount: 250_000n, counterparty: recipient, confirmedAt: 400, blockNumber: 400n });
+  recordWalletActivity(owner, 5042002, swap, storage);
+  recordWalletActivity(owner, 5042002, vaultDeposit, storage);
+
+  const reloaded = loadWalletActivity(owner, 5042002, storage);
+  assert.equal(reloaded.length, 4);
+  assert.deepEqual(reloaded.map((item) => item.kind), ["vault-deposit", "swap", "transfer", "transfer"]);
+  assert.deepEqual(reloaded.slice(0, 5), reloaded);
+  assert.equal(reloaded.find((item) => item.kind === "swap")?.swapReceive?.amount, 90_512n);
+
+  recordWalletActivity(owner, 5042002, swap, storage);
+  assert.equal(loadWalletActivity(owner, 5042002, storage).length, 4);
+  assert.deepEqual(loadWalletActivity(secondWallet, 5042002, storage), []);
+  assert.deepEqual(loadWalletActivity(owner, 1, storage), []);
 });

@@ -11,6 +11,7 @@ const wallet = "0x1111111111111111111111111111111111111111" as Address;
 const other = "0x2222222222222222222222222222222222222222";
 const usdc = getAssetById("usdc")!;
 const eurc = getAssetById("eurc")!;
+const vault = "0x3333333333333333333333333333333333333333" as Address;
 
 function transfer(overrides: Record<string, unknown> = {}) {
   return {
@@ -44,6 +45,13 @@ test("CCTP V2 burn is deterministically classified as Bridge", () => {
 test("ordinary sends to the CCTP minter are not guessed as Bridge", () => {
   const [item] = parseArcScanActivity({ items: [transfer({ from: { hash: wallet }, to: { hash: CCTP_TOKEN_MINTER_V2 }, method: "transfer" })] }, wallet).activities;
   assert.equal(item.kind, "transfer");
+});
+
+test("configured Makoto Vault transfers are classified by real direction", () => {
+  const deposit = parseArcScanActivity({ items: [transfer({ from: { hash: wallet }, to: { hash: vault } })] }, wallet, vault).activities[0];
+  const withdrawal = parseArcScanActivity({ items: [transfer({ from: { hash: vault }, to: { hash: wallet }, transaction_hash: `0x${"f".repeat(64)}` })] }, wallet, vault).activities[0];
+  assert.equal(deposit.kind, "vault-deposit");
+  assert.equal(withdrawal.kind, "vault-withdraw");
 });
 
 test("Arc Memo outer method remains an ordinary transfer to the real recipient", () => {

@@ -8,6 +8,7 @@ const V3_PREFIX = "makoto-wallet:activity:v3";
 const V2_PREFIX = "makoto-wallet:activity:v2";
 const V1_PREFIX = "makoto-wallet:activity:v1";
 const MAX_ACTIVITY = 50;
+export const WALLET_ACTIVITY_UPDATED_EVENT = "makoto-wallet:activity-updated";
 type StorageLike = Pick<Storage, "getItem" | "setItem">;
 type StoredActivity = Omit<WalletActivity, "amount" | "blockNumber" | "swapReceive"> & { amount: string; blockNumber: string; swapReceive?: Omit<NonNullable<WalletActivity["swapReceive"]>, "amount"> & { amount: string } };
 
@@ -16,7 +17,7 @@ export function v2WalletActivityKey(address: Address, chainId: number) { return 
 export function legacyWalletActivityKey(address: Address, chainId: number) { return `${V1_PREFIX}:${address.toLowerCase()}:${chainId}`; }
 
 export function createAssetActivity(asset: SupportedAsset, record: Omit<WalletActivity, "assetId" | "assetSymbol" | "tokenAddress" | "decimals">): WalletActivity {
-  return { ...record, assetId: asset.id, assetSymbol: asset.symbol, tokenAddress: asset.address, decimals: asset.decimals };
+  return { source: "local", ...record, assetId: asset.id, assetSymbol: asset.symbol, tokenAddress: asset.address, decimals: asset.decimals };
 }
 
 export function serializeWalletActivity(records: WalletActivity[]) {
@@ -55,9 +56,19 @@ export function addWalletActivity(address: Address, chainId: number, record: Wal
   return saveWalletActivity(address, chainId, [record, ...loadWalletActivity(address, chainId, storage)], storage);
 }
 
-export function mergeWalletActivity(onchain: WalletActivity[], local: WalletActivity[]) {
+export function recordWalletActivity(address: Address, chainId: number, record: WalletActivity, storage = browserStorage()) {
+  const records = addWalletActivity(address, chainId, record, storage);
+  if (typeof window !== "undefined" && storage === window.localStorage) {
+    window.dispatchEvent(new CustomEvent(WALLET_ACTIVITY_UPDATED_EVENT, { detail: { address: address.toLowerCase(), chainId } }));
+  }
+  return records;
+}
+
+export function mergeWalletActivity(onchain: WalletActivity[], local: WalletActivity[], limit = 250) {
+  const localCanonical = new Set(local.map(canonicalTransferIdentity));
+  const enrichedOnchain = onchain.map((item) => localCanonical.has(canonicalTransferIdentity(item)) ? { ...item, source: "local" as const } : item);
   const canonical = new Set(onchain.map(canonicalTransferIdentity));
-  return normalizeWalletActivities([...onchain, ...local.filter((item) => !canonical.has(canonicalTransferIdentity(item)))], MAX_ACTIVITY);
+  return normalizeWalletActivities([...enrichedOnchain, ...local.filter((item) => !canonical.has(canonicalTransferIdentity(item)))], limit);
 }
 
 function canonicalTransferIdentity(item: WalletActivity) {
@@ -65,7 +76,7 @@ function canonicalTransferIdentity(item: WalletActivity) {
 }
 
 function parseV3Record(value: unknown): WalletActivity | undefined {
-  if (!isRecord(value) || typeof value.hash !== "string" || !isHash(value.hash) || !isSafeInteger(value.logIndex, -1) || (value.direction !== "send" && value.direction !== "receive") || (value.kind !== "transfer" && value.kind !== "swap" && value.kind !== "bridge") || typeof value.amount !== "string" || !/^\d+$/.test(value.amount) || BigInt(value.amount) <= 0n || typeof value.counterparty !== "string" || !isAddress(value.counterparty) || !isSafeInteger(value.confirmedAt, 0) || typeof value.blockNumber !== "string" || !/^\d+$/.test(value.blockNumber) || typeof value.assetId !== "string") return undefined;
+  if (!isRecord(value) || typeof value.hash !== "string" || !isHash(value.hash) || !isSafeInteger(value.logIndex, -1) || (value.direction !== "send" && value.direction !== "receive") || !isActivityKind(value.kind) || typeof value.amount !== "string" || !/^\d+$/.test(value.amount) || BigInt(value.amount) <= 0n || typeof value.counterparty !== "string" || !isAddress(value.counterparty) || !isSafeInteger(value.confirmedAt, 0) || typeof value.blockNumber !== "string" || !/^\d+$/.test(value.blockNumber) || typeof value.assetId !== "string") return undefined;
   const asset = getAssetById(value.assetId);
   if (!asset || value.assetSymbol !== asset.symbol || typeof value.tokenAddress !== "string" || !isAddress(value.tokenAddress) || getAddress(value.tokenAddress) !== asset.address || value.decimals !== asset.decimals) return undefined;
   let swapReceive: WalletActivity["swapReceive"];
@@ -76,7 +87,7 @@ function parseV3Record(value: unknown): WalletActivity | undefined {
     swapReceive = { amount: BigInt(value.swapReceive.amount), assetId: receivedAsset.id, assetSymbol: receivedAsset.symbol, tokenAddress: receivedAsset.address, decimals: receivedAsset.decimals, logIndex: value.swapReceive.logIndex };
   }
   if ((value.kind === "swap") !== Boolean(swapReceive)) return undefined;
-  return { hash: value.hash, logIndex: value.logIndex, direction: value.direction, kind: value.kind, amount: BigInt(value.amount), counterparty: getAddress(value.counterparty), confirmedAt: value.confirmedAt, blockNumber: BigInt(value.blockNumber), assetId: asset.id, assetSymbol: asset.symbol, tokenAddress: asset.address, decimals: asset.decimals, ...(swapReceive ? { swapReceive } : {}) };
+  return { hash: value.hash, logIndex: value.logIndex, direction: value.direction, kind: value.kind, amount: BigInt(value.amount), counterparty: getAddress(value.counterparty), confirmedAt: value.confirmedAt, blockNumber: BigInt(value.blockNumber), assetId: asset.id, assetSymbol: asset.symbol, tokenAddress: asset.address, decimals: asset.decimals, source: "local", ...(swapReceive ? { swapReceive } : {}) };
 }
 
 function deserializeOldActivity(payload: string, hasAsset: boolean): WalletActivity[] {
@@ -96,6 +107,7 @@ function deserializeOldActivity(payload: string, hasAsset: boolean): WalletActiv
 
 function isRecord(value: unknown): value is Record<string, unknown> { return Boolean(value && typeof value === "object" && !Array.isArray(value)); }
 function isSafeInteger(value: unknown, minimum: number): value is number { return typeof value === "number" && Number.isSafeInteger(value) && value >= minimum; }
+function isActivityKind(value: unknown): value is WalletActivity["kind"] { return value === "transfer" || value === "swap" || value === "bridge" || value === "vault-deposit" || value === "vault-withdraw"; }
 function browserStorage(): StorageLike | undefined { return typeof window === "undefined" ? undefined : window.localStorage; }
 
 export { activityIdentity };

@@ -87,7 +87,7 @@ export function JarDetail({ jarIdParam }: { jarIdParam: string }) {
       <JarSecurityPanel jar={jar} now={chainTimestamp ?? 0n} onRefresh={async () => { await Promise.all([refetch(), latestBlock.refetch(), activity.refetch()]); }} onWithdraw={() => setWithdrawalOpen(true)} />
       <JarActivity items={activityItems} isLoading={activity.isLoading} isError={activity.isError} onRetry={() => void activity.refetch()} />
       <section className="trust-note"><span aria-hidden="true">⌁</span><div><strong>{t("jar.lockMeansLocked")}</strong><p>{t("jar.lockRule")}</p></div></section>
-      <footer><span>PenguJar · Arc Testnet</span><span>{t("footer.rule")}</span></footer>
+      <footer><span>Makoto Vault · Arc Testnet</span><span>{t("footer.rule")}</span></footer>
       <OwnerDepositFlow jar={jar} open={depositOpen} onClose={() => setDepositOpen(false)} onSuccess={async () => { await Promise.all([refetch(), activity.refetch()]); }} />
       <SharedContributionFlow jar={jar} open={contributionOpen} onClose={() => setContributionOpen(false)} onSuccess={async () => { await Promise.all([refetch(), activity.refetch()]); }} />
       <OwnerWithdrawalFlow jar={jar} open={withdrawalOpen} onClose={() => setWithdrawalOpen(false)} onSuccess={async () => { await Promise.all([refetch(), latestBlock.refetch(), activity.refetch()]); }} />

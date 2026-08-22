@@ -14,6 +14,8 @@ import { ARC_EXPLORER_URL, contractAddress, EXPECTED_USDC_ADDRESS } from "@/lib/
 import { parseContributionAmount } from "@/lib/deposit";
 import { formatUsdc, shortAddress } from "@/lib/format";
 import { confirmThenRefresh } from "@/lib/confirmedTransaction";
+import { getAssetById } from "@/lib/assets";
+import { createAssetActivity, recordWalletActivity } from "@/lib/walletActivity";
 import type { Jar } from "@/lib/types";
 
 type Step = "form" | "review" | "checking" | "approval-required" | "approval-wallet" | "approval-submitted" | "approval-confirmed" | "ready" | "contribution-wallet" | "contribution-submitted" | "confirming" | "success" | "error";
@@ -122,9 +124,11 @@ export function SharedContributionFlow({ jar, open, onClose, onSuccess }: { jar:
         if (replacementReason === "cancelled") throw new Error("The contribution transaction was cancelled.");
         return receipt;
       });
+      const receipt = await receiptPromise;
+      const block = await publicClient.getBlock({ blockNumber: receipt.blockNumber });
       await confirmThenRefresh({
-        receipt: receiptPromise,
-        onConfirmed: () => setStep("success"),
+        receipt: Promise.resolve(receipt),
+        onConfirmed: () => { const usdc = getAssetById("usdc")!; const transferLog = receipt.logs.find((log) => log.address.toLowerCase() === usdc.address.toLowerCase()); recordWalletActivity(contributor, arcTestnet.id, createAssetActivity(usdc, { hash: receipt.transactionHash, logIndex: transferLog?.logIndex ?? -1, direction: "send", kind: "vault-deposit", amount: amount!, counterparty: jarAddress, confirmedAt: Number(block.timestamp) * 1000, blockNumber: receipt.blockNumber })); setStep("success"); },
         refresh: async () => {
           const [onchainJarAfter] = await Promise.all([publicClient.readContract({ address: jarAddress, abi: penguJarV3Abi, functionName: "getJar", args: [jar.id] }), onSuccess(), balances.usdc.refetch(), allowance.refetch(), queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "jar-activity" })]);
           if (getAddress(onchainJarAfter.owner) !== getAddress(jar.owner)) throw new Error("Post-contribution ownership verification failed.");

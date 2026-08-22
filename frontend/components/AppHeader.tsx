@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { WalletControl } from "./WalletControl";
 import { LanguageMenu } from "./LanguageMenu";
 import { usePreferences } from "@/hooks/usePreferences";
@@ -11,11 +11,14 @@ import styles from "./MakotoWallet.module.css";
 
 type HeaderIconName = "wallet" | "activity" | "pay" | "savings" | "settings" | "network" | "language" | "theme" | "sun" | "address";
 
-const navItems: ReadonlyArray<{ href: string; icon: HeaderIconName; en: string; vi: string; active?: boolean }> = [
-  { href: "/", icon: "wallet", en: "Wallet", vi: "Ví", active: true },
-  { href: "/pay", icon: "pay", en: "Pay", vi: "Thanh toán" },
-  { href: "#activity", icon: "activity", en: "Activity", vi: "Hoạt động" },
-  { href: "/savings", icon: "savings", en: "Savings", vi: "Tiết kiệm" },
+const navItems: ReadonlyArray<{ href: string; icon: HeaderIconName; en: string; vi: string; mobile?: boolean }> = [
+  { href: "/", icon: "wallet", en: "Dashboard", vi: "Tổng quan", mobile: true },
+  { href: "/#assets", icon: "wallet", en: "Wallet", vi: "Ví" },
+  { href: "/#apps", icon: "pay", en: "Tools", vi: "Công cụ", mobile: true },
+  { href: "/pay", icon: "pay", en: "Pay", vi: "Thanh toán", mobile: true },
+  { href: "/savings", icon: "savings", en: "Makoto Vault", vi: "Makoto Vault", mobile: true },
+  { href: "/settings#security", icon: "settings", en: "Security Center", vi: "Trung tâm bảo mật", mobile: true },
+  { href: "/#activity", icon: "activity", en: "Activity", vi: "Hoạt động" },
 ];
 
 function HeaderIcon({ name, className }: { name: HeaderIconName; className: string }) {
@@ -35,9 +38,27 @@ function HeaderIcon({ name, className }: { name: HeaderIconName; className: stri
   return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">{glyph}</svg>;
 }
 
-export function AppHeader() {
+export function AppHeader({ guardianSetupJarId }: { guardianSetupJarId?: bigint } = {}) {
   const { locale, theme, setTheme, t } = usePreferences();
   const pathname = usePathname();
+  const [hash, setHash] = useState("");
+
+  useEffect(() => {
+    const updateHash = () => setHash(window.location.hash);
+    updateHash();
+    window.addEventListener("hashchange", updateHash);
+    return () => window.removeEventListener("hashchange", updateHash);
+  }, [pathname]);
+
+  function isActive(href: string) {
+    if (href === "/") return pathname === "/" && !hash;
+    const [route, fragment] = href.split("#");
+    if (href === "/settings#security") {
+      return pathname === "/settings" && (hash === "#security" || hash === "#guardian");
+    }
+    if (pathname !== route && !(route === "/pay" && pathname.startsWith("/pay/"))) return false;
+    return fragment ? hash === `#${fragment}` : !hash;
+  }
 
   function toggleTheme() {
     if (theme === "light") return setTheme("dark");
@@ -73,31 +94,27 @@ export function AppHeader() {
       </Link>
 
       <nav className={styles.nav} aria-label="Primary">
-        {navItems.map((item) =>
-          item.href.startsWith("#") ? (
-            <a
-              key={item.en}
-              className={pathname === "/" ? styles.navActive : undefined}
-              href={item.href}
-            >
-              <HeaderIcon name={item.icon} className={styles.headerGlyph} />
-              <span>{locale === "vi" ? item.vi : item.en}</span>
-            </a>
-          ) : (
-            <Link
-              key={item.en}
-              className={pathname === item.href || (item.href === "/pay" && pathname.startsWith("/pay/")) ? styles.navActive : undefined}
-              href={item.href}
-            >
-              <HeaderIcon name={item.icon} className={styles.headerGlyph} />
-              <span>{locale === "vi" ? item.vi : item.en}</span>
-            </Link>
-          ),
-        )}
+        {navItems.map((item) => (
+          <Link
+            key={item.en}
+            className={`${item.mobile ? "" : styles.mobileNavHidden} ${isActive(item.href) ? styles.navActive : ""}`.trim() || undefined}
+            href={item.href}
+          >
+            <HeaderIcon name={item.icon} className={styles.headerGlyph} />
+            <span>{locale === "vi" ? item.vi : item.en}</span>
+          </Link>
+        ))}
 
-        <Link className={pathname === "/settings" ? styles.navActive : undefined} href="/settings">
-          <HeaderIcon name="settings" className={styles.headerGlyph} />
-          <span>{locale === "vi" ? "Cài đặt" : "Settings"}</span>
+        {guardianSetupJarId !== undefined && <aside className={styles.guardianContextCard} aria-label={locale === "vi" ? "Khuyến nghị Guardian" : "Guardian recommendation"}>
+          <HeaderIcon name="settings" className={styles.guardianContextIcon} />
+          <strong>{locale === "vi" ? "Bảo vệ khoản tiết kiệm" : "Protect your savings"}</strong>
+          <p>{locale === "vi" ? "Sử dụng Guardian khi tạo hũ SHIELDED được bảo vệ để hỗ trợ khôi phục quyền kiểm soát hũ." : "Use a Guardian when creating a protected SHIELDED jar to support recovery of jar control."}</p>
+          <Link href="/savings">{locale === "vi" ? "Tạo hũ được bảo vệ" : "Create protected jar"}</Link>
+        </aside>}
+
+        <Link className={styles.helpNavItem} href="/settings#help">
+          <HeaderIcon name="activity" className={styles.headerGlyph} />
+          <span>{locale === "vi" ? "Trợ giúp" : "Help & Support"}</span>
         </Link>
       </nav>
 

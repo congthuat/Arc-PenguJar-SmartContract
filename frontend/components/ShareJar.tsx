@@ -26,8 +26,8 @@ export function ShareJar({ jar }: { jar: Jar }) {
   async function share() {
     const url = canonicalUrl();
     const text = locale === "vi"
-      ? `Cùng mình hoàn thành mục tiêu PenguJar:\n${jar.name}\n${formatUsdc(jar.balance)} / ${formatUsdc(jar.targetAmount)} USDC`
-      : `Help me reach my PenguJar goal:\n${jar.name}\n${formatUsdc(jar.balance)} / ${formatUsdc(jar.targetAmount)} USDC`;
+      ? `Cùng mình hoàn thành mục tiêu Makoto Vault:\n${jar.name}\n${formatUsdc(jar.balance)} / ${formatUsdc(jar.targetAmount)} USDC`
+      : `Help me reach my Makoto Vault goal:\n${jar.name}\n${formatUsdc(jar.balance)} / ${formatUsdc(jar.targetAmount)} USDC`;
     try {
       if (navigator.share) await navigator.share({ title: jar.name, text, url });
       else await copyLink();
