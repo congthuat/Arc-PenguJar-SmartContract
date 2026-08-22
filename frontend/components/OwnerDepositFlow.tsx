@@ -191,7 +191,7 @@ export function OwnerDepositFlow({ jar, open, onClose, onSuccess }: { jar: Jar; 
 
       {step === "review" && amount && expectedBalance !== undefined && <TransactionSafetyReview
         title={vi ? "Kiểm tra gửi tiết kiệm" : "Review Savings Deposit"}
-        summary={vi ? "Giao dịch này gửi USDC vào hũ Makoto Vault đã chọn. Giao dịch không cung cấp lợi suất hay lợi nhuận đầu tư." : "This transaction deposits USDC into the selected Makoto Vault jar. It does not provide yield or investment returns."}
+        summary={vi ? "Giao dịch này gửi USDC vào mục tiêu Makoto Vault đã chọn. Giao dịch không cung cấp lợi suất hay lợi nhuận đầu tư." : "This transaction deposits USDC into the selected Makoto Vault savings goal. It does not provide yield or investment returns."}
         details={[{ label: t("actions.deposit"), value: `${formatUsdc(amount)} USDC` }, { label: t("jar.number", { id: jar.id.toString() }), value: `${jar.name} · #${jar.id}` }, { label: vi ? "Bảo vệ" : "Protection", value: `${Number(jar.mode) === 1 ? "SHIELDED" : "SAFE"} · ${Number(jar.privacyMode) === 1 ? "PRIVATE" : "PUBLIC"}` }, { label: "Guardian / Recovery", value: `${jar.guardian !== zeroAddress ? (vi ? "Đã cấu hình" : "Configured") : (vi ? "Chưa cấu hình" : "Not configured")} / ${jar.recoveryWallet !== zeroAddress ? (vi ? "Đã cấu hình" : "Configured") : (vi ? "Chưa cấu hình" : "Not configured")}` }, { label: t("flow.currentBalance"), value: `${formatUsdc(jar.balance)} USDC` }, { label: t("flow.expectedBalance"), value: `${formatUsdc(expectedBalance)} USDC` }, { label: t("wallet.wallet"), value: connection.address ? <span className="full-address">{connection.address}</span> : t("validation.disconnected") }, { label: t("wallet.network"), value: "Arc Testnet · 5042002" }]}
         checks={globalReviewChecks({ connected: connection.isConnected, account: connection.address, reviewedAccount, isArc: verifiedChain.isArc, amount, balance: balances.usdc.data })}
         walletNotice={vi ? "Makoto kiểm tra allowance chính xác. Nếu cần, ví có thể yêu cầu approve đúng số lượng rồi xác nhận gửi tiền." : "Makoto checks the exact allowance. If needed, the wallet may request an exact-amount approval followed by the deposit confirmation."}
@@ -242,7 +242,7 @@ async function assertCurrentOwner(owner: Address, connector: ReturnType<typeof u
     connector.getChainId(),
   ]);
   const accounts = Array.isArray(accountsValue) ? accountsValue : [];
-  if (typeof accounts[0] !== "string" || getAddress(accounts[0]) !== getAddress(owner)) throw new Error("Only the jar owner can deposit into this jar.");
+  if (typeof accounts[0] !== "string" || getAddress(accounts[0]) !== getAddress(owner)) throw new Error("Only the savings goal owner can deposit into this goal.");
   const providerChainId = typeof providerChainValue === "string" ? Number.parseInt(providerChainValue, 16) : Number(providerChainValue);
   if (providerChainId !== arcTestnet.id || connectorChainId !== arcTestnet.id) throw new Error("The connected wallet is not verified on Arc Testnet.");
 }
@@ -258,6 +258,6 @@ function transactionError(reason: unknown, action: "approval" | "deposit", t: Re
 }
 
 function assertJarAcceptsDeposits(jar: Jar) {
-  if (jar.closed) throw new Error("This jar is closed and cannot receive deposits.");
-  if (BigInt(Math.floor(Date.now() / 1000)) >= jar.unlockTime) throw new Error("This jar has reached its unlock time and cannot receive deposits.");
+  if (jar.closed) throw new Error("This savings goal is closed and cannot receive deposits.");
+  if (BigInt(Math.floor(Date.now() / 1000)) >= jar.unlockTime) throw new Error("This savings goal has reached its unlock time and cannot receive deposits.");
 }

@@ -111,8 +111,8 @@ export function SharedContributionFlow({ jar, open, onClose, onSuccess }: { jar:
         publicClient.readContract({ address: jarAddress, abi: penguJarV3Abi, functionName: "getJar", args: [jar.id] }),
         publicClient.getBlock({ blockTag: "latest" }),
       ]);
-      if (getAddress(onchainJarBefore.owner) !== getAddress(jar.owner)) throw new Error("Jar ownership changed; contribution was stopped.");
-      if (onchainJarBefore.closed || latestBlock.timestamp >= onchainJarBefore.unlockTime) throw new Error("This jar can no longer receive contributions.");
+      if (getAddress(onchainJarBefore.owner) !== getAddress(jar.owner)) throw new Error("Savings goal ownership changed; contribution was stopped.");
+      if (onchainJarBefore.closed || latestBlock.timestamp >= onchainJarBefore.unlockTime) throw new Error("This savings goal can no longer receive contributions.");
 
       setStep("contribution-wallet");
       const hash = await writeContractAsync({ address: jarAddress, abi: penguJarV3Abi, functionName: "contributeToJar", args: [jar.id, amount], account: contributor, chainId: arcTestnet.id });
@@ -192,8 +192,8 @@ async function assertCurrentContributor(connector: Connector | undefined, verifi
 }
 
 function assertJarAcceptsContributions(jar: Jar) {
-  if (jar.closed) throw new Error("This jar is closed and cannot receive contributions.");
-  if (BigInt(Math.floor(Date.now() / 1000)) >= jar.unlockTime) throw new Error("This jar has reached its unlock time and cannot receive contributions.");
+  if (jar.closed) throw new Error("This savings goal is closed and cannot receive contributions.");
+  if (BigInt(Math.floor(Date.now() / 1000)) >= jar.unlockTime) throw new Error("This savings goal has reached its unlock time and cannot receive contributions.");
 }
 
 function transactionError(reason: unknown, action: "approval" | "contribution", t: ReturnType<typeof usePreferences>["t"]) {

@@ -209,3 +209,11 @@ test("application typography uses static Manrope weights without scaled title co
   assert.match(globals, /\.modal-backdrop \{[^}]*display: grid; place-items: center;[^}]*\}/);
   assert.doesNotMatch(globals, /\.create-modal\s*\{[^}]*transform\s*:/);
 });
+
+test("dark savings workspace does not inherit the light page spotlight", () => {
+  assert.match(globals, /:root\s*\{[^}]*--page-ambient:\s*#f0edff/s);
+  assert.match(globals, /html\[data-theme="dark"\]\s*\{[^}]*--page-ambient:\s*rgba\(83, 67, 164, \.16\)/s);
+  assert.match(globals, /html\[data-theme="system"\]\s*\{[^}]*--page-ambient:\s*rgba\(83, 67, 164, \.16\)/s);
+  assert.match(globals, /body\s*\{[^}]*radial-gradient\(circle at 85% 0%, var\(--page-ambient\) 0, transparent 26rem\)/s);
+  assert.doesNotMatch(globals, /body\s*\{[^}]*radial-gradient\(circle at 85% 0%, #f0edff/s);
+});

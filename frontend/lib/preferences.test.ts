@@ -24,14 +24,26 @@ test("new preference wins and legacy remains a safe fallback", () => {
 });
 
 test("Vietnamese wallet and savings labels come from the central catalog", () => {
-  assert.equal(vi["walletHome.savings"], "Hũ tiết kiệm");
+  assert.equal(vi["walletHome.savings"], "Mục tiêu tiết kiệm");
   assert.equal(vi["walletHome.viewSavings"], "Xem khoản tiết kiệm");
-  assert.equal(vi["walletHome.createJar"], "Tạo hũ");
+  assert.equal(vi["walletHome.createJar"], "Tạo mục tiêu mới");
   assert.equal(vi["walletHome.totalSaved"], "Tổng đã tiết kiệm");
-  assert.equal(vi["walletHome.activeJars"], "Hũ đang hoạt động");
-  assert.equal(vi["walletHome.completedJars"], "Hũ hoàn thành");
+  assert.equal(vi["walletHome.activeJars"], "Đang hoạt động");
+  assert.equal(vi["walletHome.completedJars"], "Đã hoàn thành");
   assert.equal(vi["walletHome.companionSupport"], "Đơn giản. Không lưu ký. Dành cho Arc.");
   assert.deepEqual(Object.keys(vi).sort(), Object.keys(en).sort());
+});
+
+test("Makoto Vault uses savings-goal language while contract identifiers stay intact", () => {
+  assert.equal(en["savings.statusTitle"], "Connected to your savings");
+  assert.equal(en["savings.createNew"], "Create new goal");
+  assert.equal(en["dashboard.myJars"], "My savings");
+  assert.equal(en["jar.number"], "Goal #{id}");
+  assert.equal(en["jar.view"], "View goal");
+  assert.equal(en["jar.personal"], "Savings goal");
+  assert.equal(en["walletHome.penguJar"], "Makoto Vault");
+  assert.doesNotMatch(Object.values(en).join("\n"), /\bPenguJar\b|\bjars?\b/i);
+  assert.match(readFileSync(new URL("abi/penguJarV3.ts", import.meta.url), "utf8"), /penguJarV3Abi|JarCreated/);
 });
 
 test("WalletDashboard has no duplicated locale dictionary or forbidden English fallbacks", () => {

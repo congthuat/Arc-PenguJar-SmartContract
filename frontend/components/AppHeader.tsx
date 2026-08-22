@@ -108,8 +108,8 @@ export function AppHeader({ guardianSetupJarId }: { guardianSetupJarId?: bigint 
         {guardianSetupJarId !== undefined && <aside className={styles.guardianContextCard} aria-label={locale === "vi" ? "Khuyến nghị Guardian" : "Guardian recommendation"}>
           <HeaderIcon name="settings" className={styles.guardianContextIcon} />
           <strong>{locale === "vi" ? "Bảo vệ khoản tiết kiệm" : "Protect your savings"}</strong>
-          <p>{locale === "vi" ? "Sử dụng Guardian khi tạo hũ SHIELDED được bảo vệ để hỗ trợ khôi phục quyền kiểm soát hũ." : "Use a Guardian when creating a protected SHIELDED jar to support recovery of jar control."}</p>
-          <Link href="/savings">{locale === "vi" ? "Tạo hũ được bảo vệ" : "Create protected jar"}</Link>
+          <p>{locale === "vi" ? "Sử dụng Guardian khi tạo mục tiêu SHIELDED được bảo vệ để hỗ trợ khôi phục quyền kiểm soát mục tiêu." : "Use a Guardian when creating a protected SHIELDED savings goal to support recovery of goal control."}</p>
+          <Link href="/savings">{locale === "vi" ? "Tạo mục tiêu được bảo vệ" : "Create protected goal"}</Link>
         </aside>}
 
         <Link className={styles.helpNavItem} href="/settings#help">
