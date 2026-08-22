@@ -1,28 +1,20 @@
-# PenguJar Screenshot Plan
+# Makoto Wallet Screenshot Inventory
 
-Capture real application and Arc Testnet state. Do not fabricate balances, transaction confirmations, wallet addresses, or explorer verification.
+The root README uses the approved final production captures stored in `docs/screenshots/`.
 
-## Recommended captures
+## Published captures
 
-1. **Desktop dashboard** — connected Arc wallet, savings summary, and multiple jar states.
-2. **Create Jar** — 24-hour date/time picker and review step; no wallet secret or unrelated extension UI.
-3. **Active Jar detail** — saved amount, target, unlock time, owner, and contribution accounting.
-4. **Activity history** — real creation, deposit, and contribution rows with transaction links.
-5. **Share Jar** — canonical share/copy controls and subtle success feedback.
-6. **Mobile dashboard** — 390px viewport showing compact hero, summary, Create Jar, and first jar.
-7. **Dark mode** — jar detail or dashboard with readable cards and controls.
-8. **Closed Jar #3** — Closed state, zero balance, preserved deposit and withdrawal history.
-9. **ArcScan verified contract** — PenguJarV2 address, verified source/ABI, and Arc Testnet network context.
+1. `makoto-dashboard.png` — primary Dashboard view with wallet balance, history, wallet actions, assets, Makoto Vault, and Makoto Tools.
+2. `makoto-vault.png` — Makoto Vault savings overview and Savings Goal cards.
+3. `makoto-pay.png` — Makoto Pay catalog with Mobile Top-up marked as a demo and planned services marked Coming Soon.
+4. `makoto-security.png` — Security Center wallet, application-lock, and Arc Testnet status.
+5. `makoto-activity.png` — real persisted supported Activity with completion states and ArcScan links.
 
 ## Capture standards
 
-- Use the production build and final public URL where possible.
-- Prefer 1440×900 desktop and 390×844 mobile captures.
-- Include the PenguJar header and enough context to identify the screen.
-- Keep private keys, seed phrases, local `.env`, terminal history, and personal browser data out of frame.
-- Truncate public wallet addresses in the app as designed; public testnet transaction hashes may be shown.
-- Capture both English and Vietnamese across the set, and include at least one Light and one Dark image.
-
-## Repository placement
-
-After review, place approved optimized images in `docs/images/` and link them from the root README. Use descriptive names such as `dashboard-desktop.webp` and `jar-closed-mobile.webp`. Do not commit raw recordings or oversized source exports.
+- Capture the approved production application and real Arc Testnet state.
+- Do not fabricate balances, transactions, wallet addresses, or explorer verification.
+- Keep private keys, seed phrases, local environment files, browser extensions, and unrelated personal data out of frame.
+- Preserve current Makoto Wallet, Makoto Vault, Makoto Tools, Makoto Pay, Security Center, and Activity terminology.
+- Store approved README images in `docs/screenshots/` with descriptive filenames.
+- Do not hotlink temporary images or use localhost paths in repository documentation.
